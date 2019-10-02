@@ -1,0 +1,19 @@
+STORMS/CHARLEY_REAL/Charley_adv 01 - 1745.txt
+STORMS/CHARLEY_REAL/Charley_adv 02.txt
+STORMS/CHARLEY_REAL/Charley_adv 03.txt
+STORMS/CHARLEY_REAL/Charley_adv 04.txt
+STORMS/CHARLEY_REAL/Charley_adv 05.txt
+STORMS/CHARLEY_REAL/Charley_adv 06.txt
+STORMS/CHARLEY_REAL/Charley_adv 07.txt
+STORMS/CHARLEY_REAL/Charley_adv 08.txt
+STORMS/CHARLEY_REAL/Charley_adv 09.txt
+STORMS/CHARLEY_REAL/Charley_adv 10.txt
+STORMS/CHARLEY_REAL/Charley_adv 11.txt
+STORMS/CHARLEY_REAL/Charley_adv 12.txt
+STORMS/CHARLEY_REAL/Charley_adv 13.txt
+STORMS/CHARLEY_REAL/Charley_adv 14.txt
+STORMS/CHARLEY_REAL/Charley_adv 15.txt
+STORMS/CHARLEY_REAL/Charley_adv 16.txt
+STORMS/CHARLEY_REAL/Charley_adv 17.txt
+STORMS/CHARLEY_REAL/Charley_adv 19.txt
+STORMS/CHARLEY_REAL/Charley_adv 20.txt
