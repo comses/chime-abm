@@ -9,12 +9,11 @@ extensions [gis]
 ;; declare global variables
 globals [
          clock                    ; keeps track of model time, same as ticks, but in days and hours
-         density                  ; import dataset from GIS - population density
-         elevation                ; import dataset from GIS - elevation (DEM)
-         disability               ; import dataset from GIS - density of people w/ disabilities
+         ;density                  ; import dataset from GIS - population density
+         ;elevation                ; import dataset from GIS - elevation (DEM)
          county_seats             ; import dataset from GIS - county seats
          county_seat_list         ; list of county seats
-         counties                 ; import dataset from GIS - counties
+         ;counties                 ; import dataset from GIS - counties
          orang                    ; agentset for tracking evacuees in end-sim stats
          all                      ; agentset for tracking all cit-ags in end-sim stats
          really-affected          ; agentset for tracking affected cit-ags in end-sim stats
@@ -39,6 +38,7 @@ globals [
          evac-filename
          tract-points
          using-hpc?               ; used to choose between two file paths
+         which-region?            ; determines which GIS files to load - was previously located in the GUI
          ]
 
 ;; Delcare agent breeds
@@ -135,7 +135,7 @@ end
 
 to setup
   set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
-  coastline    ;; draws the map
+  ;;coastline    ;; draws the map
 
   generate-storm  ;; generates the hurricane
 
@@ -147,8 +147,6 @@ to setup
 
   social-network ;; defines the agents' social networks
 
-;  vid:start-recorder
-;  movie-start "20160913_ABM.mov"   ;; defines a movie file (usually disabled)
 
         set risk-total 0        ;; these are all related to the risk function plot on the interface
         set risk-funct 0
@@ -171,7 +169,6 @@ end
 ;; The go procedure calls the various procedures that happen every time step in the model
 
 to go
-  ;vid:record-view
 
   move-hurricane    ;; calls procedure to move the hurricane one time step
 
@@ -202,7 +199,7 @@ to go
        [ set ij 0
          just-collect-info  ;; runs the just-collect-info code
         ] ]
-;vid:record-view
+
   ask cit-ags with [color = black] [set color blue]  ;; updates colors
   ask cit-ags with [color = white] [set color blue]
 
@@ -211,10 +208,8 @@ to go
 
   tick   ;; advances the model one time step
 
-;  movie-grab-view  ;; adds frame to the movie (usually disabled)
   if ticks = 135 [ stop ]
-  print "clock"
-  print clock
+
 
 end
 
@@ -223,6 +218,16 @@ end
 ;; triggered by a button on the interface, load-gis imports various GIS layers for use by the model
 to load-gis
      __clear-all-and-reset-ticks
+
+
+
+    if which-storm? = "WILMA" or which-storm? = "WILMA_IDEAL" or which-storm? = "CHARLEY_REAL" or which-storm? = "CHARLEY_IDEAL" or which-storm? = "CHARLEY_BAD" or which-storm? = "IRMA" [set which-region? "FLORIDA"]
+    if which-storm? = "HARVEY"  [set which-region? "GULF"]
+    if which-storm? = "MICHAEL"  [set which-region? "UNKNOWN"]
+
+     let elevation 0
+     let density 0
+     let counties 0
      if which-region? = "FLORIDA" [
       gis:load-coordinate-system "REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
@@ -254,6 +259,13 @@ to load-gis
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
      ;;show re0-0  ;; identifies the 0,0 center of the map (degrees)
      file-close-all
+
+   gis:apply-raster elevation elev
+   gis:apply-raster density dens
+   gis:apply-raster counties county
+   gis:paint elevation 0
+   ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102]
+
    set using-hpc? false
   ;random-seed 99
 
@@ -262,9 +274,10 @@ end
 ;; load-hurricane procedure called from the interface to load the hurricane data from pre-defined text files
 to load-hurricane
 
+
   let storm-file ""
     if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY.txt" ]
-    if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA_NEW.csv" ]          ;; defines storm file based on pull-down menu on the interface
+    if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA_NEW.csv" ]
     if which-storm? = "WILMA_IDEAL" [set storm-file "STORMS/WILMA_IDEAL/WILMA_NEW.csv" ]
     if which-storm? = "CHARLEY_REAL" [ set storm-file "STORMS/CHARLEY_REAL/CHARLEY.txt" ]
     if which-storm? = "CHARLEY_IDEAL" [ set storm-file "STORMS/CHARLEY_IDEAL/CHARLEY.txt" ]
@@ -407,13 +420,13 @@ end
 
 
 ;; called by the setup procedure to draw the map/world for the model, applies characteristics to the grid cell patches
-to coastline
-   gis:apply-raster elevation elev
-   gis:apply-raster density dens
-   gis:apply-raster counties county
-   gis:paint elevation 0
-   ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102]
-end
+;to coastline
+;   gis:apply-raster elevation elev
+;   gis:apply-raster density dens
+;   gis:apply-raster counties county
+;   gis:paint elevation 0
+;   ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102]
+;end
 
 
 to create-more-cit-ags-based-on-census
@@ -1686,6 +1699,16 @@ end
 
 to load-gis-hpc
   __clear-all-and-reset-ticks
+
+    if which-storm? = "WILMA" or which-storm? = "WILMA_IDEAL" or which-storm? = "CHARLEY_REAL" or which-storm? = "CHARLEY_IDEAL" or which-storm? = "CHARLEY_BAD" or which-storm? = "IRMA" [set which-region? "FLORIDA"]
+    if which-storm? = "HARVEY"  [set which-region? "GULF"]
+    if which-storm? = "MICHAEL"  [set which-region? "UNKNOWN"]
+
+
+     let elevation 0
+     let density 0
+     let counties 0
+
      if which-REGION? = "FLORIDA" [
       gis:load-coordinate-system "/home/sbergin/CHIME/REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
@@ -1706,9 +1729,7 @@ to load-gis-hpc
        foreach but-last gis:feature-list-of county_seats [ ?1 ->
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]
-    if which-REGION? =  "FLORIDA 2010"[
 
-    ]
   ]
 
      gis:set-world-envelope-ds gis:envelope-of elevation
@@ -1720,6 +1741,13 @@ to load-gis-hpc
      set grid-cell-size list degree-x degree-y  ;; holds x and y grid cell size in degrees
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
      ;;show re0-0  ;; identifies the 0,0 center of the map (degrees)
+
+     gis:apply-raster elevation elev
+     gis:apply-raster density dens
+     gis:apply-raster counties county
+     gis:paint elevation 0
+     ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102]
+
      file-close-all
   set using-hpc? true
 
@@ -1933,10 +1961,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-12
-610
-181
-643
+15
+488
+184
+521
 4. set up
 setup
 NIL
@@ -1950,10 +1978,10 @@ NIL
 1
 
 BUTTON
-13
-683
-96
-718
+16
+561
+99
+596
 NIL
 make-links
 NIL
@@ -1967,10 +1995,10 @@ NIL
 1
 
 BUTTON
-13
-648
-180
-681
+16
+526
+183
+559
 5. run simulation
 go
 T
@@ -1984,10 +2012,10 @@ NIL
 1
 
 BUTTON
-98
-685
-181
-718
+101
+563
+184
+596
 go-once
 go
 NIL
@@ -2001,10 +2029,10 @@ NIL
 1
 
 BUTTON
-12
-499
-182
-532
+15
+377
+185
+410
 1. load GIS
 load-gis
 NIL
@@ -2018,10 +2046,10 @@ NIL
 1
 
 BUTTON
-12
-536
-184
-569
+15
+414
+187
+447
 2. load storm
 load-hurricane
 NIL
@@ -2035,10 +2063,10 @@ NIL
 1
 
 BUTTON
-12
-572
-183
-605
+15
+450
+186
+483
 3. load forecasts
 load-forecasts
 NIL
@@ -2160,13 +2188,13 @@ NIL
 HORIZONTAL
 
 CHOOSER
-16
-336
-188
-381
+13
+285
+185
+330
 which-storm?
 which-storm?
-"HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "DORIAN"
+"HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
 6
 
 SWITCH
@@ -2181,10 +2209,10 @@ distribute_population
 -1000
 
 SLIDER
-15
-386
-108
-419
+16
+639
+109
+672
 forc-w
 forc-w
 0
@@ -2196,10 +2224,10 @@ NIL
 HORIZONTAL
 
 SLIDER
+17
+604
 109
-386
-202
-419
+637
 evac-w
 evac-w
 0
@@ -2211,10 +2239,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-422
-108
-455
+16
+675
+109
+708
 envc-w
 envc-w
 0
@@ -2225,21 +2253,11 @@ envc-w
 NIL
 HORIZONTAL
 
-CHOOSER
-16
-283
-186
-328
-which-region?
-which-region?
-"FLORIDA" "GULF" "FLORIDA 2010"
-0
-
 SLIDER
-224
-632
-396
-665
+16
+717
+188
+750
 network-distance
 network-distance
 0
@@ -2251,10 +2269,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-223
-666
-395
-699
+15
+751
+187
+784
 network-size
 network-size
 1
@@ -2266,10 +2284,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-223
-715
-434
-748
+11
+792
+222
+825
 cit-ag-to-census-pop-ratio
 cit-ag-to-census-pop-ratio
 0
@@ -2292,10 +2310,10 @@ kids-under-18-factor
 -1000
 
 BUTTON
-13
-461
-182
-494
+16
+339
+185
+372
 SETUP EVERYTHING
 setup-everything
 NIL
@@ -2350,10 +2368,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-224
-749
-434
-782
+12
+826
+222
+859
 census-tract-min-pop
 census-tract-min-pop
 0
@@ -2365,10 +2383,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-224
-784
-434
-817
+12
+861
+222
+894
 census-tract-max-pop
 census-tract-max-pop
 0
@@ -2380,10 +2398,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-653
-672
-822
-705
+553
+679
+722
+712
 use-census-data
 use-census-data
 0
@@ -2505,10 +2523,10 @@ no-internet-factor
 -1000
 
 SLIDER
-1111
-747
-1306
-780
+727
+679
+922
+712
 test-factor-proportion
 test-factor-proportion
 0
