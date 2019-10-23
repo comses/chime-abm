@@ -3,7 +3,7 @@
 
 
 ;; call needed extensions (in this model, only the GIS extension is needed)
-extensions [gis]
+extensions [gis profiler]
 
 
 ;; declare global variables
@@ -39,6 +39,8 @@ globals [
          tract-points
          using-hpc?               ; used to choose between two file paths
          which-region?            ; determines which GIS files to load - was previously located in the GUI
+         terra-firma-patches      ; patchset of land patches
+         ocean-patches            ; patchset of ocean patches
          ]
 
 ;; Delcare agent breeds
@@ -59,6 +61,7 @@ patches-own [ dens                   ; population density (from GIS)
               elev                   ; elevation (from GIS)
               county                 ; county
               alerts                 ; whether or not the county official has issued evacuation orders
+              land?                  ; true or false variable for patches
              ]
 
 hurricanes-own [  ]
@@ -72,7 +75,7 @@ cit-ags-own [
 
   feedback1                         ; sets the frequency that agents run the risk-decision module
   feedback2                         ; agent remembers feedback1 in case of evacuation (reverts to original value)
-  ij                                ; helps agents determine when it's their turn to run the risk-decision module
+  decision-model-turn                                ; helps agents determine when it's their turn to run the risk-decision module
 
   network_list                      ; agent's social network (modified preferential attachment, see below)
   broadcaster_list                  ; the set of broadcasters linked to the agent
@@ -108,7 +111,7 @@ cit-ags-own [
 
 officials-own [
    orders                           ; keeps track of whether the official has issued evacuation orders
-   ij                               ; helps determine when it's this agent's turn to run the code to issue evac orders
+   decision-model-turn                               ; helps determine when it's this agent's turn to run the code to issue evac orders
    dist-track                       ; distance from the storm track (actual
    county_id                        ; sets the county of the official (from GIS)
    when-issued                      ; tracks when evacuation orders were issued
@@ -141,7 +144,7 @@ to setup
 
   set clock list item 3 item ticks hurr-coords item 4 item ticks hurr-coords   ;; defines the clock
 
-  ifelse use-census-data
+  ifelse use-census-data and which-region?  = "FLORIDA"
   [create-tract-agents];; creates agents based on census data and assigns them
   [create-agents];; creates the agents and distribtues them randomly or based on population density
 
@@ -175,28 +178,30 @@ to go
   ;; update the forecast
   ask forecasters [  set newForc past-forecasts  ]
 
-  let from-forecaster new-new-publish  ;; temporary variable to hold the interpreted version of the forecast (new-new-publish is a reporter defined below)
+
+
+  let from-forecaster publish-new-mental-model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
   ;; officials take forecast info from broadcaster and generate an evacuation order code
   coastal-patches-alerts
-  ask officials with [any? patches with [county  = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)]] [ issue-alerts ]
+  ask officials with [any? ocean-patches with [county  = [[county] of patch-here] of myself]] [ issue-alerts ]
 
-  ;; broadcasters just translate and publish forecast (1/3 chance of running this code every time step)
-  ask broadcasters [ if random 3 < 3 [ set broadcast from-forecaster]  ]
+  ;; broadcasters translate and publish forecast
+  ask broadcasters [ set broadcast from-forecaster ]
 
   ;; aggregators are like broadcasters, just translate and publish forecast (1/3 chance of running this code every time step)
   ask aggregators [ if random 3 = 2 [ set info from-forecaster] ]
 
   ;; cit-ags only run DM code when it's time, based on their internal schedule, and if they haven't evacuated already
   ask cit-ags with [empty? completed or item 0 item 0 completed != "evacuate" ] [
-         ifelse ij < feedback1 [ set ij ij + 1 ]
-       [ set ij 0
+         ifelse decision-model-turn < feedback1 [ set decision-model-turn decision-model-turn + 1 ]
+       [ set decision-model-turn 0
          DM ;; runs the decision model code
         ] ]
   ;; cit-ags who have evacuated revert back to original feedback1 and only collect info (no DM
   ask cit-ags with [completed = "evacuate" ] [
-         ifelse ij < feedback1 [ set ij ij + 1 ]
-       [ set ij 0
+         ifelse decision-model-turn < feedback1 [ set decision-model-turn decision-model-turn + 1 ]
+       [ set decision-model-turn 0
          just-collect-info  ;; runs the just-collect-info code
         ] ]
 
@@ -229,7 +234,7 @@ to load-gis
      let density 0
      let counties 0
      if which-region? = "FLORIDA" [
-      gis:load-coordinate-system "REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
+      ;gis:load-coordinate-system "REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
@@ -239,7 +244,7 @@ to load-gis
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]]
      if which-region? = "GULF" [
-     gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
+     ;gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"                      ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
@@ -264,8 +269,11 @@ to load-gis
    gis:apply-raster density dens
    gis:apply-raster counties county
    gis:paint elevation 0
-   ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102]
+   ask patches [set land? true]
+   ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
 
+   set terra-firma-patches patches with [land? = true]
+   set ocean-patches patches with [land? = false]
    set using-hpc? false
   ;random-seed 99
 
@@ -339,7 +347,7 @@ to load-forecasts
   while [not file-at-end?] [ set file-list lput file-read-line file-list]
  file-close
 
- foreach file-list [ ?1 ->
+ foreach file-list [ ?1 -> ;; Open each of the files located in "Storm"_advisories
  file-open ?1
   let forecast-file []
 
@@ -367,6 +375,7 @@ to load-forecasts
      set all_parsed lput parsed all_parsed
      set parsed []
     ]
+
 
 
   let s-line remove "" item 4 all_parsed
@@ -412,7 +421,7 @@ to load-forecasts
                 forecasts winds dia34-list dia64-list) forecast-matrix
   ]
 
- ;;show forecast-matrix
+ ;show forecast-matrix
 
  file-close-all
 
@@ -466,7 +475,7 @@ to create-more-cit-ags-based-on-census
       set env_cues 0
       set feedback1 round random-normal 12 2
       set feedback2 feedback1
-      set ij random 10
+      set decision-model-turn random 10
       set completed []
       set dist-track 99
       set risk-packet (list item 0 risk-estimate env_cues 0 0)
@@ -551,7 +560,7 @@ to create-tract-agents
       set env_cues 0
       set feedback1 round random-normal 12 2
       set feedback2 feedback1
-      set ij random 10
+      set decision-model-turn random 10
       set completed []
       set dist-track 99
       set risk-packet (list item 0 risk-estimate env_cues 0 0)
@@ -705,7 +714,7 @@ to create-agents
     set env_cues 0
     set feedback1 round random-normal 12 2
     set feedback2 feedback1
-    set ij random 10
+    set decision-model-turn random 10
     set completed []
     set dist-track 99
 
@@ -785,7 +794,7 @@ end
 
 to-report check-zone
   let zn ""
-   let dist-coast [distance myself] of min-one-of patches with [not (elev >= 0 or elev <= 0)] [distance myself]
+   let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
    ifelse random-float 1 < .8 [
     if dist-coast <= 1.5 [set zn "A"]
     if dist-coast > 1.5 and dist-coast <= 3 [set zn "B"]
@@ -1010,10 +1019,13 @@ end
 
 to issue-alerts
           if orders != 1 [          ;; only runs this code if no evac orders issued already
-          if any? patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [
+        ;  show "running issue alerts"
+        ;  if any? patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [
+          if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] [
+        ;  show "condition met"
+        ;  ask patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [ set pcolor green]
 
                let working-forecast []   ;; creates a temp variable for the current forecast
-
 
                let fav one-of broadcasters with [not empty? broadcast]            ;; picks one Broadcaster
                if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;; imports the forecast from that Broadcaster
@@ -1040,7 +1052,10 @@ end
 
 to coastal-patches-alerts
 
-   ask patches with [alerts != 1 and county > 0 and not (elev >= 0 or elev <= 0)] [
+   ask ocean-patches with [alerts != 1 and county > 0] [
+   ;ask patches with [alerts != 1 and county > 0 and not (elev >= 0 or elev <= 0)] [
+   ;show " coastal alert"
+   ;set pcolor green
 
    let working-forecast []   ;; creates a temp variable for the current forecast
        if alerts != 1 [          ;; only runs this code if no evac orders issued already
@@ -1083,7 +1098,7 @@ end
 
 ;; Main method for the various agents to publish a "mental model" of where they think the hurricane will go and how severe it will be
 
-to-report new-new-publish
+to-report publish-new-mental-model
   let long-list []
   let t_Forc [newForc] of one-of forecasters
 
@@ -1140,7 +1155,7 @@ to-report new-new-publish
     set i i + 1
     ]
 
-  set long-list filter [ ?1 -> item 0 item 1 ?1 > min-pxcor and item 0 item 1 ?1 < max-pxcor and item 1 item 1 ?1 > min-pycor and item 1 item 1 ?1 < max-pycor ] long-list ; (cit-ag 1539): [[[100 [-77.99728971754207 -127.64992833039727] 44 [22 700]]
+  set long-list filter [ ?1 -> item 0 item 1 ?1 > min-pxcor and item 0 item 1 ?1 < max-pxcor and item 1 item 1 ?1 > min-pycor and item 1 item 1 ?1 < max-pycor ] long-list
   set long-list remove-duplicates long-list
 
 
@@ -1209,11 +1224,11 @@ end
 
 to-report past-forecasts
    let forecast_list []
-   ask forcstxs [die]
+   ask forcstxs [die] ;forecast visualization agent type
    let s-f 0
    let s-f_real (357 / scale )
    let error_list []
-   ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
+   ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]];; not sure what this is doing ??? SMB
 
    while [length error_list > length forecast-matrix] [set error_list but-last error_list]
    let sever_list []
@@ -1222,9 +1237,11 @@ to-report past-forecasts
 
   let current-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
 
-  let current_F but-first current-forecast
+
+  let current_F but-first current-forecast ;remove the current time from the forecast entry
 
   while [length error_list > length current_F] [set error_list but-last error_list ]
+
 
    let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current_F
 
@@ -1262,23 +1279,23 @@ to DM
 
   ;; Check for evacuation orders
       let nearby-official min-one-of officials [distance myself]
-      let orders? [orders] of nearby-official
+      let official-orders [orders] of nearby-official
       set when-evac-1st-ordered [when-issued] of nearby-official
 
   ;; Check for environmental cues
-      let env? 0
-
+        let environmental-cues 0
         let direction 0
-        if any? hurricanes  [set direction towards-nowrap one-of hurricanes
+        if any? hurricanes  [set direction towards-nowrap one-of hurricanes ; reports the heading of the hurricane to an agent
                              if direction >= 0 and direction < 90 [ set direction item 8 item ticks hurr-coords ]
                              if direction >= 90 and direction < 180 [ set direction item 9 item ticks hurr-coords ]
                              if direction >= 180 and direction < 270 [ set direction item 6 item ticks hurr-coords ]
                              if direction >= 270 and direction < 360 [ set direction item 7 item ticks hurr-coords ]
-            if (scale * distance one-of hurricanes) < direction [ set env? 1] ]
+
+            if (scale * distance one-of hurricanes) < direction [ set environmental-cues 1] ]
 
 
   ;; main pre-decisional processes
-     ;; select a subset of broadcasters, officials, aggregators, and social network
+     ;; select a subset of broadcasters, aggregators, and social network
      ;; add their interpretation of the storm to agent's own list
        set options []
        set interp []
@@ -1291,7 +1308,7 @@ to DM
                    )
 
      ;; attention to info?
-      ;; ignore some previously collected info
+     ;; ignore some previously collected info
         repeat random (length options - 1) [
         set options but-first shuffle options ]
 
@@ -1426,22 +1443,22 @@ to DM
    ;; adds in evacuation orders
      ;; checks if they even think they're in a relevant evac zone, changes value for this math...
     ifelse zone = 0  [set zone 1] [set zone 0.4] ;[set zone 1] [set zone 0.4]
-    set final-risk final-risk + (trust-authority? * 6 * orders? * zone)   ;; trust in authority?  ;;; default is 9, trying 6 and 1.5x for forecasts.
+    set final-risk final-risk + (trust-authority? * 6 * official-orders * zone)   ;; trust in authority?  ;;; default is 9, trying 6 and 1.5x for forecasts.
 
-    if self = watching [ set risk-orders (trust-authority? * 6 * orders? * zone) ]
+    if self = watching [ set risk-orders (trust-authority? * 6 * official-orders * zone) ]
 
    ;; adds in environmental cues
-    set final-risk final-risk + (3 * env?)
+    set final-risk final-risk + (3 * environmental-cues)
 
-    if self = watching [ set risk-env (3 * env?) ]
+    if self = watching [ set risk-env (3 * environmental-cues) ]
 
-    set risk-packet (list precision final-risk 3 precision (3 * env?) 3 precision (trust-authority? * 6 * orders? * zone) 3)
+    set risk-packet (list precision final-risk 3 precision (3 * environmental-cues) 3 precision (trust-authority? * 6 * official-orders * zone) 3)
 
     set risk-estimate lput final-risk risk-estimate
 
      let c1 (temp-f-risk) * forc-w
-     let c2 ((trust-authority? * 6 * orders? * zone)) * evac-w
-     let c3 ((3 * env?)) * envc-w
+     let c2 ((trust-authority? * 6 * official-orders * zone)) * evac-w
+     let c3 ((3 * environmental-cues)) * envc-w
 
      set final-risk sum (list c1 c2 c3)
 
@@ -1510,7 +1527,7 @@ to just-collect-info
 
 end
 
-to-report cit-ag-evac-records
+to-report save-individual-cit-ag-evac-records
 
   let filename evac-filename
   file-open word filename ".csv"
@@ -1531,7 +1548,7 @@ to-report cit-ag-evac-records
 end
 
 
-to-report new-last-records
+to-report save-global-evac-statistics
 
 
  ifelse ticks > 115 [
@@ -1695,6 +1712,7 @@ to check-for-swimmers
 end
 
 
+
 ;;NEW HPC Specific versions so that the paths don't need to be changed and two versions of the model don't need to be maintained.
 
 to load-gis-hpc
@@ -1729,7 +1747,6 @@ to load-gis-hpc
        foreach but-last gis:feature-list-of county_seats [ ?1 ->
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]
-
   ]
 
      gis:set-world-envelope-ds gis:envelope-of elevation
@@ -1746,10 +1763,13 @@ to load-gis-hpc
      gis:apply-raster density dens
      gis:apply-raster counties county
      gis:paint elevation 0
-     ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102]
+     ask patches [set land? true]
+     ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
 
+     set terra-firma-patches patches with [land? = true]
+     set ocean-patches patches with [land? = false]
      file-close-all
-  set using-hpc? true
+     set using-hpc? true
 
   print "using HPC"
   ;random-seed 99
@@ -2262,7 +2282,7 @@ network-distance
 network-distance
 0
 50
-50.0
+25.0
 5
 1
 NIL
@@ -2277,7 +2297,7 @@ network-size
 network-size
 1
 5
-1.0
+3.0
 1
 1
 NIL
@@ -2536,6 +2556,23 @@ test-factor-proportion
 1
 NIL
 HORIZONTAL
+
+BUTTON
+1182
+786
+1271
+819
+PROFILER
+profiler:start\nrepeat 3 [setup-everything]\nprofiler:stop\nprint profiler:report\nprofiler:reset
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 1. "setup" initializes the simulation.
@@ -2894,7 +2931,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.4
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
