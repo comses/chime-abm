@@ -3,7 +3,7 @@
 
 
 ;; call needed extensions (in this model, only the GIS extension is needed)
-extensions [gis profiler]
+extensions [gis profiler csv]
 
 
 ;; declare global variables
@@ -75,9 +75,9 @@ cit-ags-own [
 
   feedback1                         ; sets the frequency that agents run the risk-decision module
   feedback2                         ; agent remembers feedback1 in case of evacuation (reverts to original value)
-  decision-model-turn                                ; helps agents determine when it's their turn to run the risk-decision module
+  decision-model-turn               ; helps agents determine when it's their turn to run the risk-decision module
 
-  network_list                      ; agent's social network (modified preferential attachment, see below)
+  my-network-list                      ; agent's social network (modified preferential attachment, see below)
   broadcaster_list                  ; the set of broadcasters linked to the agent
   aggregator_list                   ; the set of aggregators linked to the agent
   options                           ; list of forecasts available to the agent
@@ -130,9 +130,11 @@ drawers-own  [ cone-size ]          ; stores the cone size at the relevant hour 
   ;; Usually called from a button on the interface AFTER 1. loading the GIS, 2. loading the storm, and 3. loading the forecasts
 
 to setup-everything
+  __clear-all-and-reset-ticks
   load-gis
   load-hurricane
   load-forecasts
+  load-forecasts-new
   setup
 end
 
@@ -234,7 +236,7 @@ to load-gis
      let density 0
      let counties 0
      if which-region? = "FLORIDA" [
-      ;gis:load-coordinate-system "REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
+      gis:load-coordinate-system "REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
@@ -244,7 +246,7 @@ to load-gis
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]]
      if which-region? = "GULF" [
-     ;gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
+     gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"                      ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
@@ -268,12 +270,14 @@ to load-gis
    gis:apply-raster elevation elev
    gis:apply-raster density dens
    gis:apply-raster counties county
-   gis:paint elevation 0
+   gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
    ask patches [set land? true]
-   ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
+   ;ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
+   ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
 
    set terra-firma-patches patches with [land? = true]
    set ocean-patches patches with [land? = false]
+
    set using-hpc? false
   ;random-seed 99
 
@@ -377,12 +381,13 @@ to load-forecasts
     ]
 
 
-
   let s-line remove "" item 4 all_parsed
   let schedule list read-from-string item 3 s-line read-from-string but-last item 0 s-line
 
+
   let forecasts filter [ ??1 -> length ??1 > 2 and item 1 ??1 = "VALID" ]  all_parsed
   set forecasts map [ ??1 -> remove "" ??1 ] forecasts
+
 
   while [length item 2 last forecasts > 10 and substring item 2 last forecasts (length item 2 last forecasts - 5)  (length item 2 last forecasts - 0)  = "ORBED"] [set forecasts but-last forecasts]
   let winds but-first filter [ ??1 -> length ??1 > 2 and item 0 ??1 = "MAX" ]  all_parsed
@@ -410,6 +415,9 @@ to load-forecasts
  while [length dia64-list < length forecasts] [
  set dia64-list (sentence dia64-list "") ]
 
+
+
+
   set forecast-matrix lput fput schedule (map [ [??1 ??2 ??3 ??4] -> (sentence
                    read-from-string substring item 2 ??1  0 position "/" item 2 ??1
                    read-from-string substring item 2 ??1 (position "/" item 2 ??1 + 1) position "Z" item 2 ??1
@@ -419,23 +427,266 @@ to load-forecasts
                    (list ??3) (list ??4) ) ; wind dia34 (NE SE SW NW) and dia64 (NE SE SW NW)
       ]
                 forecasts winds dia34-list dia64-list) forecast-matrix
-  ]
 
- ;show forecast-matrix
+
+
+  ]
+ print "final forecast:"
+ show forecast-matrix
+
+
+
+
 
  file-close-all
 
 end
 
+to-report calculate-advisory-time [time hours-away]
+  ;This procedure translates times from the file to the date and the hour.
+  ;2017090506 6    ->  5 1200
+  let advisory-time[]
+  let time-word (word time)
+  let day substring time-word 6 8
+  let hour substring time-word 8 10
+  set day read-from-string day
+  set hour read-from-string hour
+  set hour hour + hours-away
 
-;; called by the setup procedure to draw the map/world for the model, applies characteristics to the grid cell patches
-;to coastline
-;   gis:apply-raster elevation elev
-;   gis:apply-raster density dens
-;   gis:apply-raster counties county
-;   gis:paint elevation 0
-;   ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102]
-;end
+  if hour > 23 [ ;  adjust the date of a forecast to account for periods of time greater than 24 hours
+   let days-to-add 0
+   let hours-past-0 hour
+    while [hours-past-0 > 23] [
+       set days-to-add days-to-add + 1
+       set hours-past-0 hours-past-0 - 24
+    ]
+    set day day + days-to-add
+    set hour hours-past-0
+  ]
+  set hour hour * 100 ; to make 12, look like 1200 etc.
+
+  set advisory-time lput day advisory-time
+  set advisory-time lput hour advisory-time
+
+  report advisory-time
+end
+
+
+to-report calculate-coordinates [long lat]
+
+  let lat-coord  but-last lat
+  let long-coord but-last long
+  set lat-coord  read-from-string lat-coord
+  set long-coord  read-from-string long-coord
+
+  ; for some reason there are no decimal places in the incoming coordinates that should be there... e.g. 577 should be 57.7
+
+  let coordinates []
+  set lat-coord lat-coord / 10
+  set long-coord -1 * (long-coord / 10)
+
+  ; the math that converts coordinates from lat/long to netlogo
+  set lat-coord (lat-coord - item 1 re0-0) / (item 1 grid-cell-size) ; lat
+  set long-coord (long-coord - item 0 re0-0) / (item 0 grid-cell-size)  ; lon
+
+  set coordinates lput long-coord coordinates
+  set coordinates lput lat-coord coordinates
+
+
+  report coordinates
+end
+
+
+to load-forecasts-new
+   set forecast-matrix []
+
+   let storm-file ""
+    if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY ADVISORIES.txt" ]
+    if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA ADVISORIES.txt" ]              ;; defines the correct list of advisories from pull-down menu
+    if which-storm? = "WILMA_IDEAL" [set storm-file "STORMS/WILMA_IDEAL/FAKE_WILMA ADVISORIES.txt" ]
+    if which-storm? = "CHARLEY_REAL" [ set storm-file "STORMS/CHARLEY_REAL/CHARLEY ADVISORIES.txt" ]
+    if which-storm? = "CHARLEY_IDEAL" [ set storm-file "STORMS/CHARLEY_IDEAL/CHARLEY_IDEAL ADVISORIES.txt" ]
+    if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
+    if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
+    if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
+
+   let all-advisories csv:from-file storm-file
+
+  ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
+
+   let advisories-parsed []
+
+   ;; filter out rows that are not used which have a time and pressure of 0
+   foreach all-advisories [ this-advisory ->
+    let this-forecast-time item 5 this-advisory
+    let pressure-value item 9 this-advisory
+    ifelse this-forecast-time = 0 and pressure-value = 0 [][
+    set advisories-parsed lput this-advisory advisories-parsed
+    ]
+   ]
+
+  let forecast-time 0
+  let all-forecasts []
+  let unique-advisory []
+
+
+  ;; move each row into a new list entry by date to replicate the previous format - this results in a list which contains a list of all information for each day in one row
+  foreach advisories-parsed [this-advisory ->
+
+    ; same forecast time - so keep adding it to the lsit for that day
+    ifelse forecast-time = (item 2 this-advisory) [
+      set unique-advisory  lput this-advisory unique-advisory
+    ]
+    ;new forecast time
+    [
+      if forecast-time != 0 [set all-forecasts lput unique-advisory all-forecasts]
+      set forecast-time item 2 this-advisory
+      set unique-advisory []
+      set unique-advisory  lput this-advisory unique-advisory
+
+    ]
+  ]
+
+
+
+  set forecast-time 0
+  let entries-for-one-day []
+  let entries-for-all-days []
+
+  ; Now parse each day into one entry that follows the format used to load previous information
+  ; [Date of Forecast [ individual forecast time, coordinates, max wind [wind 34] [wind 64] ]
+  ; [5 1200 [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]]
+  foreach all-forecasts [whole-advisory-day ->
+    ;print "new day"
+
+    let first-entry item 0 whole-advisory-day
+    let date item 2 first-entry
+    let hours-away item 5 first-entry ; used to id the current time
+    let schedule calculate-advisory-time date hours-away
+    set entries-for-one-day []
+    set entries-for-one-day lput schedule entries-for-one-day  ;; uses a reporter that update the time correctly
+
+    let entries-for-one-time-on-one-day []
+    let list-34 []
+    let list-64 []
+    let new-time-entry false
+    let first-entry-from-this-advisory true
+    let current-forecast-time 0
+
+    ; This section goes through each forecast entry for a forecast time and parses the information
+    foreach whole-advisory-day [ this-advisory ->
+
+      ;; we don't save the forecast info that is currently occuring - jsut future ones, so get rid of a few
+      let entry-hours-away item 5 this-advisory
+
+      if entry-hours-away != hours-away[
+
+        ; set wind-speed
+        let wind-speed item 11 this-advisory
+
+        ; check to see if its a new time
+        ifelse current-forecast-time != (item 5 this-advisory) and first-entry-from-this-advisory = false [
+           set new-time-entry true
+        ][set new-time-entry false
+          set first-entry-from-this-advisory false]
+
+
+        ifelse new-time-entry[
+          ; save the info and reset lists to 0
+
+          ifelse length list-34 > 0 [set schedule lput list-34 schedule]
+          [let empty (word list-34 "")
+            set schedule lput empty schedule]
+          ifelse length list-64 > 0 [set schedule lput list-64 schedule]
+          [
+            let empty (word list-64 "")
+            set schedule lput empty schedule]
+
+          ;set schedule lput list-34 schedule
+          ;set schedule lput list-64 schedule
+
+
+          set entries-for-one-day lput schedule entries-for-one-day
+
+          set current-forecast-time item 5 this-advisory
+          set entries-for-one-time-on-one-day []
+          set list-34 []
+          set list-64 []
+
+
+          ; save current info
+          set date item 2 this-advisory
+          let this-hours-away item 5 this-advisory ; used to id the current time
+          set schedule calculate-advisory-time date this-hours-away
+          ;;[5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]
+          ;; add the coordinates and the max windspeed to schedule
+
+          let coords calculate-coordinates  item 7 this-advisory item 6 this-advisory
+
+          set schedule lput item 1 coords schedule
+          set schedule lput item 0 coords schedule
+          set schedule lput item 8 this-advisory schedule
+
+          ;set schedule
+          ;save windspeed list
+          if wind-speed = 34[
+            set list-34 lput item 13 this-advisory list-34
+            set list-34 lput item 14 this-advisory list-34
+            set list-34 lput item 15 this-advisory list-34
+            set list-34 lput item 16 this-advisory list-34
+
+          ]
+          if wind-speed = 64[
+            set list-64 lput item 13 this-advisory list-64
+            set list-64 lput item 14 this-advisory list-64
+            set list-64 lput item 15 this-advisory list-64
+            set list-64 lput item 16 this-advisory list-64
+          ]
+
+        ][
+          ; save current info
+          ;save windspeed list
+          set date item 2 this-advisory
+          let this-hours-away item 5 this-advisory ; used to id the current time
+          set schedule calculate-advisory-time date this-hours-away
+          ;; General format:  [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]
+          ;; add the coordinates and the max windspeed to schedule
+          let coords calculate-coordinates  item 7 this-advisory item 6 this-advisory
+          set schedule lput item 1 coords schedule
+          set schedule lput item 0 coords schedule
+          set schedule lput item 8 this-advisory schedule
+
+
+          if wind-speed = 34[
+            set list-34 lput item 13 this-advisory list-34
+            set list-34 lput item 14 this-advisory list-34
+            set list-34 lput item 15 this-advisory list-34
+            set list-34 lput item 16 this-advisory list-34
+          ]
+          if wind-speed = 64[
+            set list-64 lput item 13 this-advisory list-64
+            set list-64 lput item 14 this-advisory list-64
+            set list-64 lput item 15 this-advisory list-64
+            set list-64 lput item 16 this-advisory list-64
+          ]
+          set current-forecast-time item 5 this-advisory
+        ]
+      ]
+    ]
+         set entries-for-all-days lput entries-for-one-day entries-for-all-days
+  ]
+
+
+print  entries-for-all-days
+
+
+set forecast-matrix  entries-for-all-days
+
+
+
+;[[5 1200] [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]] [6 600 -185.26327893283005 420.2760628690047 150 [140 110 80 120] [40 35 30 35]] [6 1800 -168.5871353608573 367.8672525813493 145 [150 130 90 140] [40 35 30 35]] [7 600 -150.0580869475543 313.51737524600304 140 [160 140 90 150] ""] [8 600 -120.41160948626954 206.7586876230014 135 [170 160 100 160] ""] [9 600 -98.17675139030597 115.52853638152719 135 "" ""] [10 600 -68.53027392902113 41.76798856927155 130 "" ""]]
+
+end
 
 
 to create-more-cit-ags-based-on-census
@@ -450,7 +701,7 @@ to create-more-cit-ags-based-on-census
       set self-trust   .6 + random-float .4
       set trust-authority? random-float 1
       set options [ ]
-      set network_list [ ]
+      set my-network-list [ ]
       set broadcaster_list [ ]
       set aggregator_list [ ]
       set interp []
@@ -535,7 +786,7 @@ to create-tract-agents
       set self-trust   .6 + random-float .4
       set trust-authority? random-float 1
       set options [ ]
-      set network_list [ ]
+      set my-network-list [ ]
       set broadcaster_list [ ]
       set aggregator_list [ ]
       set interp []
@@ -568,13 +819,12 @@ to create-tract-agents
     ];; end bracket of cit-ags creation
   ]
   ]
-  ;; make sure there are no agents in the water
-  ask cit-ags [check-for-swimmers]
 
 
   ;; Now create more agents based on the census numbers
   ask cit-ags [ create-more-cit-ags-based-on-census]
-
+  ;; make sure there are no agents in the water
+  ask cit-ags [check-for-swimmers]
 
   ifelse kids-under-18-factor [ask cit-ags [set kids-under-18? add-census-factor 45]] [ask cit-ags [set kids-under-18? false]]
   ifelse adults-over-65-factor [ask cit-ags [set adults-over-65? add-census-factor 46]] [ask cit-ags [set adults-over-65? false]]
@@ -689,7 +939,7 @@ to create-agents
     set self-trust   .6 + random-float .4
     set trust-authority? random-float 1
     set options [ ]
-    set network_list [ ]
+    set my-network-list [ ]
     set broadcaster_list [ ]
     set aggregator_list [ ]
     set interp []
@@ -812,45 +1062,45 @@ to social-network
   ask cit-ags [
       let t-set []
       set t-set cit-ags with [distance myself < network-distance]
-    let total random-float sum [length network_list ^ net-power] of t-set
+    let total random-float sum [length my-network-list ^ net-power] of t-set
    let partner nobody
     if any? t-set [
      ask t-set [
-       let nc length network_list ^ net-power
+       let nc length my-network-list ^ net-power
        ;; if there's no winner yet...
         if partner = nobody [
           ifelse nc > total
           [ set partner self
-            set network_list lput myself network_list ]
+            set my-network-list lput myself my-network-list ]
           [ set total total - nc ]
                ] ] ]
              if partner = nobody [set partner one-of cit-ags with [distance myself < (network-distance + network-distance)] ]
-             set network_list lput partner network_list
+             set my-network-list lput partner my-network-list
            ]
 
-   ask cit-ags [ set network_list remove nobody network_list
+   ask cit-ags [ set my-network-list remove nobody my-network-list
                  ]
 
  ;; hooks up some triads in the network, creating greater density
    ask cit-ags [
      let newL nobody
-     let net-list turtle-set network_list
+     let net-list turtle-set my-network-list
        ask one-of net-list [
-         let T-net-list turtle-set network_list
+         let T-net-list turtle-set my-network-list
          set newL one-of T-net-list
          if newL = nobody [ set newL one-of cit-ags with [distance myself < network-distance ] ]
        ]
-        ask newL [ set network_list lput myself network_list ]
-        set network_list lput newL network_list
+        ask newL [ set my-network-list lput myself my-network-list ]
+        set my-network-list lput newL my-network-list
        ]
 
  ;; cleans up each agent's network list
   ask cit-ags [
-       set network_list sort remove-duplicates network_list
-       set network_list remove self network_list
+       set my-network-list sort remove-duplicates my-network-list
+       set my-network-list remove self my-network-list
 
       ; adds random trust-factor
-       set network_list sort-by [ [?1 ?2] -> item 1 ?1 > item 1 ?2 ] map [ ?1 -> list ?1 random-float 1 ] network_list
+       set my-network-list sort-by [ [?1 ?2] -> item 1 ?1 > item 1 ?2 ] map [ ?1 -> list ?1 random-float 1 ] my-network-list
      ]
 
  ;; creates media preferences (broadcasters & aggretators) for the agents  (adds trust factor)
@@ -967,7 +1217,7 @@ end
 to make-links
 
   ask cit-ags [
-     foreach network_list [ ?1 ->
+     foreach my-network-list [ ?1 ->
        if item 0 ?1 != nobody [
      create-link-to item 0 ?1 [set color yellow] ] ] ]
 end
@@ -1019,11 +1269,11 @@ end
 
 to issue-alerts
           if orders != 1 [          ;; only runs this code if no evac orders issued already
-        ;  show "running issue alerts"
+          ;show "running issue alerts"
         ;  if any? patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [
           if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] [
         ;  show "condition met"
-        ;  ask patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [ set pcolor green]
+          ;ask patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [ set pcolor green]
 
                let working-forecast []   ;; creates a temp variable for the current forecast
 
@@ -1243,9 +1493,11 @@ to-report past-forecasts
   while [length error_list > length current_F] [set error_list but-last error_list ]
 
 
-   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current_F
+  let winds34 map [ ?1 -> ifelse-value (?1 = "" or ?1 = [] or ?1 = [0 0 0 0]) [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current_F
+  ;let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current_F
+   ;let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current_F
+   let winds64 map [ ?1 -> ifelse-value (?1 = "" or ?1 = [] or ?1 = [0 0 0 0]) [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current_F
 
-   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current_F
 
    set time_list map [ ?1 -> list item 0 ?1 item 1 ?1 ] current_F
 
@@ -1269,6 +1521,9 @@ end
 ;; They check environmental cues, collect and process information, assess risk, assess
 ;; alternative protective actions, and decide whether to act.
 to DM
+
+let print-stuff? false
+if census-tract-number =  "12086009400" [show " following 12086009400"  set print-stuff? false]
 
  ;; INFO COLLECTION PROCESSES
 
@@ -1304,8 +1559,16 @@ to DM
                    (list memory)
                    map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster_list
                    map [ ?1 -> list item 1 ?1 [info] of item 0 ?1 ] aggregator_list
-                   map [ ?1 -> list item 1 ?1 [interp] of item 0 ?1 ] network_list
+                   map [ ?1 -> list item 1 ?1 [interp] of item 0 ?1 ] my-network-list
                    )
+
+; these lists can be around 5 long and the network list tends to be the smallest at 2-3 and a total of 15 sources then memory too!
+
+  if print-stuff? [
+
+   print" options"
+   print options
+  ]
 
      ;; attention to info?
      ;; ignore some previously collected info
@@ -1321,7 +1584,19 @@ to DM
 ;    let surge-info map [list item 0 ? item 1 item 1 ?] options
     set options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] options
 
+    if print-stuff? [
+   print" options later"
+   print options
+  ]
+
+
     if not empty? options and not empty? item 1 item 0 options [    ;; rest of following code dependent on this conditional
+
+
+  if print-stuff? [
+   print" options not empty"
+  ]
+
 
      let int1 map [ ?1 -> item 1 ?1 ] options
 
@@ -1339,6 +1614,12 @@ to DM
      set s-list sentence filter [ ??1 -> item 0 ??1 = t ] map remove-duplicates reduce sentence map [ ??1 -> map [ ???1 -> item 3 ???1 ] ??1 ] int1 s-list
      set s-list sort-by [ [??1 ??2] -> (item 0 ??1 * 2400 + item 1 ??1) < (item 0 ??2 * 2400 + item 1 ??2) ] remove-duplicates s-list
      ]
+
+   if print-stuff? [
+   print" day list"
+   print day-list
+  ]
+
 
 
    ;; sets up lists for blending forecasts, weighting according to trust factor
@@ -1371,7 +1652,10 @@ to DM
 
      set interp (map [ [?1 ?2 ?3 ?4 ?5] -> (list ?2 list ?4 ?5 ?3 ?1) ] s-list c-matrix d-matrix x-matrix y-matrix)
 
-
+  if print-stuff? [
+   print" interpretation mashup"
+   print interp
+  ]
 
 
     ;; identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
@@ -1429,6 +1713,12 @@ to DM
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
     let risk ((1 / (HEIGHT * sqrt (2 * pi) )) * (e ^ (-1 * (((X_VALUE - CENTER) ^ 2) / (2 * (SD_SPREAD ^ 2))))))  ;; bell curve
 
+
+   if print-stuff? [
+   print" risk"
+   print risk
+  ]
+
     if self = watching [ set risk-funct risk]
 
    ;; takes the risk assessment and adds a little error either side
@@ -1445,10 +1735,20 @@ to DM
     ifelse zone = 0  [set zone 1] [set zone 0.4] ;[set zone 1] [set zone 0.4]
     set final-risk final-risk + (trust-authority? * 6 * official-orders * zone)   ;; trust in authority?  ;;; default is 9, trying 6 and 1.5x for forecasts.
 
+   if print-stuff? [
+   print" final risk"
+   print final-risk
+  ]
+
     if self = watching [ set risk-orders (trust-authority? * 6 * official-orders * zone) ]
 
    ;; adds in environmental cues
     set final-risk final-risk + (3 * environmental-cues)
+
+   if print-stuff? [
+   print" final risk plus environmental cues"
+   print final-risk
+  ]
 
     if self = watching [ set risk-env (3 * environmental-cues) ]
 
@@ -1510,7 +1810,7 @@ to just-collect-info
                    (list memory)
                    map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster_list
                    map [ ?1 -> list item 1 ?1 [info] of item 0 ?1 ] aggregator_list
-                   map [ ?1 -> list item 1 ?1 [interp] of item 0 ?1 ] network_list
+                   map [ ?1 -> list item 1 ?1 [interp] of item 0 ?1 ] my-network-list
                    )
 
      ;; attention to info?
@@ -1697,18 +1997,13 @@ to-report save-view
 end
 
 to check-for-swimmers
-   let this-elev [elev] of patch-here
-    if isNAN this-elev [
-    ;; move agent located in the water to the nearest land
-    let nearby-patches neighbors with [elev > 0]
-    ifelse count nearby-patches > 0 [
-     move-to one-of nearby-patches
-    ][set nearby-patches patches in-radius 3
-    ifelse count nearby-patches > 0 [
-        move-to one-of nearby-patches ]
-        [set color red
-         set size 5]
-    ]  ]
+  let this-patch-is-land [land?] of patch-here
+  if not this-patch-is-land [
+     let nearby-patch min-one-of terra-firma-patches [distance myself]
+     ifelse nearby-patch != nobody [move-to nearby-patch]
+     [die]
+  ]
+
 end
 
 
@@ -1759,15 +2054,16 @@ to load-gis-hpc
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
      ;;show re0-0  ;; identifies the 0,0 center of the map (degrees)
 
-     gis:apply-raster elevation elev
-     gis:apply-raster density dens
-     gis:apply-raster counties county
-     gis:paint elevation 0
-     ask patches [set land? true]
-     ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
+       gis:apply-raster elevation elev
+       gis:apply-raster density dens
+       gis:apply-raster counties county
+       gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
+       ask patches [set land? true]
+       ;ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
+       ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
 
-     set terra-firma-patches patches with [land? = true]
-     set ocean-patches patches with [land? = false]
+       set terra-firma-patches patches with [land? = true]
+       set ocean-patches patches with [land? = false]
      file-close-all
      set using-hpc? true
 
@@ -2325,7 +2621,7 @@ SWITCH
 774
 kids-under-18-factor
 kids-under-18-factor
-1
+0
 1
 -1000
 
@@ -2381,7 +2677,7 @@ over-65-assessment-decrease
 over-65-assessment-decrease
 0.1
 1
-0.5
+0.3
 0.1
 1
 NIL
@@ -2458,7 +2754,7 @@ limited-english-assessment-decrease
 limited-english-assessment-decrease
 0
 1
-0.5
+0.4
 0.1
 1
 NIL
