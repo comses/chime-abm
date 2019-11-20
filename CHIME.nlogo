@@ -548,7 +548,6 @@ to load-forecasts-new
   ]
 
 
-
   set forecast-time 0
   let entries-for-one-day []
   let entries-for-all-days []
@@ -580,7 +579,6 @@ to load-forecasts-new
       let entry-hours-away item 5 this-advisory
 
       if entry-hours-away != hours-away[
-
         ; set wind-speed
         let wind-speed item 11 this-advisory
 
@@ -591,8 +589,11 @@ to load-forecasts-new
           set first-entry-from-this-advisory false]
 
 
+
         ifelse new-time-entry[
           ; save the info and reset lists to 0
+          ;print "new entry"
+          ;print this-advisory
 
           ifelse length list-34 > 0 [set schedule lput list-34 schedule]
           [let empty (word list-34 "")
@@ -601,10 +602,6 @@ to load-forecasts-new
           [
             let empty (word list-64 "")
             set schedule lput empty schedule]
-
-          ;set schedule lput list-34 schedule
-          ;set schedule lput list-64 schedule
-
 
           set entries-for-one-day lput schedule entries-for-one-day
 
@@ -644,6 +641,9 @@ to load-forecasts-new
           ]
 
         ][
+          ;print "old entry"
+          ;print this-advisory
+
           ; save current info
           ;save windspeed list
           set date item 2 this-advisory
@@ -673,6 +673,18 @@ to load-forecasts-new
         ]
       ]
     ]
+        ; save the last forecast time from each day here:
+        ifelse length list-34 > 0 [set schedule lput list-34 schedule]
+          [let empty (word list-34 "")
+            set schedule lput empty schedule]
+        ifelse length list-64 > 0 [set schedule lput list-64 schedule]
+          [
+            let empty (word list-64 "")
+            set schedule lput empty schedule]
+
+          set entries-for-one-day lput schedule entries-for-one-day
+
+
          set entries-for-all-days lput entries-for-one-day entries-for-all-days
   ]
 
@@ -1044,8 +1056,9 @@ end
 
 to-report check-zone
   let zn ""
-   let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
+
    ifelse random-float 1 < .8 [
+    let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
     if dist-coast <= 1.5 [set zn "A"]
     if dist-coast > 1.5 and dist-coast <= 3 [set zn "B"]
     if dist-coast > 3 and dist-coast <= 5 [set zn "C"]
@@ -2677,7 +2690,7 @@ over-65-assessment-decrease
 over-65-assessment-decrease
 0.1
 1
-0.3
+0.4
 0.1
 1
 NIL
@@ -2754,7 +2767,7 @@ limited-english-assessment-decrease
 limited-english-assessment-decrease
 0
 1
-0.4
+1.0
 0.1
 1
 NIL
@@ -2769,7 +2782,7 @@ foodstamps-assessment-decrease
 foodstamps-assessment-decrease
 0
 1
-0.5
+1.0
 0.1
 1
 NIL
@@ -2821,7 +2834,7 @@ no-internet-assessment-modification
 no-internet-assessment-modification
 0
 1
-0.5
+1.0
 0.1
 1
 NIL
