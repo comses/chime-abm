@@ -85,7 +85,7 @@ cit-ags-own [
 
   self-trust                        ; sets confidence in own interpretation of storm forecast
   memory                            ; holds the agent's intepretation of the forecast for use in next time through risk-decision loop
-  trust-authority?                  ; sets confidence in evac orders from officials
+  trust-authority?                  ; sets confidence in evac orders from officials  / SB 12.3.19 - this looks unused
 
   risk-life                         ; characteristic sets threshold for determining risk to life
   risk-property                     ; characteristic sets threshold for determining risk to property
@@ -133,8 +133,9 @@ to setup-everything
   __clear-all-and-reset-ticks
   load-gis
   load-hurricane
-  load-forecasts
-  load-forecasts-new
+
+  ifelse which-storm? = "IRMA" [ load-forecasts-new ] [load-forecasts]
+
   setup
 end
 
@@ -431,12 +432,8 @@ to load-forecasts
 
 
   ]
- print "final forecast:"
- show forecast-matrix
-
-
-
-
+ ;print "final forecast:"
+ ;show forecast-matrix
 
  file-close-all
 
@@ -689,14 +686,7 @@ to load-forecasts-new
   ]
 
 
-print  entries-for-all-days
-
-
 set forecast-matrix  entries-for-all-days
-
-
-
-;[[5 1200] [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]] [6 600 -185.26327893283005 420.2760628690047 150 [140 110 80 120] [40 35 30 35]] [6 1800 -168.5871353608573 367.8672525813493 145 [150 130 90 140] [40 35 30 35]] [7 600 -150.0580869475543 313.51737524600304 140 [160 140 90 150] ""] [8 600 -120.41160948626954 206.7586876230014 135 [170 160 100 160] ""] [9 600 -98.17675139030597 115.52853638152719 135 "" ""] [10 600 -68.53027392902113 41.76798856927155 130 "" ""]]
 
 end
 
@@ -1235,6 +1225,50 @@ to make-links
      create-link-to item 0 ?1 [set color yellow] ] ] ]
 end
 
+to make-links2
+
+  ask cit-ags [set color 108]
+
+  ask cit-ag 3956 [
+      set color 104
+      set size 2
+     foreach my-network-list [ ?1 ->
+       if item 0 ?1 != nobody [
+     create-link-to item 0 ?1 [set color 9] ] ]
+
+
+    ask link-neighbors [
+
+      set color 106
+      set size 2
+;     foreach my-network-list [ ?1 ->
+;       if item 0 ?1 != nobody [
+;     create-link-to item 0 ?1 [set color 37] ] ]
+
+    ]
+
+
+     foreach broadcaster_list [ ?1 ->
+       if item 0 ?1 != nobody [
+     create-link-to item 0 ?1 [set color 9] ] ]
+
+     foreach aggregator_list [ ?1 ->
+       if item 0 ?1 != nobody [
+     create-link-to item 0 ?1 [set color 9] ] ]
+
+     let nearby-official min-one-of officials [distance myself]
+     create-link-to nearby-official [set color red]
+  ]
+
+
+
+
+ ; broadcaster_list
+  ;aggregator_list
+
+end
+
+
 
 ;;  move the hurricane (called by the go procedure)
 
@@ -1535,8 +1569,6 @@ end
 ;; alternative protective actions, and decide whether to act.
 to DM
 
-let print-stuff? false
-if census-tract-number =  "12086009400" [show " following 12086009400"  set print-stuff? false]
 
  ;; INFO COLLECTION PROCESSES
 
@@ -1577,11 +1609,6 @@ if census-tract-number =  "12086009400" [show " following 12086009400"  set prin
 
 ; these lists can be around 5 long and the network list tends to be the smallest at 2-3 and a total of 15 sources then memory too!
 
-  if print-stuff? [
-
-   print" options"
-   print options
-  ]
 
      ;; attention to info?
      ;; ignore some previously collected info
@@ -1597,19 +1624,8 @@ if census-tract-number =  "12086009400" [show " following 12086009400"  set prin
 ;    let surge-info map [list item 0 ? item 1 item 1 ?] options
     set options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] options
 
-    if print-stuff? [
-   print" options later"
-   print options
-  ]
-
 
     if not empty? options and not empty? item 1 item 0 options [    ;; rest of following code dependent on this conditional
-
-
-  if print-stuff? [
-   print" options not empty"
-  ]
-
 
      let int1 map [ ?1 -> item 1 ?1 ] options
 
@@ -1627,12 +1643,6 @@ if census-tract-number =  "12086009400" [show " following 12086009400"  set prin
      set s-list sentence filter [ ??1 -> item 0 ??1 = t ] map remove-duplicates reduce sentence map [ ??1 -> map [ ???1 -> item 3 ???1 ] ??1 ] int1 s-list
      set s-list sort-by [ [??1 ??2] -> (item 0 ??1 * 2400 + item 1 ??1) < (item 0 ??2 * 2400 + item 1 ??2) ] remove-duplicates s-list
      ]
-
-   if print-stuff? [
-   print" day list"
-   print day-list
-  ]
-
 
 
    ;; sets up lists for blending forecasts, weighting according to trust factor
@@ -1664,11 +1674,6 @@ if census-tract-number =  "12086009400" [show " following 12086009400"  set prin
         ]
 
      set interp (map [ [?1 ?2 ?3 ?4 ?5] -> (list ?2 list ?4 ?5 ?3 ?1) ] s-list c-matrix d-matrix x-matrix y-matrix)
-
-  if print-stuff? [
-   print" interpretation mashup"
-   print interp
-  ]
 
 
     ;; identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
@@ -1727,11 +1732,6 @@ if census-tract-number =  "12086009400" [show " following 12086009400"  set prin
     let risk ((1 / (HEIGHT * sqrt (2 * pi) )) * (e ^ (-1 * (((X_VALUE - CENTER) ^ 2) / (2 * (SD_SPREAD ^ 2))))))  ;; bell curve
 
 
-   if print-stuff? [
-   print" risk"
-   print risk
-  ]
-
     if self = watching [ set risk-funct risk]
 
    ;; takes the risk assessment and adds a little error either side
@@ -1748,20 +1748,12 @@ if census-tract-number =  "12086009400" [show " following 12086009400"  set prin
     ifelse zone = 0  [set zone 1] [set zone 0.4] ;[set zone 1] [set zone 0.4]
     set final-risk final-risk + (trust-authority? * 6 * official-orders * zone)   ;; trust in authority?  ;;; default is 9, trying 6 and 1.5x for forecasts.
 
-   if print-stuff? [
-   print" final risk"
-   print final-risk
-  ]
 
     if self = watching [ set risk-orders (trust-authority? * 6 * official-orders * zone) ]
 
    ;; adds in environmental cues
     set final-risk final-risk + (3 * environmental-cues)
 
-   if print-stuff? [
-   print" final risk plus environmental cues"
-   print final-risk
-  ]
 
     if self = watching [ set risk-env (3 * environmental-cues) ]
 
@@ -2606,7 +2598,7 @@ network-size
 network-size
 1
 5
-3.0
+5.0
 1
 1
 NIL
