@@ -162,15 +162,90 @@ to setup
         set risk-surge 0
 
  ;; defines a matrix used for debugging runs (basically stores all cit-ag data from the simulation)
-        set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
-            [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
+ ;;       set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
+ ;;           [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
 
 
 
 end
 
 
+to demo-reload
 
+
+  ; set ticks to 0 again
+  reset-ticks
+  clear-links
+  ;load-hurricane
+  ask drawers [die]
+  generate-storm  ;; generates the hurricane
+  set clock list item 3 item ticks hurr-coords item 4 item ticks hurr-coords   ;; defines the clock
+;  clear-drawing
+;  let elevation 0
+;
+;       if which-region? = "FLORIDA" [
+;       set elevation gis:load-dataset "REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
+;       ]
+;       if which-region? = "GULF" [
+;       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"                      ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
+;       ]
+;     gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
+;   ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
+;
+  ; reset the clock
+  ;generate-storm
+  ; set clock list item 3 item ticks hurr-coords item 4 item ticks hurr-coords   ;; defines the clock
+
+  ; get rid of the storm and reload it
+
+  ;clear-drawing
+
+ ; let high-points terra-firma-patches with-max [elev]
+ ; let a-high-point one-of high-points
+ ; let max-elevation [elev] of a-high-point
+
+ ; ask terra-firma-patches [set pcolor scale-color elev green 0 max-elevation]
+
+
+
+  ; clear all agent storm assessments
+
+  ask cit-ags [
+
+      set color 105
+      set options [ ]
+      set interp []
+      set memory list self-trust interp
+
+      ;; for new decision model
+      set risk-life random-normal 14 2
+      set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
+        if risk-property > risk-life [set risk-property risk-life]
+      set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
+        if info-up > risk-property [set info-up risk-property]
+      set info-down random-normal (.1 * risk-life) .5
+        if info-down > info-up [set info-down info-up - .1]
+
+      if risk-life < 0 [set risk-life 0]
+      if risk-property < 0 [set risk-property 0]
+      if info-up < 0 [set info-up 0]
+      if info-down < 0 [set info-down 0]
+
+      ;; other cit-ag  variables
+      set risk-estimate [0]
+      set env_cues 0
+      set feedback1 round random-normal 12 2
+      set feedback2 feedback1
+      set decision-model-turn random 10
+      set completed []
+      set dist-track 99
+      set risk-packet (list item 0 risk-estimate env_cues 0 0)
+
+  ]
+
+
+
+end
 
 ;; The go procedure calls the various procedures that happen every time step in the model
 
@@ -2530,10 +2605,10 @@ distribute_population
 -1000
 
 SLIDER
-16
-639
-109
-672
+14
+680
+107
+713
 forc-w
 forc-w
 0
@@ -2545,10 +2620,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-17
-604
-109
-637
+15
+645
+107
+678
 evac-w
 evac-w
 0
@@ -2560,10 +2635,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-16
-675
-109
-708
+14
+716
+107
+749
 envc-w
 envc-w
 0
@@ -2575,10 +2650,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-16
-717
-188
-750
+14
+758
+186
+791
 network-distance
 network-distance
 0
@@ -2590,10 +2665,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-751
-187
-784
+13
+792
+185
+825
 network-size
 network-size
 1
@@ -2605,10 +2680,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-11
-792
-222
-825
+9
+833
+220
+866
 cit-ag-to-census-pop-ratio
 cit-ag-to-census-pop-ratio
 0
@@ -2689,10 +2764,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-12
-826
-222
-859
+10
+867
+220
+900
 census-tract-min-pop
 census-tract-min-pop
 0
@@ -2704,10 +2779,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-12
-861
-222
-894
+10
+902
+220
+935
 census-tract-max-pop
 census-tract-max-pop
 0
@@ -2865,6 +2940,23 @@ BUTTON
 819
 PROFILER
 profiler:start\nrepeat 3 [setup-everything]\nprofiler:stop\nprint profiler:report\nprofiler:reset
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+16
+602
+184
+635
+Demo Reload
+demo-reload
 NIL
 1
 T
