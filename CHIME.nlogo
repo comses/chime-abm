@@ -2,16 +2,14 @@
 
 
 
-;; call needed extensions (in this model, only the GIS extension is needed)
+;; call needed extensions
 extensions [gis profiler csv]
 
 
 ;; declare global variables
 globals [
          clock                    ; keeps track of model time, same as ticks, but in days and hours
-         ;density                  ; import dataset from GIS - population density
-         ;elevation                ; import dataset from GIS - elevation (DEM)
-         county_seats             ; import dataset from GIS - county seats
+         county-seats             ; import dataset from GIS - county seats
          county_seat_list         ; list of county seats
          ;counties                 ; import dataset from GIS - counties
          orang                    ; agentset for tracking evacuees in end-sim stats
@@ -39,11 +37,11 @@ globals [
          tract-points
          using-hpc?               ; used to choose between two file paths
          which-region?            ; determines which GIS files to load - was previously located in the GUI
-         terra-firma-patches      ; patchset of land patches
+         land-patches      ; patchset of land patches
          ocean-patches            ; patchset of ocean patches
          ]
 
-;; Delcare agent breeds
+;; declare agent breeds
 
 breed [hurricanes hurricane]         ; hurricane, for display purposes only
 breed [cit-ags cit-ag]               ; citizen agents
@@ -86,6 +84,8 @@ cit-ags-own [
   self-trust                        ; sets confidence in own interpretation of storm forecast
   memory                            ; holds the agent's intepretation of the forecast for use in next time through risk-decision loop
   trust-authority?                  ; sets confidence in evac orders from officials  / SB 12.3.19 - this looks unused
+  when-evac-1st-ordered             ; variable for recording when an evacuation is first ordered
+  risk-watcher                      ; used in plotting risk
 
   risk-life                         ; characteristic sets threshold for determining risk to life
   risk-property                     ; characteristic sets threshold for determining risk to property
@@ -94,26 +94,27 @@ cit-ags-own [
   risk-estimate                     ; keeps a list of risk calculations
   completed                         ; keeps a list of previous decisons (and when they were made)
   risk-packet                       ; list of three main inputs to risk function (forecast info, evac orders, env cues)
-  tract-information                 ; SMB information from a census tract
-  my-pop                            ; SMB pop from census tract
-  my-hh-amount                      ; SMB total number of households from a census tract
-  census-tract-number               ; SMB the census tract number of a given agent
-  kids-under-18?
-  adults-over-65?
-  limited-english?
-  food-stamps?
-  no-vehicle?
-  no-internet?
-  when-evac-1st-ordered
 
-  risk-watcher
+  ;;   Census Tract Information
+
+  tract-information                 ; information from a census tract
+  my-pop                            ; pop from census tract
+  my-hh-amount                      ; total number of households from a census tract
+  census-tract-number               ; number assigned to each census tract - assigned by the US government
+  kids-under-18?                    ; records if the census tract has kids under 18
+  adults-over-65?                   ; records if the census tract has adults over 65
+  limited-english?                  ; records if the census tract has limited english speakers
+  food-stamps?                      ; records if the census tract uses food stamps
+  no-vehicle?                       ; records if the census tract does not have a vehicle
+  no-internet?                      ; records if the census tract has access to interent
+
      ]
 
 officials-own [
    orders                           ; keeps track of whether the official has issued evacuation orders
-   decision-model-turn                               ; helps determine when it's this agent's turn to run the code to issue evac orders
+   decision-model-turn              ; helps determine when it's this agent's turn to run the code to issue evac orders
    dist-track                       ; distance from the storm track (actual
-   county_id                        ; sets the county of the official (from GIS)
+   county-id                        ; sets the county of the official (from GIS)
    when-issued                      ; tracks when evacuation orders were issued
    ]
 
@@ -141,12 +142,12 @@ end
 
 to setup
   set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
-  ;;coastline    ;; draws the map
 
   generate-storm  ;; generates the hurricane
 
   set clock list item 3 item ticks hurr-coords item 4 item ticks hurr-coords   ;; defines the clock
 
+  ;; Setup Agents Based on if the Census Information is Being Used
   ifelse use-census-data and which-region?  = "FLORIDA"
   [create-tract-agents];; creates agents based on census data and assigns them
   [create-agents];; creates the agents and distribtues them randomly or based on population density
@@ -160,12 +161,6 @@ to setup
         set risk-orders 0
         set risk-env 0
         set risk-surge 0
-
- ;; defines a matrix used for debugging runs (basically stores all cit-ag data from the simulation)
- ;;       set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
- ;;           [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
-
-
 
 end
 
@@ -251,18 +246,18 @@ end
 
 to go
 
+  ;;hurricane moves to its historical location based on the time.
   move-hurricane    ;; calls procedure to move the hurricane one time step
 
   ;; update the forecast
   ask forecasters [  set newForc past-forecasts  ]
 
 
-
   let from-forecaster publish-new-mental-model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
   ;; officials take forecast info from broadcaster and generate an evacuation order code
   coastal-patches-alerts
-  ask officials with [any? ocean-patches with [county  = [[county] of patch-here] of myself]] [ issue-alerts ]
+  ask officials with [any? land-patches with [county  = [[county] of patch-here] of myself]] [ issue-alerts ]
 
   ;; broadcasters translate and publish forecast
   ask broadcasters [ set broadcast from-forecaster ]
@@ -316,9 +311,9 @@ to load-gis
       set elevation gis:load-dataset "REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
-      set county_seats gis:load-dataset "REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
+      set county-seats gis:load-dataset "REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/FLORIDA/GIS/counties_1.asc"                 ; Raster map - counties
-       foreach but-last gis:feature-list-of county_seats [ ?1 ->
+       foreach but-last gis:feature-list-of county-seats [ ?1 ->
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]]
      if which-region? = "GULF" [
@@ -326,9 +321,9 @@ to load-gis
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"                      ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
-      set county_seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county_seats.shp"           ; Vector map (points) - location of county seats
+      set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county-seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/GULF/GIS/gulf_states_counties_extended.asc"                 ; Raster map - counties
-       foreach but-last gis:feature-list-of county_seats [ ?1 ->
+       foreach but-last gis:feature-list-of county-seats [ ?1 ->
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
      ]]
 
@@ -351,7 +346,7 @@ to load-gis
    ;ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
    ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
 
-   set terra-firma-patches patches with [land? = true]
+   set land-patches patches with [land? = true]
    set ocean-patches patches with [land? = false]
 
    set using-hpc? false
@@ -934,7 +929,7 @@ to create-tract-agents
     set ycor item 1 item 1 ?1
     set orders 0
     set dist-track 99
-    set county_id item 0 ?1
+    set county-id item 0 ?1
     ]
   ]
 
@@ -1074,7 +1069,7 @@ to create-agents
     set ycor item 1 item 1 ?1
     set orders 0
     set dist-track 99
-    set county_id item 0 ?1
+    set county-id item 0 ?1
     ]
   ]
 
@@ -1355,7 +1350,7 @@ to move-hurricane
 
            if not any? hurricanes and any? patches with [pxcor = hx and pycor = hy]  [
               create-hurricanes 1 [
-                set size 2 * max (list item 6 item ticks hurr-coords item 7 item ticks hurr-coords item 8 item ticks hurr-coords item 9 item ticks hurr-coords) / scale
+                set size 2 * max (list item 5 item ticks hurr-coords item 6 item ticks hurr-coords item 7 item ticks hurr-coords item 8 item ticks hurr-coords) / scale
                 set color white
                 set label-color red
                 set label item 2 item ticks hurr-coords ] ]
@@ -1366,7 +1361,7 @@ to move-hurricane
         ;; while the hurricane is within the map, set coordinates and other characteristics based on the hurr-coords array
            if any? hurricanes [
              ask last sort hurricanes [
-                set size 2 * max (list item 6 item ticks hurr-coords item 7 item ticks hurr-coords item 8 item ticks hurr-coords item 9 item ticks hurr-coords) / scale
+                set size 2 * max (list item 5 item ticks hurr-coords item 6 item ticks hurr-coords item 7 item ticks hurr-coords item 8 item ticks hurr-coords) / scale
                 setxy hx hy
                 set heading heading - 14] ]
 
@@ -1391,11 +1386,8 @@ end
 
 to issue-alerts
           if orders != 1 [          ;; only runs this code if no evac orders issued already
-          ;show "running issue alerts"
-        ;  if any? patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [
-          if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] [
-        ;  show "condition met"
-          ;ask patches with [alerts = 1 and county = [[county] of patch-here] of myself and not (elev >= 0 or elev <= 0)] [ set pcolor green]
+
+          if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] and not (land? = false) [
 
                let working-forecast []   ;; creates a temp variable for the current forecast
 
@@ -2079,7 +2071,7 @@ end
 to check-for-swimmers
   let this-patch-is-land [land?] of patch-here
   if not this-patch-is-land [
-     let nearby-patch min-one-of terra-firma-patches [distance myself]
+     let nearby-patch min-one-of land-patches [distance myself]
      ifelse nearby-patch != nobody [move-to nearby-patch]
      [die]
   ]
@@ -2107,9 +2099,9 @@ to load-gis-hpc
       set elevation gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
-      set county_seats gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
+      set county-seats gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/counties_1.asc"                 ; Raster map - counties
-       foreach but-last gis:feature-list-of county_seats [ ?1 ->
+       foreach but-last gis:feature-list-of county-seats [ ?1 ->
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]]
      if which-REGION? = "GULF" [
@@ -2117,9 +2109,9 @@ to load-gis-hpc
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county_seat_list []
-      set county_seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county_seats.shp"           ; Vector map (points) - location of county seats
+      set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/GULF/GIS/gulf_states_counties_extended.asc"                 ; Raster map - counties
-       foreach but-last gis:feature-list-of county_seats [ ?1 ->
+       foreach but-last gis:feature-list-of county-seats [ ?1 ->
         set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]
   ]
@@ -2142,7 +2134,7 @@ to load-gis-hpc
        ;ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
        ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
 
-       set terra-firma-patches patches with [land? = true]
+       set land-patches patches with [land? = true]
        set ocean-patches patches with [land? = false]
      file-close-all
      set using-hpc? true
@@ -2591,7 +2583,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-4
+6
 
 SWITCH
 16
