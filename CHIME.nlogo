@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;TODO;;;;;;;;;;;;;;;;;;;;;
-;;;NEW EDIT JOSH;;;
+;;;NEW EDIT JOS;;;
 
 ;; call needed extensions
 extensions [gis profiler csv]
