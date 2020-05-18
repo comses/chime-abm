@@ -1,6 +1,5 @@
 ;;;;;;;;;;;;;;;;;;TODO;;;;;;;;;;;;;;;;;;;;;
-;;;TEST FROM JOSH;;;
-
+;;;NEW EDIT JOSH;;;
 
 ;; call needed extensions
 extensions [gis profiler csv]
