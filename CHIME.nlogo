@@ -1,5 +1,9 @@
 ;;;;;;;;;;;;;;;;;;TODO;;;;;;;;;;;;;;;;;;;;;
-;one two three
+
+
+;-----DESCRIPTION OF FUNCTIONS USED IN CHIME ABM---------------------------------------------------------------
+
+
 
 ;; call needed extensions
 extensions [gis profiler csv]
@@ -1002,7 +1006,8 @@ to create-agents
        set i i + item j tickets
        set j j + 1 ]
     move-to item (j - 1) ranked-patches ]
-   [move-to one-of patches with [dens >= 0 ] ]
+   [move-to one-of pat
+   ches with [dens >= 0 ] ]
     set heading random 360
     fd random-float .5
 
@@ -2067,7 +2072,7 @@ to-report save-view
   report filename
 end
 
-to check-for-swimmers
+to  
   let this-patch-is-land [land?] of patch-here
   if not this-patch-is-land [
      let nearby-patch min-one-of land-patches [distance myself]
