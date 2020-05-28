@@ -1,6 +1,9 @@
 ;;;;;;;;;;;;;;;;;;TODO;;;;;;;;;;;;;;;;;;;;;
 
 
+;-----DESCRIPTION OF FUNCTIONS USED IN CHIME ABM---------------------------------------------------------------
+
+
 
 ;; Call needed extensions
 extensions [gis profiler csv]
@@ -2038,7 +2041,7 @@ to-report save-view
   report filename
 end
 
-to check-for-swimmers
+to  check-for-swimmers
   let this-patch-is-land [land?] of patch-here
   if not this-patch-is-land [
      let nearby-patch min-one-of land-patches [distance myself]
