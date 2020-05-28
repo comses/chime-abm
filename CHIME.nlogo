@@ -1,5 +1,5 @@
 
-;; Declare needed netlogo extensions
+;; Declare netlogo extensions needed for the model
 extensions [gis profiler csv]
 
 
@@ -42,7 +42,7 @@ globals [
 
 ;; Declare agent breeds
 breed [hurricanes hurricane]         ; hurricane, for display purposes only
-breed [citizen-agents citizen-agent]               ; citizen agents
+breed [citizen-agents citizen-agent] ; citizen agents
 breed [officials official]           ; public officials, emergency managers
 breed [forecasters forecaster]       ; forecasters
 breed [broadcasters broadcaster]     ; broadcasters
@@ -135,6 +135,11 @@ to Setup-Everything
 end
 
 to Setup
+  ; INFO:   Initializes variables needed and the agents used in the simulation
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED:
+  ; CALLED BY:
+
   set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
 
   Generate-Storm  ;; generates the hurricane
@@ -217,7 +222,7 @@ end
 
 
 to Load-GIS
-  ; INFO: imports various GIS layers for use by the model
+  ; INFO: Imports various GIS layers for use by the model
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
@@ -274,9 +279,7 @@ to Load-GIS
 
    set land-patches patches with [land? = true]
    set ocean-patches patches with [land? = false]
-
    set using-hpc? false
-  ;random-seed 99
 
 end
 
@@ -327,9 +330,9 @@ to Load-Hurricane
 
 end
 
-;; load-forecasts procedure called from the model interface
+
 to Load-Forecasts
-  ; INFO:
+  ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
@@ -445,13 +448,13 @@ to Load-Forecasts
 end
 
 to-report Calculate-Advisory-Time [time hours-away]
-  ; INFO:
+  ; INFO:    This procedure translates times from the file to the date and the hour.
+  ;           2017090506 6    ->  5 1200
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
 
-  ;This procedure translates times from the file to the date and the hour.
-  ;2017090506 6    ->  5 1200
+
   let advisory-time[]
   let time-word (word time)
   let day substring time-word 6 8
@@ -480,7 +483,7 @@ end
 
 
 to-report Calculate-Coordinates [long lat]
-  ; INFO:
+  ; INFO: Covert latitude and longitude coordinates to Netlogo world coordinates
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
@@ -510,7 +513,7 @@ end
 
 
 to Load-Forecasts-New
-  ; INFO:
+  ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
@@ -711,7 +714,7 @@ set forecast-matrix  entries-for-all-days
 end
 
 to Create-More-Cit-Ags-Based-On-Census
-  ; INFO:
+  ; INFO: Used to create extra citizen agents if a census tract has a large population
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
@@ -764,7 +767,7 @@ end
 
 
 to Create-Tract-Agents
-  ; INFO:
+  ; INFO: Create citizen agents based on census information
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -931,7 +934,7 @@ end
 
 
 to-report Add-Census-Factor [x]
-  ; INFO:
+  ; INFO: Reads census information from a givne column number and uses the number of people with that characteristic to determine the likelhood that an agent will also have that characteristic
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -951,7 +954,7 @@ end
 
 ;; *SMB this needs to be reorganized so that the forecasters etal code doesn't need to be repeated
 to Create-Agents
-  ; INFO:
+  ; INFO: Create citizen agents
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -1086,7 +1089,7 @@ end
 
 
 to-report Check-Zone
-  ; INFO:
+  ; INFO:  Used to determine which zone an agent is located in
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -1106,7 +1109,7 @@ end
 
 
 to Social-Network
-  ; INFO:
+  ; INFO:  Creates the networks used by citizen agents to make decisions and gather forecast information
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -1166,9 +1169,9 @@ to Social-Network
 end
 
 
-;; *** this should be redone- hurricane_info is only made once and read once
+;; *** SMB this should be redone- hurricane_info is only made once and read once
 to Generate-Storm
-  ; INFO: translates the storm data and interpolate its characteristics fore the in-between hours
+  ; INFO: Translates the storm data and interpolate its characteristics fore the in-between hours
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -1282,10 +1285,10 @@ end
 
 
 ;;  move the hurricane (called by the go procedure)
-;; *** this should be turned off if using an hpc since its just a visualization
+;; *** SMB this should be turned off if using an hpc since its just a visualization?
 
 to Move-Hurricane
-  ; INFO:
+  ; INFO: Moves a visualization of the hurricane across the screen
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
 
@@ -1328,10 +1331,10 @@ to Move-Hurricane
 end
 
 to Issue-Alerts
-  ; INFO:
+  ; INFO: Used to determine if alerts are needed for land patches
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: Officials in the Go procedure
 
           if orders != 1 [          ;; only runs this code if no evac orders issued already
 
@@ -1364,10 +1367,10 @@ end
 ;  Not sure I understand why this is done differently...
 
 to Coastal-Patches-Alerts
-  ; INFO:
+  ; INFO: Issue alerts for coastal patches based on the distance of the storm
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: Go Procedure
 
    ask ocean-patches with [alerts != 1 and county > 0] [
    ;ask patches with [alerts != 1 and county > 0 and not (elev >= 0 or elev <= 0)] [
@@ -1534,15 +1537,15 @@ end
 
 to-report Past-Forecasts
   ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
-  ;; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm
-  ;; a location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
-    ;; meaning that 2/3 of the STORMS fall within the 226 n mi error, while 1/3 have a larger error.
-    ;; a random heading and distance for that error is selected
-    ;; the heading stays the same for the closer forecasts, but distance is adjusted per the NHC 2009-2013 data.
-  ;; the n mi is standardized to 226 n mi = 5 grid cells... adjust with s-f_real (scale-factor) and related variables below
-  ;; the reported generates a list of the six forecasts, which is published every 6 hours and available to the intermediate agents.
-    ;; if the later forecast(s) are off the edge of the world, they are not shown/reported.
-    ;; thin black circles show the current forecast on the display
+  ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm
+  ; a location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
+  ; meaning that 2/3 of the STORMS fall within the 226 n mi error, while 1/3 have a larger error.
+  ; a random heading and distance for that error is selected
+  ; the heading stays the same for the closer forecasts, but distance is adjusted per the NHC 2009-2013 data.
+  ; the n mi is standardized to 226 n mi = 5 grid cells... adjust with s-f_real (scale-factor) and related variables below
+  ; the reported generates a list of the six forecasts, which is published every 6 hours and available to the intermediate agents.
+  ; if the later forecast(s) are off the edge of the world, they are not shown/reported.
+  ; thin black circles show the current forecast on the display
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -1590,8 +1593,8 @@ end
 
 to Decision-Module
   ; INFO: The main Protective Action Decision-Making process called by citizen agents
-  ;; They check environmental cues, collect and process information, assess risk, assess
-  ;; alternative protective actions, and decide whether to act.
+  ; They check environmental cues, collect and process information, assess risk, assess
+  ; alternative protective actions, and decide whether to act.
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -1867,10 +1870,10 @@ to Just-Collect-Info
 end
 
 to-report Save-Individual-Cit-Ag-Evac-Records
-  ; INFO:
+  ; INFO: Used at the conclusion of the simulation. Records simulation information for each agent which creates a large data file.
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: Behavior Space
 
   let filename evac-filename
   file-open word filename ".csv"
@@ -1892,10 +1895,10 @@ end
 
 
 to-report Save-Global-Evac-Statistics
-  ; INFO:
+  ; INFO: Saves evacuation information for the whole simulation - aggregate for all of the agents.
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: Behavior Space
 
 
  ifelse ticks > 115 [
@@ -2032,7 +2035,7 @@ to-report Save-Global-Evac-Statistics
 end
 
 to-report IsNaN [x]
-  ; INFO:
+  ; INFO: Reports if a value is an actual number and not NULL or something not numerical
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -2042,9 +2045,9 @@ to-report IsNaN [x]
 end
 
 
-
 to Check-For-Swimmers
-  ; INFO:
+  ; INFO: Moves agents that are located in the water to nearby land.
+  ; This situation can occur when an agent is in a coastal location that was both land and water in one projection, but is labeled water when reprojected in Netlogo
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -2059,11 +2062,8 @@ to Check-For-Swimmers
 end
 
 
-
-;;NEW HPC Specific versions so that the paths don't need to be changed and two versions of the model don't need to be maintained.
-
 to Load-GIS-HPC
-  ; INFO:
+  ; INFO: Load GIS information. It is a HPC Specific version so that the paths don't need to be changed and two versions of the model don't need to be maintained.
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -2129,7 +2129,7 @@ to Load-GIS-HPC
 end
 
 to Load-Hurricane-HPC
-  ; INFO:
+  ; INFO: Load Hurricane information. It is a HPC Specific version so that the paths don't need to be changed and two versions of the model don't need to be maintained.
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
@@ -2172,7 +2172,7 @@ to Load-Hurricane-HPC
 end
 
 to Load-Forecasts-HPC
-  ; INFO:
+  ; INFO: Load Forecast information. It is a HPC Specific version so that the paths don't need to be changed and two versions of the model don't need to be maintained.
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
