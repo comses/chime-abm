@@ -2,16 +2,15 @@
 
 
 
-;; call needed extensions
+;; Call needed extensions
 extensions [gis profiler csv]
 
 
-;; declare global variables
+;; Declare global variables
 globals [
          clock                    ; keeps track of model time, same as ticks, but in days and hours
          county-seats             ; import dataset from GIS - county seats
-         county_seat_list         ; list of county seats
-         ;counties                 ; import dataset from GIS - counties
+         county-seat-list        ; list of county seats
          orang                    ; agentset for tracking evacuees in end-sim stats
          all                      ; agentset for tracking all cit-ags in end-sim stats
          really-affected          ; agentset for tracking affected cit-ags in end-sim stats
@@ -41,8 +40,7 @@ globals [
          ocean-patches            ; patchset of ocean patches
          ]
 
-;; declare agent breeds
-
+;; Declare agent breeds
 breed [hurricanes hurricane]         ; hurricane, for display purposes only
 breed [cit-ags cit-ag]               ; citizen agents
 breed [officials official]           ; public officials, emergency managers
@@ -54,7 +52,6 @@ breed [drawers drawer]               ; visualizes the forecast as a cone
 breed [tracts tract]                 ; SMB tract points
 
 ;; Declare agent-specific variables
-
 patches-own [ dens                   ; population density (from GIS)
               elev                   ; elevation (from GIS)
               county                 ; county
@@ -147,6 +144,7 @@ to setup
 
   set clock list item 3 item ticks hurr-coords item 4 item ticks hurr-coords   ;; defines the clock
 
+  ;*** SMB Need to get rid of the Florida check in case people use other regions in the future
   ;; Setup Agents Based on if the Census Information is Being Used
   ifelse use-census-data and which-region?  = "FLORIDA"
   [create-tract-agents];; creates agents based on census data and assigns them
@@ -271,6 +269,8 @@ to go
        [ set decision-model-turn 0
          DM ;; runs the decision model code
         ] ]
+
+  ;;*** Why do what is mentioned below
   ;; cit-ags who have evacuated revert back to original feedback1 and only collect info (no DM
   ask cit-ags with [completed = "evacuate" ] [
          ifelse decision-model-turn < feedback1 [ set decision-model-turn decision-model-turn + 1 ]
@@ -310,21 +310,21 @@ to load-gis
       gis:load-coordinate-system "REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
-      set county_seat_list []
+      set county-seat-list[]
       set county-seats gis:load-dataset "REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/FLORIDA/GIS/counties_1.asc"                 ; Raster map - counties
        foreach but-last gis:feature-list-of county-seats [ ?1 ->
-        set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
+        set county-seat-list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]]
      if which-region? = "GULF" [
      gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"                      ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
-      set county_seat_list []
+      set county-seat-list []
       set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county-seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/GULF/GIS/gulf_states_counties_extended.asc"                 ; Raster map - counties
        foreach but-last gis:feature-list-of county-seats [ ?1 ->
-        set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
+        set county-seat-list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
      ]]
 
      gis:set-world-envelope-ds gis:envelope-of elevation
@@ -419,7 +419,7 @@ to load-forecasts
 
  file-open storm-file
 
-  while [not file-at-end?] [ set file-list lput file-read-line file-list]
+ while [not file-at-end?] [ set file-list lput file-read-line file-list] ;; transfer the list of advisories to a netlogo list
  file-close
 
  foreach file-list [ ?1 -> ;; Open each of the files located in "Storm"_advisories
@@ -760,6 +760,10 @@ set forecast-matrix  entries-for-all-days
 
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Title and important info
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 to create-more-cit-ags-based-on-census
 
@@ -921,7 +925,7 @@ to create-tract-agents
     ]
 
   set-default-shape officials "star"
-  foreach county_seat_list [ ?1 ->
+  foreach county-seat-list [ ?1 ->
   create-officials 1 [
     set color red
     set size 1.5
@@ -985,6 +989,8 @@ end
 
 
 ;; called by the setup procedure to populate the model with the various breeds of agents
+
+;; *SMB this needs to be reorganized so that the forecasters etal code doesn't need to be repeated
 to create-agents
   set-default-shape cit-ags "circle"
   let tickets sort [dens] of patches with [dens > 0]
@@ -1061,7 +1067,7 @@ to create-agents
 
 
   set-default-shape officials "star"
-  foreach county_seat_list [ ?1 ->
+  foreach county-seat-list [ ?1 ->
   create-officials 1 [
     set color red
     set size 1.5
@@ -1186,6 +1192,8 @@ end
 
 
 ;; the generate-storm procedure is called by setup to translate the storm data and interpolate its characteristics fore the in-between hours
+
+;; *** this should be redone- hurricane_info is only made once and read once
 to generate-storm
    let re-scaled hurricane_info
 
@@ -1295,52 +1303,10 @@ to make-links
      create-link-to item 0 ?1 [set color yellow] ] ] ]
 end
 
-to make-links2
-
-  ask cit-ags [set color 108]
-
-  ask cit-ag 3956 [
-      set color 104
-      set size 2
-     foreach my-network-list [ ?1 ->
-       if item 0 ?1 != nobody [
-     create-link-to item 0 ?1 [set color 9] ] ]
-
-
-    ask link-neighbors [
-
-      set color 106
-      set size 2
-;     foreach my-network-list [ ?1 ->
-;       if item 0 ?1 != nobody [
-;     create-link-to item 0 ?1 [set color 37] ] ]
-
-    ]
-
-
-     foreach broadcaster_list [ ?1 ->
-       if item 0 ?1 != nobody [
-     create-link-to item 0 ?1 [set color 9] ] ]
-
-     foreach aggregator_list [ ?1 ->
-       if item 0 ?1 != nobody [
-     create-link-to item 0 ?1 [set color 9] ] ]
-
-     let nearby-official min-one-of officials [distance myself]
-     create-link-to nearby-official [set color red]
-  ]
-
-
-
-
- ; broadcaster_list
-  ;aggregator_list
-
-end
-
 
 
 ;;  move the hurricane (called by the go procedure)
+;; *** this should be turned off if using an hpc since its just a visualization
 
 to move-hurricane
         let hx round item 0 item ticks hurr-coords
@@ -1413,6 +1379,7 @@ to issue-alerts
 
 end
 
+;  Not sure I understand why this is done differently...
 
 to coastal-patches-alerts
 
@@ -1639,6 +1606,7 @@ to DM
 
  ;; INFO COLLECTION PROCESSES
 
+  ;;** SMB Why 3?
   ;; Personal interpretation of location in vulnerable zone
       let zone_warning 0
       if evac_zone = "A" [ set zone_warning 3 ]
@@ -1649,6 +1617,7 @@ to DM
       let official-orders [orders] of nearby-official
       set when-evac-1st-ordered [when-issued] of nearby-official
 
+  ;; ** SMB What is going on with direction here
   ;; Check for environmental cues
         let environmental-cues 0
         let direction 0
@@ -1658,7 +1627,7 @@ to DM
                              if direction >= 180 and direction < 270 [ set direction item 6 item ticks hurr-coords ]
                              if direction >= 270 and direction < 360 [ set direction item 7 item ticks hurr-coords ]
 
-            if (scale * distance one-of hurricanes) < direction [ set environmental-cues 1] ]
+         if (scale * distance one-of hurricanes) < direction [ set environmental-cues 1] ]
 
 
   ;; main pre-decisional processes
@@ -1679,6 +1648,7 @@ to DM
 
      ;; attention to info?
      ;; ignore some previously collected info
+  ;*** SMB ????
         repeat random (length options - 1) [
         set options but-first shuffle options ]
 
@@ -2098,21 +2068,21 @@ to load-gis-hpc
       gis:load-coordinate-system "/home/sbergin/CHIME/REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
-      set county_seat_list []
+      set county-seat-list []
       set county-seats gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/counties_1.asc"                 ; Raster map - counties
        foreach but-last gis:feature-list-of county-seats [ ?1 ->
-        set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
+        set county-seat-list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]]
      if which-REGION? = "GULF" [
       gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
-      set county_seat_list []
+      set county-seat-list []
       set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/GULF/GIS/gulf_states_counties_extended.asc"                 ; Raster map - counties
        foreach but-last gis:feature-list-of county-seats [ ?1 ->
-        set county_seat_list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
+        set county-seat-list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list
        ]
   ]
 
