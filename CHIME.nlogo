@@ -1,45 +1,45 @@
 
 <<<<<<< HEAD
 ;;;-------DESCRIPTION OF PROCEDURES USED IN THIS AGENT-BASED-MODEL-----------------------------------------------------------------------------------
-;setup-everything: Loads GIS files, loads hurricane best-track information, loads forecasts, sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.  
-    ;1. load-gis: Displays the region of interest, loads GIS data (i.e., elevation; population density; counties; county¬¬ seats). Determines which patches are land and ocean. Ocean patches are designated where the elevation data has “no data” values. 
-    ;2. load-hurricane: Loads hurricane best track data. Defines a list called hurricane-info that stores the best track data.
-    ;3. load-forecasts: Loads full-worded forecast advisories from the National Hurricane Center and stores data in a list called forecast-matrix.
-    ;4. load-forecasts-new: Loads a .csv file of forecast advisories and stores data in a list called forecast-matrix.
-        ;1. calculate-advisory-time: Converts times from the forecast advisory file to the date and hour.
-        ;2. calculate-coordinates: Reports lat-lon coordinates of the storm center in model space.
+;Setup-Everything: Loads GIS files, loads hurricane best-track information, loads forecasts, sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.  
+    ;1. Load-GIS: Displays the region of interest, loads GIS data (i.e., elevation; population density; counties; county¬¬ seats). Determines which patches are land and ocean. Ocean patches are designated where the elevation data has “no data” values. 
+    ;2. Load-Hurricane: Loads hurricane best track data. Defines a list called hurricane-info that stores the best track data.
+    ;3. Load-Forecasts: Loads full-worded forecast advisories from the National Hurricane Center and stores data in a list called forecast-matrix.
+    ;4. Load-Forecasts-New: Loads a .csv file of forecast advisories and stores data in a list called forecast-matrix.
+        ;1. Calculate-Advisory-Time: Converts times from the forecast advisory file to the date and hour.
+        ;2. Calculate-Coordinates: Reports lat-lon coordinates of the storm center in model space.
     ;5. Setup: Sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen. 
-        ;1. generate-storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.
-        ;2. create-agents: Populates the model with the various breeds of agents (i.e., citizens, forecasters officials, broadcasters, and aggregators). Sets various attributes for each citizen (i.e., evac-zone, self-trust, trust-authority, networks lists, risk thresholds). 
-            ;1. check-zone: Determines the evacuation zone of each citizen, which depends on the number of grid points the citizen is away from the coast (i.e., zone “A” is 1.5 grid points from the coast).
-        ;3. create-tract-agents: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.  
-            ;1. create-more-cit-ags-based-on-census: Populates the model with more agents based on the census. 
-            ;2. check-for-swimmers: Moves citizens located at an ocean patch to a land patch. 
-            ;3. add-census-factor: Set to true for each citizen that has the census information in their tract (e.g., kids under 18, adults over 65, limited English, use food stamps, no vehicle, no internet). This information is used in the decision-making process to calculate risk parameters. 
-        ;4;. social-network: Assigns a social network for each citizen. Each citizen is also assigned broadcasters and aggregators.  
+        ;1. Generate-Storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.
+        ;2. Create-Agents: Populates the model with the various breeds of agents (i.e., citizens, forecasters officials, broadcasters, and aggregators). Sets various attributes for each citizen (i.e., evac-zone, self-trust, trust-authority, networks lists, risk thresholds). 
+            ;1. Check-Zone: Determines the evacuation zone of each citizen, which depends on the number of grid points the citizen is away from the coast (i.e., zone “A” is 1.5 grid points from the coast).
+        ;3. Create-Tract-Agents: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.  
+            ;1. Create-More-Cit-Ags-Based-On-Census: Populates the model with more agents based on the census. 
+            ;2. Check-For-Swimmers: Moves citizens located at an ocean patch to a land patch. 
+            ;3. Add-Census-Factor: Set to true for each citizen that has the census information in their tract (e.g., kids under 18, adults over 65, limited English, use food stamps, no vehicle, no internet). This information is used in the decision-making process to calculate risk parameters. 
+        ;4;. Social-Network: Assigns a social network for each citizen. Each citizen is also assigned broadcasters and aggregators.  
 
 
-;go: This procedure moves the hurricane in the Netlogo interface, forecasters publish new forecasts, broadcasters and aggregators update their forecast, citizens receive the updated forecast and produces a mental model of the storm, officials potentially issue evacuation orders, and citizens evaluate their risk to potentially make protective decisions. 
-    ;1. move-hurricane: Moves the hurricane symbol in the Netlogo interface. 
-    ;2. past-forecasts: Forecaster publishes the most recent forecast from forecast-matrix. A new forecast is published every 6 hours. 
-    ;3. publish-new-mental-model: Each citizen has a mental model of where they think the hurricane will go and how severe it will be.
-    ;4. coastal-patches-alerts: Coastal patches diagnose if their patch is within an intensity threshold and distance threshold to issue an alert. If so, the patch communicates with the official to issue an alert.  
-    ;5. issue-alerts: The official issues an evacuation order after coastal-patches-alerts issues an alert. 
-    ;6. DM: The main Protective Action Decision-Making process called by citizen agents. Citizens check environmental cues, collect and process information, assess risk, assess alternative protective actions, and decide whether to act.
-    ;7. just-collect-info: Citizens who have already evacuated just collect information (no DM).
+;Go: This procedure moves the hurricane in the Netlogo interface, forecasters publish new forecasts, broadcasters and aggregators update their forecast, citizens receive the updated forecast and produces a mental model of the storm, officials potentially issue evacuation orders, and citizens evaluate their risk to potentially make protective decisions. 
+    ;1. Move-Hurricane: Moves the hurricane symbol in the Netlogo interface. 
+    ;2. Past-Forecasts: Forecaster publishes the most recent forecast from forecast-matrix. A new forecast is published every 6 hours. 
+    ;3. Publish-New-Mental-Model: Each citizen has a mental model of where they think the hurricane will go and how severe it will be.
+    ;4. Coastal-Patches-Alerts: Coastal patches diagnose if their patch is within an intensity threshold and distance threshold to issue an alert. If so, the patch communicates with the official to issue an alert.  
+    ;5. Issue-Alerts: The official issues an evacuation order after coastal-patches-alerts issues an alert. 
+    ;6. Decision-Module: The main Protective Action Decision-Making process called by citizen agents. Citizens check environmental cues, collect and process information, assess risk, assess alternative protective actions, and decide whether to act.
+    ;7. Just-Collect-Info: Citizens who have already evacuated just collect information (no DM).
 
-;demo-reload: Re-loads the Netlogo interface. Generates the storm and assigns new risk thresholds for each citizen. 
-    ;1. generate-storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.  
+;Demo-Reload: Re-loads the Netlogo interface. Generates the storm and assigns new risk thresholds for each citizen. 
+    ;1. Generate-Storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.  
 
 ;Not called in code: 
-    ;1. save-individual-cit-ag-evac-records
-    ;2. save-global-evac-statistics
-    ;3. save-view: Saves a .png of the Netlogo model space for each time step. 
-    ;4. isNaN
+    ;1. Save-Individual-Cit-Ag-Evac-Records
+    ;2. Save-Global-Evac-Statistics
+    ;3. Save-View: Saves a .png of the Netlogo model space for each time step. 
+    ;4. IsNaN
 
 ;Buttons but not called in the code:
-    ;1. make-links: Creates lines that show which citizens are in which social network. 
-    ;2. make-links2: Creates lines for all agents?
+    ;1. Make-Links: Creates lines that show which citizens are in which social network. 
+    ;2. Make-Links2: Creates lines for all agents?
 
 
 ;; call needed extensions
