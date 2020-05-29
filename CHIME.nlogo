@@ -330,13 +330,14 @@ to Load-GIS
 end
 
 to Load-Hurricane
-  ; INFO:  Load the hurricane data from pre-defined text files
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED:
-  ; CALLED BY:
-
-
-  let storm-file ""
+  ; INFO: Loads hurricane best track data from a text or csv file. Defines a list called hurricane-info that stores the best track data.
+  ; VARIABLES MODIFIED: hurricane-info
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Setup-Everything
+ 
+  ;Best track data is every 6 hours [date,hour,identifier,lat,lon,wind speed,pressure,34-kt wind radii in quadrants (NE,SE,SW,NW), radii of 50 kt winds, radii of 64 kt winds]
+  ;Here is a description of the best track file format: https://www.nhc.noaa.gov/data/hurdat/hurdat2-format-nov2019.pdf
+  let storm-file "" ; storm-file is set to the directory and file that contains the best track information. 
     if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY.txt" ]
     if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA_NEW.csv" ]
     if which-storm? = "WILMA_IDEAL" [set storm-file "STORMS/WILMA_IDEAL/WILMA_NEW.csv" ]
@@ -346,28 +347,31 @@ to Load-Hurricane
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA.txt" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN.txt" ]
 
+  file-open storm-file  ; imports the best track data
 
-  file-open storm-file  ; imports csv of storm track, intensity, etc
-
-  ;; this code block parses the csv and places the storm info in the hurricane-file array
+  ;this code block parses the text/csv file and places the storm info in the hurricane-file list. Each new line of the best track data is appended to have one big list.
+  ;Example of hurricane-file: [20181006, 1800,  , LO, 17.8N,  86.6W,  25, 1006,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 20181007, 0000,.....]
+  ;hurricane-file is a list. Each new line of the best track data is appended to one big list.
   let hurricane-file []
   while [ not file-at-end? ]
-    [ set hurricane-file sentence hurricane-file file-read-line ]
+    [ set hurricane-file sentence hurricane-file file-read-line ] 
   file-close
+
 
   let Tparsed ""
   let parsed []
   let all_parsed []
-  foreach hurricane-file [ ?1 ->
+  foreach hurricane-file [ ?1 -> ;?1 represents each line in "hurricane-file"
      let i 0
-   while [i < length ?1] [
-     set Tparsed word Tparsed item i ?1
-     if item i ?1 = "," [ set parsed lput remove "," Tparsed parsed
+   while [i < length ?1] [ 
+     set Tparsed word Tparsed item i ?1 ;Tparsed is set to a value in hurricane-file. Once a comma is found, the comma is removed and "Tparsed" is reset
+     if item i ?1 = "," [ set parsed lput remove "," Tparsed parsed ;Removes commas from Tparsed. "parsed" is in format: [20181006  1800     LO  17.8N   86.6W   25  1006     0     0     0     0     0     0     0     0     0     0     0     0]
                          set Tparsed ""
                          ]
               set i i + 1 ]
-     set all_parsed lput parsed all_parsed
+     set all_parsed lput parsed all_parsed ;Puts the value of "parsed" at the end of the list "all_parsed". "all parsed" is a list with sublists of each best track time. 
      set parsed [] ]
+
 
   set all_parsed but-first all_parsed
   set hurricane-info map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1
