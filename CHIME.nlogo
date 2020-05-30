@@ -28,9 +28,6 @@
     ;6. Decision-Module: The main Protective Action Decision-Making process called by citizen agents. Citizens check environmental cues, collect and process information, assess risk, assess alternative protective actions, and decide whether to act.
     ;7. Just-Collect-Info: Citizens who have already evacuated just collect information (no DM).
 
-;Demo-Reload: Re-loads the Netlogo interface. Generates the storm and assigns new risk thresholds for each citizen. 
-    ;1. Generate-Storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.  
-
 ;Not called in code: 
     ;1. Save-Individual-Cit-Ag-Evac-Records
     ;2. Save-Global-Evac-Statistics
@@ -39,8 +36,7 @@
 
 ;Buttons but not called in the code:
     ;1. Make-Links: Creates lines that show which citizens are in which social network. 
-    ;2. Make-Links2: Creates lines for all agents?
-
+    
 
 ;; call needed extensions
 =======
@@ -498,71 +494,6 @@ to Load-Forecasts
 
 end
 
-to-report Calculate-Advisory-Time [time hours-away]
-  ; INFO:    This procedure translates times from the file to the date and the hour.
-  ;           2017090506 6    ->  5 1200
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED:
-  ; CALLED BY:
-
-
-  let advisory-time[]
-  let time-word (word time)
-  let day substring time-word 6 8
-  let hour substring time-word 8 10
-  set day read-from-string day
-  set hour read-from-string hour
-  set hour hour + hours-away
-
-  if hour > 23 [ ;  adjust the date of a forecast to account for periods of time greater than 24 hours
-   let days-to-add 0
-   let hours-past-0 hour
-    while [hours-past-0 > 23] [
-       set days-to-add days-to-add + 1
-       set hours-past-0 hours-past-0 - 24
-    ]
-    set day day + days-to-add
-    set hour hours-past-0
-  ]
-  set hour hour * 100 ; to make 12, look like 1200 etc.
-
-  set advisory-time lput day advisory-time
-  set advisory-time lput hour advisory-time
-
-  report advisory-time
-end
-
-
-to-report Calculate-Coordinates [long lat]
-  ; INFO: Covert latitude and longitude coordinates to Netlogo world coordinates
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED:
-  ; CALLED BY:
-
-
-  let lat-coord  but-last lat
-  let long-coord but-last long
-  set lat-coord  read-from-string lat-coord
-  set long-coord  read-from-string long-coord
-
-  ; for some reason there are no decimal places in the incoming coordinates that should be there... e.g. 577 should be 57.7
-
-  let coordinates []
-  set lat-coord lat-coord / 10
-  set long-coord -1 * (long-coord / 10)
-
-  ; the math that converts coordinates from lat/long to netlogo
-  set lat-coord (lat-coord - item 1 re0-0) / (item 1 grid-cell-size) ; lat
-  set long-coord (long-coord - item 0 re0-0) / (item 0 grid-cell-size)  ; lon
-
-  set coordinates lput long-coord coordinates
-  set coordinates lput lat-coord coordinates
-
-
-  report coordinates
-end
-
-
 to Load-Forecasts-New
   ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
   ; VARIABLES MODIFIED:
@@ -764,56 +695,325 @@ set forecast-matrix  entries-for-all-days
 
 end
 
-to Create-More-Cit-Ags-Based-On-Census
-  ; INFO: Used to create extra citizen agents if a census tract has a large population
+to-report Calculate-Advisory-Time [time hours-away]
+  ; INFO:    This procedure translates times from the file to the date and the hour.
+  ;           2017090506 6    ->  5 1200
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
 
 
-  if my-pop < 1 [die] ;; get rid of any problematic cit-ags
+  let advisory-time[]
+  let time-word (word time)
+  let day substring time-word 6 8
+  let hour substring time-word 8 10
+  set day read-from-string day
+  set hour read-from-string hour
+  set hour hour + hours-away
 
-  let cit-ags-to-make round (my-pop / cit-ag-to-census-pop-ratio)
-
-  if cit-ags-to-make >= 2[ ;;make sure you need to make more cit-ags since one is already made
-     hatch-citizen-agents (cit-ags-to-make - 1) [
-      ;; this command means that all of the info from the parent is inherited, so only values that need to be randomized are modified below
-      set self-trust   .6 + random-float .4
-      set trust-authority random-float 1
-      set forecast-options [ ]
-      set my-network-list [ ]
-      set broadcaster-list [ ]
-      set aggregator-list  [ ]
-      set interpreted-forecast []
-      set memory list self-trust interpreted-forecast
-
-      ;; for new decision model
-      set risk-life random-normal 14 2
-      set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
-        if risk-property > risk-life [set risk-property risk-life]
-      set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
-        if info-up > risk-property [set info-up risk-property]
-      set info-down random-normal (.1 * risk-life) .5
-        if info-down > info-up [set info-down info-up - .1]
-
-      if risk-life < 0 [set risk-life 0]
-      if risk-property < 0 [set risk-property 0]
-      if info-up < 0 [set info-up 0]
-      if info-down < 0 [set info-down 0]
-
-      ;; other cit-ag  variables
-      set risk-estimate [0]
-      set environmental-cues  0
-      set decision-module-frequency round random-normal 12 2
-      set previous-dm-frequency decision-module-frequency
-      set decision-module-turn random 10
-      set completed []
-      set distance-to-storm-track 99
-      set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
-
+  if hour > 23 [ ;  adjust the date of a forecast to account for periods of time greater than 24 hours
+   let days-to-add 0
+   let hours-past-0 hour
+    while [hours-past-0 > 23] [
+       set days-to-add days-to-add + 1
+       set hours-past-0 hours-past-0 - 24
     ]
- ]
+    set day day + days-to-add
+    set hour hours-past-0
+  ]
+  set hour hour * 100 ; to make 12, look like 1200 etc.
 
+  set advisory-time lput day advisory-time
+  set advisory-time lput hour advisory-time
+
+  report advisory-time
+end
+
+
+to-report Calculate-Coordinates [long lat]
+  ; INFO: Covert latitude and longitude coordinates to Netlogo world coordinates
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED:
+  ; CALLED BY:
+
+
+  let lat-coord  but-last lat
+  let long-coord but-last long
+  set lat-coord  read-from-string lat-coord
+  set long-coord  read-from-string long-coord
+
+  ; for some reason there are no decimal places in the incoming coordinates that should be there... e.g. 577 should be 57.7
+
+  let coordinates []
+  set lat-coord lat-coord / 10
+  set long-coord -1 * (long-coord / 10)
+
+  ; the math that converts coordinates from lat/long to netlogo
+  set lat-coord (lat-coord - item 1 re0-0) / (item 1 grid-cell-size) ; lat
+  set long-coord (long-coord - item 0 re0-0) / (item 0 grid-cell-size)  ; lon
+
+  set coordinates lput long-coord coordinates
+  set coordinates lput lat-coord coordinates
+
+
+  report coordinates
+end
+
+
+;; *** SMB this should be redone- hurricane_info is only made once and read once
+to Generate-Storm
+  ; INFO: Translates the storm data and interpolate its characteristics fore the in-between hours
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY:
+
+   let re-scaled hurricane-info
+
+   ;; first the hurricane_info array is re-worked to model-space coordinates and strings converted to numbers
+      set re-scaled map  [ ?1 -> (list item 0 ?1 (( read-from-string item 1 ?1  - item 1 re0-0) / item 1 grid-cell-size )
+           ((read-from-string item 2 ?1 - item 0 re0-0) / item 0 grid-cell-size ) read-from-string item 3 ?1
+           read-from-string item 4 ?1 (read-from-string word last but-last item 5 ?1 last item 5 ?1) read-from-string item 6 ?1
+                                read-from-string item 7 ?1 read-from-string item 8 ?1 read-from-string item 9 ?1
+                                read-from-string item 10 ?1 read-from-string item 11 ?1 read-from-string item 12 ?1 read-from-string item 13 ?1
+                                read-from-string item 14 ?1)  ]   re-scaled
+
+   let t-y 0            ;; temporary variables used in the calculation of interpoloated storm characteristics
+   let t-x 0
+   let t-z 0
+   let t-34-ne 0
+   let t-34-se 0
+   let t-34-sw 0
+   let t-34-nw 0
+   let t-64-ne 0
+   let t-64-se 0
+   let t-64-sw 0
+   let t-64-nw 0
+   let day item 5 item 0 re-scaled
+   let hour item 6 item 0 re-scaled
+   let i 1
+   set hurricane-coords  []
+
+   ;; the following is basically brute-force interpoloation. The code marches through the array of storm info
+   ;; and takes the difference from one 6-hour data point to the next, then calculates the interpolated points
+   ;; It does this for all of the dozen or so characteristics of the storm at each point
+
+   while [i < length re-scaled] [
+      set t-y item 1 item i re-scaled - item 1 item (i - 1) re-scaled
+      set t-x item 2 item i re-scaled - item 2 item (i - 1) re-scaled
+      set t-z item 3 item i re-scaled - item 3 item (i - 1) re-scaled
+      set t-34-ne item 7 item i re-scaled - item 7 item (i - 1) re-scaled
+      set t-34-se item 8 item i re-scaled - item 8 item (i - 1) re-scaled
+      set t-34-sw item 9 item i re-scaled - item 9 item (i - 1) re-scaled
+      set t-34-nw item 10 item i re-scaled - item 10 item (i - 1) re-scaled
+      set t-64-ne item 11 item i re-scaled - item 11 item (i - 1) re-scaled
+      set t-64-se item 12 item i re-scaled - item 12 item (i - 1) re-scaled
+      set t-64-sw item 13 item i re-scaled - item 13 item (i - 1) re-scaled
+      set t-64-nw item 14 item i re-scaled - item 14 item (i - 1) re-scaled
+      set day item 5 item (i - 1) re-scaled
+      set hour item 6 item (i - 1) re-scaled
+      let new-y []
+      let new-x []
+      let new-z []
+      let new-34-ne []
+      let new-34-se []
+      let new-34-sw []
+      let new-34-nw []
+      let new-64-ne []
+      let new-64-se []
+      let new-64-sw []
+      let new-64-nw []
+      let new-day []
+      let new-hour []
+      let j 0
+        repeat 6 [set new-y lput ((j * (t-y / 6)) + item 1 item (i - 1) re-scaled) new-y
+                  set new-x lput ((j * (t-x / 6)) + item 2 item (i - 1) re-scaled) new-x
+                  set new-z lput ((j * (t-z / 6)) + item 3 item (i - 1) re-scaled) new-z
+                  set new-34-ne lput ((j * (t-34-ne / 6)) + item 7 item (i - 1) re-scaled) new-34-ne
+                  set new-34-se lput ((j * (t-34-se / 6)) + item 8 item (i - 1) re-scaled) new-34-se
+                  set new-34-sw lput ((j * (t-34-sw / 6)) + item 9 item (i - 1) re-scaled) new-34-sw
+                  set new-34-nw lput ((j * (t-34-nw / 6)) + item 10 item (i - 1) re-scaled) new-34-nw
+                  set new-64-ne lput ((j * (t-64-ne / 6)) + item 11 item (i - 1) re-scaled) new-64-ne
+                  set new-64-se lput ((j * (t-64-se / 6)) + item 12 item (i - 1) re-scaled) new-64-se
+                  set new-64-sw lput ((j * (t-64-sw / 6)) + item 13 item (i - 1) re-scaled) new-64-sw
+                  set new-64-nw lput ((j * (t-64-nw / 6)) + item 14 item (i - 1) re-scaled) new-64-nw
+                  set new-day lput day new-day
+                  set new-hour lput ((100 * j) + hour) new-hour
+                  set j j + 1]
+
+      (foreach new-y new-x new-z new-day new-hour new-34-ne new-34-se new-34-sw new-34-nw new-64-ne new-64-se new-64-sw new-64-nw
+      [ [?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?10 ?11 ?12 ?13] -> set hurricane-coords  lput (list ?2 ?1 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?10 ?11 ?12 ?13 ) hurricane-coords  ])
+      set i i + 1
+   ]
+
+   set hurricane-coords  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords
+
+   foreach hurricane-coords [ ?1 -> if (item 0 ?1 > min-pxcor and item 0 ?1 < max-pxcor and
+                           item 1 ?1 > min-pycor and item 1 ?1 < max-pycor)  [
+         create-drawers 1 [set size .01
+                           setxy item 0 ?1 item 1 ?1]
+         ] ]
+    let draw-line turtle-set drawers with [size = .01]
+      set i 0
+    while [i < (length sort draw-line - 1)] [
+      ask item i sort draw-line [create-link-to item (i + 1) sort draw-line ]
+      set i i + 1 ]
+
+end
+
+
+;; called by the setup procedure to populate the model with the various breeds of agents
+;; *SMB this needs to be reorganized so that the forecasters etal code doesn't need to be repeated
+to Create-Agents
+  ; INFO: Create citizen agents
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY:
+
+
+  set-default-shape citizen-agents "circle"
+  let tickets sort [dens] of patches with [dens > 0]
+  let ranked-patches sort-on [dens] patches with [dens > 0]
+  let sum_T sum tickets
+
+  create-citizen-agents #citizen-agents [
+    set color blue
+    set size 1
+
+   ifelse distribute_population [
+    let lotto random-float sum_T
+    let i 0
+    let j 0
+    while [i < lotto] [
+       set i i + item j tickets
+       set j j + 1 ]
+    move-to item (j - 1) ranked-patches ]
+   [move-to one-of patches with [dens >= 0 ] ]
+    set heading random 360
+    fd random-float .5
+
+    set evac-zone Check-Zone
+    set self-trust   .6 + random-float .4
+    set trust-authority random-float 1
+    set forecast-options [ ]
+    set my-network-list [ ]
+    set broadcaster-list [ ]
+    set aggregator-list  [ ]
+    set interpreted-forecast []
+    set memory list self-trust interpreted-forecast
+
+  ;; for new decision model
+    set risk-life random-normal 14 2
+    set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
+      if risk-property > risk-life [set risk-property risk-life]
+    set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
+      if info-up > risk-property [set info-up risk-property]
+    set info-down random-normal (.1 * risk-life) .5
+      if info-down > info-up [set info-down info-up - .1]
+
+    if risk-life < 0 [set risk-life 0]
+    if risk-property < 0 [set risk-property 0]
+    if info-up < 0 [set info-up 0]
+    if info-down < 0 [set info-down 0]
+
+  ;; other cit-ag  variables
+    set risk-estimate [0]
+    set environmental-cues  0
+    set decision-module-frequency round random-normal 12 2
+    set previous-dm-frequency decision-module-frequency
+    set decision-module-turn random 10
+    set completed []
+    set distance-to-storm-track 99
+
+    set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
+    ]
+
+
+  set-default-shape forecasters "circle"
+  create-forecasters 1 [
+    set color green
+    set size 1
+    let lotto random-float sum_T
+    let i 0
+    let j 0
+    while [i < lotto] [
+       set i i + item j tickets
+       set j j + 1
+     ]
+    move-to item (j - 1) ranked-patches
+    set current-forecast Past-Forecasts
+    ]
+
+
+  set-default-shape officials "star"
+  foreach county-seat-list [ ?1 ->
+  create-officials 1 [
+    set color red
+    set size 1.5
+    set xcor item 0 item 1 ?1
+    set ycor item 1 item 1 ?1
+    set orders 0
+    set distance-to-track 99
+    set county-id item 0 ?1
+    ]
+  ]
+
+
+  set-default-shape broadcasters "circle"
+  create-broadcasters #broadcasters [
+    set color yellow
+    set size .5
+    let lotto random-float sum_T
+    let i 0
+    let j 0
+    while [i < lotto] [
+       set i i + item j tickets
+       set j j + 1
+     ]
+    move-to item (j - 1) ranked-patches
+    set broadcast []
+    ]
+
+
+  set-default-shape aggregators "circle"
+  create-aggregators #net-aggregators [
+    set color pink
+    set size .5
+    let lotto random-float sum_T
+    let i 0
+    let j 0
+    while [i < lotto] [
+       set i i + item j tickets
+       set j j + 1
+     ]
+     move-to item (j - 1) ranked-patches
+    set info []
+    ]
+
+
+  set-default-shape hurricanes "storm"
+
+  ;set watching cit-ag 26; read-from-string user-input "who to watch?"
+
+end
+
+
+
+to-report Check-Zone
+  ; INFO:  Used to determine which zone an agent is located in
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY:
+
+  let zn ""
+
+   ifelse random-float 1 < .8 [
+    let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
+    if dist-coast <= 1.5 [set zn "A"]
+    if dist-coast > 1.5 and dist-coast <= 3 [set zn "B"]
+    if dist-coast > 3 and dist-coast <= 5 [set zn "C"]
+   ]
+   [ set zn one-of ["A" "B" "C" ""] ]
+  report zn
 end
 
 
@@ -983,6 +1183,74 @@ to Create-Tract-Agents
 
 end
 
+to Create-More-Cit-Ags-Based-On-Census
+  ; INFO: Used to create extra citizen agents if a census tract has a large population
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED:
+  ; CALLED BY:
+
+
+  if my-pop < 1 [die] ;; get rid of any problematic cit-ags
+
+  let cit-ags-to-make round (my-pop / cit-ag-to-census-pop-ratio)
+
+  if cit-ags-to-make >= 2[ ;;make sure you need to make more cit-ags since one is already made
+     hatch-citizen-agents (cit-ags-to-make - 1) [
+      ;; this command means that all of the info from the parent is inherited, so only values that need to be randomized are modified below
+      set self-trust   .6 + random-float .4
+      set trust-authority random-float 1
+      set forecast-options [ ]
+      set my-network-list [ ]
+      set broadcaster-list [ ]
+      set aggregator-list  [ ]
+      set interpreted-forecast []
+      set memory list self-trust interpreted-forecast
+
+      ;; for new decision model
+      set risk-life random-normal 14 2
+      set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
+        if risk-property > risk-life [set risk-property risk-life]
+      set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
+        if info-up > risk-property [set info-up risk-property]
+      set info-down random-normal (.1 * risk-life) .5
+        if info-down > info-up [set info-down info-up - .1]
+
+      if risk-life < 0 [set risk-life 0]
+      if risk-property < 0 [set risk-property 0]
+      if info-up < 0 [set info-up 0]
+      if info-down < 0 [set info-down 0]
+
+      ;; other cit-ag  variables
+      set risk-estimate [0]
+      set environmental-cues  0
+      set decision-module-frequency round random-normal 12 2
+      set previous-dm-frequency decision-module-frequency
+      set decision-module-turn random 10
+      set completed []
+      set distance-to-storm-track 99
+      set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
+
+    ]
+ ]
+
+end
+
+to Check-For-Swimmers
+  ; INFO: Moves agents that are located in the water to nearby land.
+  ; This situation can occur when an agent is in a coastal location that was both land and water in one projection, but is labeled water when reprojected in Netlogo
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY:
+
+  let this-patch-is-land [land?] of patch-here
+  if not this-patch-is-land [
+     let nearby-patch min-one-of land-patches [distance myself]
+     ifelse nearby-patch != nobody [move-to nearby-patch]
+     [die]
+  ]
+
+end
+
 
 to-report Add-Census-Factor [x]
   ; INFO: Reads census information from a givne column number and uses the number of people with that characteristic to determine the likelhood that an agent will also have that characteristic
@@ -999,164 +1267,6 @@ to-report Add-Census-Factor [x]
       ]
   report is-factor?
 end
-
-
-;; called by the setup procedure to populate the model with the various breeds of agents
-
-;; *SMB this needs to be reorganized so that the forecasters etal code doesn't need to be repeated
-to Create-Agents
-  ; INFO: Create citizen agents
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
-
-
-  set-default-shape citizen-agents "circle"
-  let tickets sort [dens] of patches with [dens > 0]
-  let ranked-patches sort-on [dens] patches with [dens > 0]
-  let sum_T sum tickets
-
-  create-citizen-agents #citizen-agents [
-    set color blue
-    set size 1
-
-   ifelse distribute_population [
-    let lotto random-float sum_T
-    let i 0
-    let j 0
-    while [i < lotto] [
-       set i i + item j tickets
-       set j j + 1 ]
-    move-to item (j - 1) ranked-patches ]
-   [move-to one-of patches with [dens >= 0 ] ]
-    set heading random 360
-    fd random-float .5
-
-    set evac-zone Check-Zone
-    set self-trust   .6 + random-float .4
-    set trust-authority random-float 1
-    set forecast-options [ ]
-    set my-network-list [ ]
-    set broadcaster-list [ ]
-    set aggregator-list  [ ]
-    set interpreted-forecast []
-    set memory list self-trust interpreted-forecast
-
-  ;; for new decision model
-    set risk-life random-normal 14 2
-    set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
-      if risk-property > risk-life [set risk-property risk-life]
-    set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
-      if info-up > risk-property [set info-up risk-property]
-    set info-down random-normal (.1 * risk-life) .5
-      if info-down > info-up [set info-down info-up - .1]
-
-    if risk-life < 0 [set risk-life 0]
-    if risk-property < 0 [set risk-property 0]
-    if info-up < 0 [set info-up 0]
-    if info-down < 0 [set info-down 0]
-
-  ;; other cit-ag  variables
-    set risk-estimate [0]
-    set environmental-cues  0
-    set decision-module-frequency round random-normal 12 2
-    set previous-dm-frequency decision-module-frequency
-    set decision-module-turn random 10
-    set completed []
-    set distance-to-storm-track 99
-
-    set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
-    ]
-
-
-  set-default-shape forecasters "circle"
-  create-forecasters 1 [
-    set color green
-    set size 1
-    let lotto random-float sum_T
-    let i 0
-    let j 0
-    while [i < lotto] [
-       set i i + item j tickets
-       set j j + 1
-     ]
-    move-to item (j - 1) ranked-patches
-    set current-forecast Past-Forecasts
-    ]
-
-
-  set-default-shape officials "star"
-  foreach county-seat-list [ ?1 ->
-  create-officials 1 [
-    set color red
-    set size 1.5
-    set xcor item 0 item 1 ?1
-    set ycor item 1 item 1 ?1
-    set orders 0
-    set distance-to-track 99
-    set county-id item 0 ?1
-    ]
-  ]
-
-
-  set-default-shape broadcasters "circle"
-  create-broadcasters #broadcasters [
-    set color yellow
-    set size .5
-    let lotto random-float sum_T
-    let i 0
-    let j 0
-    while [i < lotto] [
-       set i i + item j tickets
-       set j j + 1
-     ]
-    move-to item (j - 1) ranked-patches
-    set broadcast []
-    ]
-
-
-  set-default-shape aggregators "circle"
-  create-aggregators #net-aggregators [
-    set color pink
-    set size .5
-    let lotto random-float sum_T
-    let i 0
-    let j 0
-    while [i < lotto] [
-       set i i + item j tickets
-       set j j + 1
-     ]
-     move-to item (j - 1) ranked-patches
-    set info []
-    ]
-
-
-  set-default-shape hurricanes "storm"
-
-  ;set watching cit-ag 26; read-from-string user-input "who to watch?"
-
-end
-
-
-
-to-report Check-Zone
-  ; INFO:  Used to determine which zone an agent is located in
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
-
-  let zn ""
-
-   ifelse random-float 1 < .8 [
-    let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
-    if dist-coast <= 1.5 [set zn "A"]
-    if dist-coast > 1.5 and dist-coast <= 3 [set zn "B"]
-    if dist-coast > 3 and dist-coast <= 5 [set zn "C"]
-   ]
-   [ set zn one-of ["A" "B" "C" ""] ]
-  report zn
-end
-
 
 
 to Social-Network
@@ -1220,121 +1330,6 @@ to Social-Network
 end
 
 
-;; *** SMB this should be redone- hurricane_info is only made once and read once
-to Generate-Storm
-  ; INFO: Translates the storm data and interpolate its characteristics fore the in-between hours
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
-
-   let re-scaled hurricane-info
-
-   ;; first the hurricane_info array is re-worked to model-space coordinates and strings converted to numbers
-      set re-scaled map  [ ?1 -> (list item 0 ?1 (( read-from-string item 1 ?1  - item 1 re0-0) / item 1 grid-cell-size )
-           ((read-from-string item 2 ?1 - item 0 re0-0) / item 0 grid-cell-size ) read-from-string item 3 ?1
-           read-from-string item 4 ?1 (read-from-string word last but-last item 5 ?1 last item 5 ?1) read-from-string item 6 ?1
-                                read-from-string item 7 ?1 read-from-string item 8 ?1 read-from-string item 9 ?1
-                                read-from-string item 10 ?1 read-from-string item 11 ?1 read-from-string item 12 ?1 read-from-string item 13 ?1
-                                read-from-string item 14 ?1)  ]   re-scaled
-
-   let t-y 0            ;; temporary variables used in the calculation of interpoloated storm characteristics
-   let t-x 0
-   let t-z 0
-   let t-34-ne 0
-   let t-34-se 0
-   let t-34-sw 0
-   let t-34-nw 0
-   let t-64-ne 0
-   let t-64-se 0
-   let t-64-sw 0
-   let t-64-nw 0
-   let day item 5 item 0 re-scaled
-   let hour item 6 item 0 re-scaled
-   let i 1
-   set hurricane-coords  []
-
-   ;; the following is basically brute-force interpoloation. The code marches through the array of storm info
-   ;; and takes the difference from one 6-hour data point to the next, then calculates the interpolated points
-   ;; It does this for all of the dozen or so characteristics of the storm at each point
-
-   while [i < length re-scaled] [
-      set t-y item 1 item i re-scaled - item 1 item (i - 1) re-scaled
-      set t-x item 2 item i re-scaled - item 2 item (i - 1) re-scaled
-      set t-z item 3 item i re-scaled - item 3 item (i - 1) re-scaled
-      set t-34-ne item 7 item i re-scaled - item 7 item (i - 1) re-scaled
-      set t-34-se item 8 item i re-scaled - item 8 item (i - 1) re-scaled
-      set t-34-sw item 9 item i re-scaled - item 9 item (i - 1) re-scaled
-      set t-34-nw item 10 item i re-scaled - item 10 item (i - 1) re-scaled
-      set t-64-ne item 11 item i re-scaled - item 11 item (i - 1) re-scaled
-      set t-64-se item 12 item i re-scaled - item 12 item (i - 1) re-scaled
-      set t-64-sw item 13 item i re-scaled - item 13 item (i - 1) re-scaled
-      set t-64-nw item 14 item i re-scaled - item 14 item (i - 1) re-scaled
-      set day item 5 item (i - 1) re-scaled
-      set hour item 6 item (i - 1) re-scaled
-      let new-y []
-      let new-x []
-      let new-z []
-      let new-34-ne []
-      let new-34-se []
-      let new-34-sw []
-      let new-34-nw []
-      let new-64-ne []
-      let new-64-se []
-      let new-64-sw []
-      let new-64-nw []
-      let new-day []
-      let new-hour []
-      let j 0
-        repeat 6 [set new-y lput ((j * (t-y / 6)) + item 1 item (i - 1) re-scaled) new-y
-                  set new-x lput ((j * (t-x / 6)) + item 2 item (i - 1) re-scaled) new-x
-                  set new-z lput ((j * (t-z / 6)) + item 3 item (i - 1) re-scaled) new-z
-                  set new-34-ne lput ((j * (t-34-ne / 6)) + item 7 item (i - 1) re-scaled) new-34-ne
-                  set new-34-se lput ((j * (t-34-se / 6)) + item 8 item (i - 1) re-scaled) new-34-se
-                  set new-34-sw lput ((j * (t-34-sw / 6)) + item 9 item (i - 1) re-scaled) new-34-sw
-                  set new-34-nw lput ((j * (t-34-nw / 6)) + item 10 item (i - 1) re-scaled) new-34-nw
-                  set new-64-ne lput ((j * (t-64-ne / 6)) + item 11 item (i - 1) re-scaled) new-64-ne
-                  set new-64-se lput ((j * (t-64-se / 6)) + item 12 item (i - 1) re-scaled) new-64-se
-                  set new-64-sw lput ((j * (t-64-sw / 6)) + item 13 item (i - 1) re-scaled) new-64-sw
-                  set new-64-nw lput ((j * (t-64-nw / 6)) + item 14 item (i - 1) re-scaled) new-64-nw
-                  set new-day lput day new-day
-                  set new-hour lput ((100 * j) + hour) new-hour
-                  set j j + 1]
-
-      (foreach new-y new-x new-z new-day new-hour new-34-ne new-34-se new-34-sw new-34-nw new-64-ne new-64-se new-64-sw new-64-nw
-      [ [?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?10 ?11 ?12 ?13] -> set hurricane-coords  lput (list ?2 ?1 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?10 ?11 ?12 ?13 ) hurricane-coords  ])
-      set i i + 1
-   ]
-
-   set hurricane-coords  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords
-
-   foreach hurricane-coords [ ?1 -> if (item 0 ?1 > min-pxcor and item 0 ?1 < max-pxcor and
-                           item 1 ?1 > min-pycor and item 1 ?1 < max-pycor)  [
-         create-drawers 1 [set size .01
-                           setxy item 0 ?1 item 1 ?1]
-         ] ]
-    let draw-line turtle-set drawers with [size = .01]
-      set i 0
-    while [i < (length sort draw-line - 1)] [
-      ask item i sort draw-line [create-link-to item (i + 1) sort draw-line ]
-      set i i + 1 ]
-
-end
-
-
-to Make-Links
-  ; INFO: Link the nodes in the model. Makes a good picture, but functionally does nothing
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
-
-  ask citizen-agents [
-     foreach my-network-list [ ?1 ->
-       if item 0 ?1 != nobody [
-     create-link-to item 0 ?1 [set color yellow] ] ] ]
-end
-
-
-
 ;;  move the hurricane (called by the go procedure)
 ;; *** SMB this should be turned off if using an hpc since its just a visualization?
 
@@ -1381,88 +1376,57 @@ to Move-Hurricane
 
 end
 
-to Issue-Alerts
-  ; INFO: Used to determine if alerts are needed for land patches
+to-report Past-Forecasts
+  ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
+  ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm
+  ; a location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
+  ; meaning that 2/3 of the STORMS fall within the 226 n mi error, while 1/3 have a larger error.
+  ; a random heading and distance for that error is selected
+  ; the heading stays the same for the closer forecasts, but distance is adjusted per the NHC 2009-2013 data.
+  ; the n mi is standardized to 226 n mi = 5 grid cells... adjust with s-f_real (scale-factor) and related variables below
+  ; the reported generates a list of the six forecasts, which is published every 6 hours and available to the intermediate agents.
+  ; if the later forecast(s) are off the edge of the world, they are not shown/reported.
+  ; thin black circles show the current forecast on the display
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY: Officials in the Go procedure
-
-          if orders != 1 [          ;; only runs this code if no evac orders issued already
-
-          if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] and not (land? = false) [
-
-               let working-forecast []   ;; creates a temp variable for the current forecast
-
-               let fav one-of broadcasters with [not empty? broadcast]            ;; picks one Broadcaster
-               if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;; imports the forecast from that Broadcaster
+  ; CALLED BY:
 
 
-               if length working-forecast > 1 [
-                  set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast
-             set working-forecast first working-forecast
+   let forecast_list []
+   ask forcstxs [die]
+   let s-f 0
+   let s-f_real (357 / scale )
+   let error_list []
+   ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
 
-           ;; determines how far out (temporally) till the storm reaches closest point
-              let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
-              let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24))
-              let counter (arriv - tc) * 24
+   while [length error_list > length forecast-matrix] [set error_list but-last error_list]
+   let severity_list []
+   let size_list []
+   let time_list []
 
-            set when-issued counter
-            set orders 1
+  let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
 
-               ] ] ]
+  let current_F but-first new-forecast
 
-          if orders = 1 [ set color white]
+  while [length error_list > length current_F] [set error_list but-last error_list ]
 
-end
+   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current_F
 
-;  Not sure I understand why this is done differently...
+   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current_F
 
-to Coastal-Patches-Alerts
-  ; INFO: Issue alerts for coastal patches based on the distance of the storm
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY: Go Procedure
+   set time_list map [ ?1 -> list item 0 ?1 item 1 ?1 ] current_F
 
-   ask ocean-patches with [alerts != 1 and county > 0] [
-   ;ask patches with [alerts != 1 and county > 0 and not (elev >= 0 or elev <= 0)] [
-   ;show " coastal alert"
-   ;set pcolor green
+   set forecast_list map [ ?1 -> list item 3 ?1 item 2 ?1 ] current_F
 
-   let working-forecast []   ;; creates a temp variable for the current forecast
-       if alerts != 1 [          ;; only runs this code if no evac orders issued already
+   set severity_list map [ ?1 -> item 4 ?1 ] current_F
 
-       let fav one-of broadcasters with [not empty? broadcast]            ;; picks one Broadcaster
-       if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;; imports the forecast from that Broadcaster
+   set size_list map [ ?1 -> ?1 ] error_list
 
+   let published_forc []
 
-       if length working-forecast > 1 [
-          set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast
+   set published_forc (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity_list forecast_list size_list time_list winds34 winds64)
 
-             let set_right-left list item 0 working-forecast item 1 working-forecast
-
-             set set_right-left sort-by [ [?1 ?2] -> item 0 item 3 ?1 + ((item 1 item 3 ?1 / 100) * (1 / 24)) > item 0 item 3 ?2 + ((item 1 item 3 ?2 / 100) * (1 / 24)) ] set_right-left
-
-           ;  show set_right-left
-             set working-forecast first working-forecast
-
-             let storm-head atan (item 0 item 1 item 1 set_right-left - item 0 item 1 item 0 set_right-left)
-                                    (item 1 item 1 item 1 set_right-left - item 1 item 1 item 0 set_right-left)
-             let direction atan (item 0 item 1 item 0 set_right-left - pxcor) (item 1 item 1 item 0 set_right-left - pycor)
-           ;; determines how far out (temporally) till the storm reaches closest point
-            let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
-            let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24))
-            let counter (arriv - tc) * 24
-          let interp_sz item 2 working-forecast
-          let intens item 0 working-forecast
-           let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast
-           if (scale * dist_trk) < interp_sz [ set dist_trk 0 ]
-          let wind-thresh wind_threshold
-
-          if counter < earliest and dist_trk = 0 and intens >= wind-thresh [ set alerts 1
-                                                                              ]
-
-      ] ] ]
-
+  report published_forc
 
 end
 
@@ -1586,60 +1550,92 @@ to-report Publish-New-Mental-Model
 end
 
 
-to-report Past-Forecasts
-  ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
-  ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm
-  ; a location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
-  ; meaning that 2/3 of the STORMS fall within the 226 n mi error, while 1/3 have a larger error.
-  ; a random heading and distance for that error is selected
-  ; the heading stays the same for the closer forecasts, but distance is adjusted per the NHC 2009-2013 data.
-  ; the n mi is standardized to 226 n mi = 5 grid cells... adjust with s-f_real (scale-factor) and related variables below
-  ; the reported generates a list of the six forecasts, which is published every 6 hours and available to the intermediate agents.
-  ; if the later forecast(s) are off the edge of the world, they are not shown/reported.
-  ; thin black circles show the current forecast on the display
+;  Not sure I understand why this is done differently...
+
+to Coastal-Patches-Alerts
+  ; INFO: Issue alerts for coastal patches based on the distance of the storm
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: Go Procedure
+
+   ask ocean-patches with [alerts != 1 and county > 0] [
+   ;ask patches with [alerts != 1 and county > 0 and not (elev >= 0 or elev <= 0)] [
+   ;show " coastal alert"
+   ;set pcolor green
+
+   let working-forecast []   ;; creates a temp variable for the current forecast
+       if alerts != 1 [          ;; only runs this code if no evac orders issued already
+
+       let fav one-of broadcasters with [not empty? broadcast]            ;; picks one Broadcaster
+       if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;; imports the forecast from that Broadcaster
 
 
-   let forecast_list []
-   ask forcstxs [die]
-   let s-f 0
-   let s-f_real (357 / scale )
-   let error_list []
-   ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
+       if length working-forecast > 1 [
+          set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast
 
-   while [length error_list > length forecast-matrix] [set error_list but-last error_list]
-   let severity_list []
-   let size_list []
-   let time_list []
+             let set_right-left list item 0 working-forecast item 1 working-forecast
 
-  let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
+             set set_right-left sort-by [ [?1 ?2] -> item 0 item 3 ?1 + ((item 1 item 3 ?1 / 100) * (1 / 24)) > item 0 item 3 ?2 + ((item 1 item 3 ?2 / 100) * (1 / 24)) ] set_right-left
 
-  let current_F but-first new-forecast
+           ;  show set_right-left
+             set working-forecast first working-forecast
 
-  while [length error_list > length current_F] [set error_list but-last error_list ]
+             let storm-head atan (item 0 item 1 item 1 set_right-left - item 0 item 1 item 0 set_right-left)
+                                    (item 1 item 1 item 1 set_right-left - item 1 item 1 item 0 set_right-left)
+             let direction atan (item 0 item 1 item 0 set_right-left - pxcor) (item 1 item 1 item 0 set_right-left - pycor)
+           ;; determines how far out (temporally) till the storm reaches closest point
+            let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
+            let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24))
+            let counter (arriv - tc) * 24
+          let interp_sz item 2 working-forecast
+          let intens item 0 working-forecast
+           let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast
+           if (scale * dist_trk) < interp_sz [ set dist_trk 0 ]
+          let wind-thresh wind_threshold
 
-   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current_F
+          if counter < earliest and dist_trk = 0 and intens >= wind-thresh [ set alerts 1
+                                                                              ]
 
-   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current_F
-
-   set time_list map [ ?1 -> list item 0 ?1 item 1 ?1 ] current_F
-
-   set forecast_list map [ ?1 -> list item 3 ?1 item 2 ?1 ] current_F
-
-   set severity_list map [ ?1 -> item 4 ?1 ] current_F
-
-   set size_list map [ ?1 -> ?1 ] error_list
-
-   let published_forc []
-
-   set published_forc (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity_list forecast_list size_list time_list winds34 winds64)
-
-  report published_forc
+      ] ] ]
 
 
 end
+
+
+to Issue-Alerts
+  ; INFO: Used to determine if alerts are needed for land patches
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY: Officials in the Go procedure
+
+          if orders != 1 [          ;; only runs this code if no evac orders issued already
+
+          if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] and not (land? = false) [
+
+               let working-forecast []   ;; creates a temp variable for the current forecast
+
+               let fav one-of broadcasters with [not empty? broadcast]            ;; picks one Broadcaster
+               if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;; imports the forecast from that Broadcaster
+
+
+               if length working-forecast > 1 [
+                  set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast
+             set working-forecast first working-forecast
+
+           ;; determines how far out (temporally) till the storm reaches closest point
+              let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
+              let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24))
+              let counter (arriv - tc) * 24
+
+            set when-issued counter
+            set orders 1
+
+               ] ] ]
+
+          if orders = 1 [ set color white]
+
+end
+
 
 
 to Decision-Module
@@ -2085,6 +2081,18 @@ to-report Save-Global-Evac-Statistics
 
 end
 
+to Make-Links
+  ; INFO: Link the nodes in the model. Makes a good picture, but functionally does nothing
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY:
+
+  ask citizen-agents [
+     foreach my-network-list [ ?1 ->
+       if item 0 ?1 != nobody [
+     create-link-to item 0 ?1 [set color yellow] ] ] ]
+end
+
 to-report IsNaN [x]
   ; INFO: Reports if a value is an actual number and not NULL or something not numerical
   ; VARIABLES MODIFIED:
@@ -2095,22 +2103,6 @@ to-report IsNaN [x]
   report not ( x > 0 or x < 0 or x = 0 )
 end
 
-
-to Check-For-Swimmers
-  ; INFO: Moves agents that are located in the water to nearby land.
-  ; This situation can occur when an agent is in a coastal location that was both land and water in one projection, but is labeled water when reprojected in Netlogo
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
-
-  let this-patch-is-land [land?] of patch-here
-  if not this-patch-is-land [
-     let nearby-patch min-one-of land-patches [distance myself]
-     ifelse nearby-patch != nobody [move-to nearby-patch]
-     [die]
-  ]
-
-end
 
 
 to Load-GIS-HPC
