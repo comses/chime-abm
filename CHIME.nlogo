@@ -330,7 +330,7 @@ to Load-GIS
 end
 
 to Load-Hurricane
-  ; JA suggestions for renaming: "hurricane-info" to "best-track-data". 
+  ; JA suggestions for renaming: "hurricane-info" to "best-track-data"
   ; JA: The other variables are not important, but we could change. I suggest we hold off on changing non-important variable names, as long as we comment what these variables are and how they contribute. 
   ; INFO: Loads hurricane best track data from a text or csv file. Defines a list called "hurricane-info" that stores the best track data (sublists exist for each time of best track data).
   ; VARIABLES MODIFIED: "hurricane-info" contains best track data in the format for each time: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
