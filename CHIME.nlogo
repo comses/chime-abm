@@ -330,13 +330,15 @@ to Load-GIS
 end
 
 to Load-Hurricane
-  ; INFO: Loads hurricane best track data from a text or csv file. Defines a list called hurricane-info that stores the best track data. Sublists exist for each time of best track data.
-  ; VARIABLES MODIFIED: hurricane-info contains the best track data in format: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
+  ; JA suggestions for renaming: "hurricane-info" to "best-track-data". 
+  ; JA: The other variables are not important, but we could change. I suggest we hold off on changing non-important variable names, as long as we comment what these variables are and how they contribute. 
+  ; INFO: Loads hurricane best track data from a text or csv file. Defines a list called "hurricane-info" that stores the best track data (sublists exist for each time of best track data).
+  ; VARIABLES MODIFIED: "hurricane-info" contains best track data in the format for each time: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
   ; PROCEDURES CALLED: None
   ; CALLED BY: Setup-Everything
  
-  ; Best track data is every 6 hours [date,hour,identifier,status of system,lat,lon,wind speed,pressure,34-kt wind radii in quadrants (NE,SE,SW,NW), radii of 50 kt winds, radii of 64 kt winds]
-  ; Here is a description of the best track file format: https://www.nhc.noaa.gov/data/hurdat/hurdat2-format-nov2019.pdf
+  ; Best track data is every 6 hours in the format: [date,hour,identifier,status of system,lat,lon,wind speed,pressure,34-kt wind radii in quadrants (NE,SE,SW,NW), radii of 50 kt winds, radii of 64 kt winds]
+  ; Here is a description of the best track format: https://www.nhc.noaa.gov/data/hurdat/hurdat2-format-nov2019.pdf
   let storm-file "" ; storm-file is set to the directory and file that contains the best track information. 
     if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY.txt" ]
     if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA_NEW.csv" ]
@@ -349,9 +351,8 @@ to Load-Hurricane
 
   file-open storm-file  ; imports the best track data
 
-  ; This code block parses the text/csv file and places the storm info in the hurricane-file list. Each new line of the best track data is appended to have one big list.
+  ; This code block parses the text/csv file and places the best track information in a "hurricane-file" list. Each new line of the best track data is appended, resulting in one big list.
   ; Example of hurricane-file: [20181006, 1800,  , LO, 17.8N,  86.6W,  25, 1006,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 20181007, 0000,.....]
-  ; hurricane-file is a list. Each new line of the best track data is appended to one big list.
   let hurricane-file []
   while [ not file-at-end? ]
     [ set hurricane-file sentence hurricane-file file-read-line ] 
@@ -359,24 +360,24 @@ to Load-Hurricane
 
 
   let Tparsed "" ; "Tparsed" is an individual string from the list "hurricane-file"
-  let parsed []  ; parsed is a list that combines all of the strings in "hurricane-file", but with commas removed
-  let all_parsed [] ; All parsed is a list with data for each best track time, with commas removed, and sublists correspond to each time
-  foreach hurricane-file [ ?1 -> ; ?1 represents each line in "hurricane-file"
+  let parsed []  ; "parsed" is a list that combines all of the strings in "hurricane-file", but with commas removed
+  let all_parsed [] ; "all_parsed" is a list with data for each best track time, with commas removed, and sublists for each time
+  foreach hurricane-file [ ?1 -> ; "?1" represents each line in "hurricane-file"
      let i 0
    while [i < length ?1] [ 
-     set Tparsed word Tparsed item i ?1 ; Tparsed is set to a value in hurricane-file. Once a comma is found, the comma is removed and "Tparsed" is reset
-     if item i ?1 = "," [ set parsed lput remove "," Tparsed parsed ; Removes commas from Tparsed. "parsed" is in format: [20181006  1800     LO  17.8N   86.6W   25  1006     0     0     0     0     0     0     0     0     0     0     0     0]
+     set Tparsed word Tparsed item i ?1 ; "Tparsed" is set to a value in "hurricane-file". Once a comma is found, the comma is removed and "Tparsed" is reset
+     if item i ?1 = "," [ set parsed lput remove "," Tparsed parsed ; Removes commas from "Tparsed". "parsed" is in format: [20181006  1800     LO  17.8N   86.6W   25  1006     0     0     0     0     0     0     0     0     0     0     0     0]
                          set Tparsed ""
                          ]
               set i i + 1 ]
-     set all_parsed lput parsed all_parsed ; Puts the value of "parsed" at the end of the list "all_parsed". "all parsed" is a list with sublists of each best track time. 
+     set all_parsed lput parsed all_parsed ; Adds the list "parsed" to the end of the list "all_parsed". "all_parsed" is a list with sublists for each best track time. 
      set parsed [] ]
 
 
   set all_parsed but-first all_parsed ;JA is not sure why the first time of the best track data is removed. 
-  set hurricane-info map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". replace-item adds a negative sign to lon, and but-last removes the "N" and "W" from the lat-lon coordinates in the best track file. 
+  set hurricane-info map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file. 
       "-" item 6 ?1 item 7 ?1 item 0 ?1  item 1 ?1 item 8 ?1 item 9 ?1 item 10 ?1 item 11 ?1 item 16 ?1
-      item 17 ?1 item 18 ?1 item 19 ?1) ] all_parsed  ;hurricane-info is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
+      item 17 ?1 item 18 ?1 item 19 ?1) ] all_parsed  ;"hurricane-info" is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
 
 end
 
