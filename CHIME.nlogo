@@ -36,7 +36,7 @@
 
 ;Buttons but not called in the code:
     ;1. Make-Links: Creates lines that show which citizens are in which social network. 
-    
+
 
 ;; call needed extensions
 =======
@@ -169,6 +169,7 @@ drawers-own  [ cone-size ]          ; stores the cone size at the relevant hour 
 to Setup-Everything
   __clear-all-and-reset-ticks
   Load-GIS
+  import-drawing "Legend/Legend_ABM.png"
   Load-Hurricane
 
   ifelse which-storm? = "IRMA" [ Load-Forecasts-New ] [Load-Forecasts]
