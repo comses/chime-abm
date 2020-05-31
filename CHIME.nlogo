@@ -1,41 +1,40 @@
-
 ;<<<<<<< HEAD
 ;;;-------DESCRIPTION OF PROCEDURES USED IN THIS AGENT-BASED-MODEL-----------------------------------------------------------------------------------
-;Setup-Everything: Loads GIS files, loads hurricane best-track information, loads forecasts, sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.  
-    ;1. Load-GIS: Displays the region of interest, loads GIS data (i.e., elevation; population density; counties; county¬¬ seats). Determines which patches are land and ocean. Ocean patches are designated where the elevation data has “no data” values. 
+;Setup-Everything: Loads GIS files, loads hurricane best-track information, loads forecasts, sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.
+    ;1. Load-GIS: Displays the region of interest, loads GIS data (i.e., elevation; population density; counties; county¬¬ seats). Determines which patches are land and ocean. Ocean patches are designated where the elevation data has “no data” values.
     ;2. Load-Hurricane: Loads hurricane best track data. Defines a list called hurricane-info that stores the best track data.
     ;3. Load-Forecasts: Loads full-worded forecast advisories from the National Hurricane Center and stores data in a list called forecast-matrix.
     ;4. Load-Forecasts-New: Loads a .csv file of forecast advisories and stores data in a list called forecast-matrix.
         ;1. Calculate-Advisory-Time: Converts times from the forecast advisory file to the date and hour.
         ;2. Calculate-Coordinates: Reports lat-lon coordinates of the storm center in model space.
-    ;5. Setup: Sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen. 
+    ;5. Setup: Sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.
         ;1. Generate-Storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.
-        ;2. Create-Agents: Populates the model with the various breeds of agents (i.e., citizens, forecasters officials, broadcasters, and aggregators). Sets various attributes for each citizen (i.e., evac-zone, self-trust, trust-authority, networks lists, risk thresholds). 
+        ;2. Create-Agents: Populates the model with the various breeds of agents (i.e., citizens, forecasters officials, broadcasters, and aggregators). Sets various attributes for each citizen (i.e., evac-zone, self-trust, trust-authority, networks lists, risk thresholds).
             ;1. Check-Zone: Determines the evacuation zone of each citizen, which depends on the number of grid points the citizen is away from the coast (i.e., zone “A” is 1.5 grid points from the coast).
-        ;3. Create-Tract-Agents: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.  
-            ;1. Create-More-Cit-Ags-Based-On-Census: Populates the model with more agents based on the census. 
-            ;2. Check-For-Swimmers: Moves citizens located at an ocean patch to a land patch. 
-            ;3. Add-Census-Factor: Set to true for each citizen that has the census information in their tract (e.g., kids under 18, adults over 65, limited English, use food stamps, no vehicle, no internet). This information is used in the decision-making process to calculate risk parameters. 
-        ;4;. Social-Network: Assigns a social network for each citizen. Each citizen is also assigned broadcasters and aggregators.  
+        ;3. Create-Tract-Agents: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.
+            ;1. Create-More-Cit-Ags-Based-On-Census: Populates the model with more agents based on the census.
+            ;2. Check-For-Swimmers: Moves citizens located at an ocean patch to a land patch.
+            ;3. Add-Census-Factor: Set to true for each citizen that has the census information in their tract (e.g., kids under 18, adults over 65, limited English, use food stamps, no vehicle, no internet). This information is used in the decision-making process to calculate risk parameters.
+        ;4;. Social-Network: Assigns a social network for each citizen. Each citizen is also assigned broadcasters and aggregators.
 
 
-;Go: This procedure moves the hurricane in the Netlogo interface, forecasters publish new forecasts, broadcasters and aggregators update their forecast, citizens receive the updated forecast and produces a mental model of the storm, officials potentially issue evacuation orders, and citizens evaluate their risk to potentially make protective decisions. 
-    ;1. Move-Hurricane: Moves the hurricane symbol in the Netlogo interface. 
-    ;2. Past-Forecasts: Forecaster publishes the most recent forecast from forecast-matrix. A new forecast is published every 6 hours. 
+;Go: This procedure moves the hurricane in the Netlogo interface, forecasters publish new forecasts, broadcasters and aggregators update their forecast, citizens receive the updated forecast and produces a mental model of the storm, officials potentially issue evacuation orders, and citizens evaluate their risk to potentially make protective decisions.
+    ;1. Move-Hurricane: Moves the hurricane symbol in the Netlogo interface.
+    ;2. Past-Forecasts: Forecaster publishes the most recent forecast from forecast-matrix. A new forecast is published every 6 hours.
     ;3. Publish-New-Mental-Model: Each citizen has a mental model of where they think the hurricane will go and how severe it will be.
-    ;4. Coastal-Patches-Alerts: Coastal patches diagnose if their patch is within an intensity threshold and distance threshold to issue an alert. If so, the patch communicates with the official to issue an alert.  
-    ;5. Issue-Alerts: The official issues an evacuation order after coastal-patches-alerts issues an alert. 
+    ;4. Coastal-Patches-Alerts: Coastal patches diagnose if their patch is within an intensity threshold and distance threshold to issue an alert. If so, the patch communicates with the official to issue an alert.
+    ;5. Issue-Alerts: The official issues an evacuation order after coastal-patches-alerts issues an alert.
     ;6. Decision-Module: The main Protective Action Decision-Making process called by citizen agents. Citizens check environmental cues, collect and process information, assess risk, assess alternative protective actions, and decide whether to act.
     ;7. Just-Collect-Info: Citizens who have already evacuated just collect information (no DM).
 
-;Not called in code: 
+;Not called in code:
     ;1. Save-Individual-Cit-Ag-Evac-Records
     ;2. Save-Global-Evac-Statistics
-    ;3. Save-View: Saves a .png of the Netlogo model space for each time step. 
+    ;3. Save-View: Saves a .png of the Netlogo model space for each time step.
     ;4. IsNaN
 
 ;Buttons but not called in the code:
-    ;1. Make-Links: Creates lines that show which citizens are in which social network. 
+    ;1. Make-Links: Creates lines that show which citizens are in which social network.
 
 
 ;; call needed extensions
@@ -172,7 +171,7 @@ to Setup-Everything
   import-drawing "Legend/Legend_ABM.png"
   Load-Hurricane
 
-  ifelse which-storm? = "IRMA" or "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts]
+  ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts]
 
   setup
 end
@@ -306,11 +305,11 @@ to Load-GIS
       set elevation gis:load-dataset "STORMS/MICHAEL/elevation_reduced_by2.asc"         ; Raster map - SRTM elevation data (downscaled by a factor of 2 using QGIS)
       gis:set-world-envelope-ds gis:envelope-of elevation
       set density gis:load-dataset "STORMS/MICHAEL/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
-      set county_seat_list []
+      set county-seat-list []
       set counties gis:load-dataset "STORMS/MICHAEL/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
-      set county_seats gis:load-dataset "STORMS/MICHAEL/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
-      foreach but-last gis:feature-list-of county_seats [ ?1 ->
-      set county_seat_list lput list gis:property-value ?1 "OBJECTID" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
+      set county-seats gis:load-dataset "STORMS/MICHAEL/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
+      foreach but-last gis:feature-list-of county-seats [ ?1 ->
+      set county-seat-list lput list gis:property-value ?1 "OBJECTID" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
       ]]
 
 
@@ -340,15 +339,15 @@ end
 
 to Load-Hurricane
   ; JA suggestions for renaming: "hurricane-info" to "best-track-data"
-  ; JA: The other variables are not important, but we could change. I suggest we hold off on changing non-important variable names, as long as we comment what these variables are and how they contribute. 
+  ; JA: The other variables are not important, but we could change. I suggest we hold off on changing non-important variable names, as long as we comment what these variables are and how they contribute.
   ; INFO: Loads hurricane best track data from a text or csv file. Defines a list called "hurricane-info" that stores the best track data (sublists exist for each time of best track data).
   ; VARIABLES MODIFIED: "hurricane-info" contains best track data in the format for each time: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
   ; PROCEDURES CALLED: None
   ; CALLED BY: Setup-Everything
- 
+
   ; Best track data is every 6 hours in the format: [date,hour,identifier,status of system,lat,lon,wind speed,pressure,34-kt wind radii in quadrants (NE,SE,SW,NW), radii of 50 kt winds, radii of 64 kt winds]
   ; Here is a description of the best track format: https://www.nhc.noaa.gov/data/hurdat/hurdat2-format-nov2019.pdf
-  let storm-file "" ; storm-file is set to the directory and file that contains the best track information. 
+  let storm-file "" ; storm-file is set to the directory and file that contains the best track information.
     if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY.txt" ]
     if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA_NEW.csv" ]
     if which-storm? = "WILMA_IDEAL" [set storm-file "STORMS/WILMA_IDEAL/WILMA_NEW.csv" ]
@@ -365,7 +364,7 @@ to Load-Hurricane
   ; Example of hurricane-file: [20181006, 1800,  , LO, 17.8N,  86.6W,  25, 1006,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 20181007, 0000,.....]
   let hurricane-file []
   while [ not file-at-end? ]
-    [ set hurricane-file sentence hurricane-file file-read-line ] 
+    [ set hurricane-file sentence hurricane-file file-read-line ]
   file-close
 
 
@@ -374,18 +373,18 @@ to Load-Hurricane
   let all_parsed [] ; "all_parsed" is a list with data for each best track time, with commas removed, and sublists for each time
   foreach hurricane-file [ ?1 -> ; "?1" represents each line in "hurricane-file"
      let i 0
-   while [i < length ?1] [ 
+   while [i < length ?1] [
      set Tparsed word Tparsed item i ?1 ; "Tparsed" is set to a value in "hurricane-file". Once a comma is found, the comma is removed and "Tparsed" is reset
      if item i ?1 = "," [ set parsed lput remove "," Tparsed parsed ; Removes commas from "Tparsed". "parsed" is in format: [20181006  1800     LO  17.8N   86.6W   25  1006     0     0     0     0     0     0     0     0     0     0     0     0]
                          set Tparsed ""
                          ]
               set i i + 1 ]
-     set all_parsed lput parsed all_parsed ; Adds the list "parsed" to the end of the list "all_parsed". "all_parsed" is a list with sublists for each best track time. 
+     set all_parsed lput parsed all_parsed ; Adds the list "parsed" to the end of the list "all_parsed". "all_parsed" is a list with sublists for each best track time.
      set parsed [] ]
 
 
-  set all_parsed but-first all_parsed ;JA is not sure why the first time of the best track data is removed. 
-  set hurricane-info map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file. 
+  set all_parsed but-first all_parsed ;JA is not sure why the first time of the best track data is removed.
+  set hurricane-info map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file.
       "-" item 6 ?1 item 7 ?1 item 0 ?1  item 1 ?1 item 8 ?1 item 9 ?1 item 10 ?1 item 11 ?1 item 16 ?1
       item 17 ?1 item 18 ?1 item 19 ?1) ] all_parsed  ;"hurricane-info" is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
 
@@ -2636,7 +2635,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
@@ -3352,7 +3351,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
