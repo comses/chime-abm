@@ -1,5 +1,5 @@
 
-<<<<<<< HEAD
+;<<<<<<< HEAD
 ;;;-------DESCRIPTION OF PROCEDURES USED IN THIS AGENT-BASED-MODEL-----------------------------------------------------------------------------------
 ;Setup-Everything: Loads GIS files, loads hurricane best-track information, loads forecasts, sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.  
     ;1. Load-GIS: Displays the region of interest, loads GIS data (i.e., elevation; population density; counties; county¬¬ seats). Determines which patches are land and ocean. Ocean patches are designated where the elevation data has “no data” values. 
@@ -39,9 +39,9 @@
 
 
 ;; call needed extensions
-=======
+;=======
 ;; Declare netlogo extensions needed for the model
->>>>>>> c42dd209287ba7bb05aa0f76e70b4bf46cbf7fb2
+;>>>>>>> c42dd209287ba7bb05aa0f76e70b4bf46cbf7fb2
 extensions [gis profiler csv]
 
 
@@ -172,7 +172,7 @@ to Setup-Everything
   import-drawing "Legend/Legend_ABM.png"
   Load-Hurricane
 
-  ifelse which-storm? = "IRMA" [ Load-Forecasts-New ] [Load-Forecasts]
+  ifelse which-storm? = "IRMA" or "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts]
 
   setup
 end
@@ -276,7 +276,7 @@ to Load-GIS
 
     if which-storm? = "WILMA" or which-storm? = "WILMA_IDEAL" or which-storm? = "CHARLEY_REAL" or which-storm? = "CHARLEY_IDEAL" or which-storm? = "CHARLEY_BAD" or which-storm? = "IRMA" [set which-region? "FLORIDA"]
     if which-storm? = "HARVEY"  [set which-region? "GULF"]
-    if which-storm? = "MICHAEL"  [set which-region? "UNKNOWN"]
+    if which-storm? = "MICHAEL"  [set which-region? "GULF_AND_SE"]
 
      let elevation 0
      let density 0
@@ -301,6 +301,18 @@ to Load-GIS
        foreach but-last gis:feature-list-of county-seats [ ?1 ->
         set county-seat-list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list
      ]]
+
+      if which-region? = "GULF_AND_SE" [
+      set elevation gis:load-dataset "STORMS/MICHAEL/elevation_reduced_by2.asc"         ; Raster map - SRTM elevation data (downscaled by a factor of 2 using QGIS)
+      gis:set-world-envelope-ds gis:envelope-of elevation
+      set density gis:load-dataset "STORMS/MICHAEL/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
+      set county_seat_list []
+      set counties gis:load-dataset "STORMS/MICHAEL/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
+      set county_seats gis:load-dataset "STORMS/MICHAEL/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
+      foreach but-last gis:feature-list-of county_seats [ ?1 ->
+      set county_seat_list lput list gis:property-value ?1 "OBJECTID" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county_seat_list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
+      ]]
+
 
      gis:set-world-envelope-ds gis:envelope-of elevation
 
@@ -345,6 +357,7 @@ to Load-Hurricane
     if which-storm? = "CHARLEY_BAD" [ set storm-file "STORMS/CHARLEY_BAD/CHARLEY.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA.txt" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut.txt" ]
 
   file-open storm-file  ; imports the best track data
 
@@ -512,6 +525,7 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
 
    let all-advisories csv:from-file storm-file
 
