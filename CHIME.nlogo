@@ -37,10 +37,8 @@
     ;1. Make-Links: Creates lines that show which citizens are in which social network.
 
 
-;; call needed extensions
-;=======
+
 ;; Declare netlogo extensions needed for the model
-;>>>>>>> c42dd209287ba7bb05aa0f76e70b4bf46cbf7fb2
 extensions [gis profiler csv]
 
 
@@ -94,7 +92,7 @@ breed [tracts tract]                 ; census tract points
 
 ;; Declare agent-specific variables
 patches-own [
-              dens                   ; population density (from GIS)
+              density                   ; population density (from GIS)
               elev                   ; elevation (from GIS)
               county                 ; county
               alerts                 ; whether or not the county official has issued evacuation orders
@@ -165,22 +163,17 @@ drawers-own  [ cone-size ]          ; stores the cone size at the relevant hour 
   ;; Setup calls a handfull of other procedures to build the world and create the agents
   ;; Usually called from a button on the interface AFTER 1. loading the GIS, 2. loading the storm, and 3. loading the forecasts
 
-to Setup-Everything
+to Setup
+
   __clear-all-and-reset-ticks
   Load-GIS
   import-drawing "Legend/Legend_ABM.png"
   Load-Hurricane
 
+
+  ;; *SMB We can change this once we finish redoing the forecasts
   ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts]
 
-  setup
-end
-
-to Setup
-  ; INFO:   Initializes variables needed and the agents used in the simulation
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED:
-  ; CALLED BY:
 
   set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
 
@@ -188,11 +181,17 @@ to Setup
 
   set clock list item 3 item ticks hurricane-coords  item 4 item ticks hurricane-coords    ;; defines the clock
 
-  ;*** SMB Need to get rid of the Florida check in case people use other regions in the future
   ;; Setup Agents Based on if the Census Information is Being Used
+
+
+  if use-census-data and which-region?  != "FLORIDA"
+  [user-message "Census Data is only available for Florida and will not be used for locations or decisions."]
+
   ifelse use-census-data and which-region?  = "FLORIDA"
-  [Create-Tract-Agents];; creates agents based on census data and assigns them
-  [Create-Agents];; creates the agents and distribtues them randomly or based on population density
+  [Create-Citizen-Agents-From-Census-Tracts];; creates agents based on census data and assigns them
+  [Create-Citizen-Agent-Population];; creates the agents and distribtues them randomly or based on population density
+
+  Create-Other-Agents;; Officials, Broadcasters and Aggregators are created
 
   Social-Network ;; defines the agents' social networks
 
@@ -204,7 +203,10 @@ to Setup
    set risk-env 0
    set risk-surge 0
 
+
 end
+
+
 
 
 
@@ -278,12 +280,12 @@ to Load-GIS
     if which-storm? = "MICHAEL"  [set which-region? "GULF_AND_SE"]
 
      let elevation 0
-     let density 0
+     let density-map 0
      let counties 0
      if which-region? = "FLORIDA" [
       gis:load-coordinate-system "REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
-      set density gis:load-dataset "REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
+      set density-map gis:load-dataset "REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county-seat-list[]
       set county-seats gis:load-dataset "REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/FLORIDA/GIS/counties_1.asc"                 ; Raster map - counties
@@ -293,7 +295,7 @@ to Load-GIS
      if which-region? = "GULF" [
      gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"                      ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
-      set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
+      set density-map gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county-seat-list []
       set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county-seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/GULF/GIS/gulf_states_counties_extended.asc"                 ; Raster map - counties
@@ -304,7 +306,7 @@ to Load-GIS
       if which-region? = "GULF_AND_SE" [
       set elevation gis:load-dataset "REGION/GULF_SE/GIS/elevation_reduced_by2.asc"         ; Raster map - SRTM elevation data (downscaled by a factor of 2 using QGIS)
       gis:set-world-envelope-ds gis:envelope-of elevation
-      set density gis:load-dataset "REGION/GULF_SE/GIS/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
+      set density-map gis:load-dataset "REGION/GULF_SE/GIS/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
       set county-seat-list []
       set counties gis:load-dataset "REGION/GULF_SE/GIS/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
       set county-seats gis:load-dataset "REGION/GULF_SE/GIS/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
@@ -324,7 +326,7 @@ to Load-GIS
      file-close-all
 
    gis:apply-raster elevation elev
-   gis:apply-raster density dens
+   gis:apply-raster density-map density
    gis:apply-raster counties county
    gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
    ask patches [set land? true]
@@ -875,18 +877,16 @@ to Generate-Storm
 end
 
 
-;; called by the setup procedure to populate the model with the various breeds of agents
-;; *SMB this needs to be reorganized so that the forecasters etal code doesn't need to be repeated
-to Create-Agents
+to Create-Citizen-Agent-Population
   ; INFO: Create citizen agents
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: called by the setup procedure to populate the model with the citizen agents
 
 
   set-default-shape citizen-agents "circle"
-  let tickets sort [dens] of patches with [dens > 0]
-  let ranked-patches sort-on [dens] patches with [dens > 0]
+  let tickets sort [density] of patches with [density > 0]
+  let ranked-patches sort-on [density] patches with [density > 0]
   let sum_T sum tickets
 
   create-citizen-agents #citizen-agents [
@@ -901,7 +901,7 @@ to Create-Agents
        set i i + item j tickets
        set j j + 1 ]
     move-to item (j - 1) ranked-patches ]
-   [move-to one-of patches with [dens >= 0 ]
+   [move-to one-of patches with [density >= 0 ]
 
    if which-storm? = "MICHAEL" [
    let landfall_lat 30.0   ;Josh added this
@@ -909,10 +909,10 @@ to Create-Agents
    let landfall_lon_netlogo_world (landfall_lon - item 0 re0-0)/ item 0 grid-cell-size
    let landfall_lat_netlogo_world (landfall_lat - item 1 re0-0)/ item 1 grid-cell-size
    let distance-citizens 40
-   move-to one-of patches with [(dens >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+   move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
    let coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
     while[coast-distance >= 6] [
-    move-to one-of patches with [(dens >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+    move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
     set coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
    ]]
 
@@ -958,6 +958,18 @@ to Create-Agents
     set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
     ]
 
+end
+
+
+to  Create-Other-Agents
+  ; INFO: Create agents that are used to spread information. This includes officials, aggregators and broadcasters
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY:
+
+  let tickets sort [density] of patches with [density > 0]
+  let ranked-patches sort-on [density] patches with [density > 0]
+  let sum_T sum tickets
 
   set-default-shape forecasters "circle"
   create-forecasters 1 [
@@ -1023,11 +1035,7 @@ to Create-Agents
 
   set-default-shape hurricanes "storm"
 
-  ;set watching cit-ag 26; read-from-string user-input "who to watch?"
-
 end
-
-
 
 to-report Check-Zone
   ; INFO:  Used to determine which zone an agent is located in
@@ -1048,15 +1056,15 @@ to-report Check-Zone
 end
 
 
-to Create-Tract-Agents
+to Create-Citizen-Agents-From-Census-Tracts
   ; INFO: Create citizen agents based on census information
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY:
 
   ;; original density distribution code
-  let tickets sort [dens] of patches with [dens > 0]
-  let ranked-patches sort-on [dens] patches with [dens > 0]
+  let tickets sort [density] of patches with [density > 0]
+  let ranked-patches sort-on [density] patches with [density > 0]
   let sum_T sum tickets
 
   let tractfile ""
@@ -1148,69 +1156,6 @@ to Create-Tract-Agents
   ifelse no-vehicle-factor [ask citizen-agents [set no-vehicle? Add-Census-Factor 59]] [ask citizen-agents [set no-vehicle? false]]
   ifelse no-internet-factor [ask citizen-agents [set no-internet? Add-Census-Factor 55]] [ask citizen-agents [set no-internet? false]]
 
-  set-default-shape forecasters "circle"
-  create-forecasters 1 [
-    set color green
-    set size 1
-    let lotto random-float sum_T
-    let i 0
-    let j 0
-    while [i < lotto] [
-       set i i + item j tickets
-       set j j + 1
-     ]
-    move-to item (j - 1) ranked-patches
-    set current-forecast Past-Forecasts
-    ]
-
-  set-default-shape officials "star"
-  foreach county-seat-list [ ?1 ->
-  create-officials 1 [
-    set color red
-    set size 1.5
-    set xcor item 0 item 1 ?1
-    set ycor item 1 item 1 ?1
-    set orders 0
-    set distance-to-track 99
-    set county-id item 0 ?1
-    ]
-  ]
-
-  set-default-shape broadcasters "circle"
-  create-broadcasters #broadcasters [
-    set color yellow
-    set size .5
-    let lotto random-float sum_T
-    let i 0
-    let j 0
-    while [i < lotto] [
-       set i i + item j tickets
-       set j j + 1
-     ]
-    move-to item (j - 1) ranked-patches
-    set broadcast []
-    ]
-
-  set-default-shape aggregators "circle"
-  create-aggregators #net-aggregators [
-    set color pink
-    set size .5
-    let lotto random-float sum_T
-    let i 0
-    let j 0
-    while [i < lotto] [
-       set i i + item j tickets
-       set j j + 1
-     ]
-     move-to item (j - 1) ranked-patches
-    set info []
-    ]
-
-  set-default-shape hurricanes "storm"
-
-  ;;set watching cit-ag 26; read-from-string user-input "who to watch?"
-
-  ;;add-temp-factor-test
 
 end
 
@@ -1624,10 +1569,8 @@ to Coastal-Patches-Alerts
           let intens item 0 working-forecast
            let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast
            if (scale * dist_trk) < interp_sz [ set dist_trk 0 ]
-          let wind-thresh wind_threshold
 
-          if counter < earliest and dist_trk = 0 and intens >= wind-thresh [ set alerts 1
-                                                                              ]
+          if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1 ]
 
       ] ] ]
 
@@ -1962,7 +1905,7 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number","evac-zone","completed","when-evac-1st-ordered","behaviorspace-run-number","which-storm?","distribute_population","earliest","wind_threshold","forc-w","evac-w","envc-w","network-distance","network-size","tract-information",")
+  set text-out (sentence ","who","xcor","ycor","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number","evac-zone","completed","when-evac-1st-ordered","behaviorspace-run-number","which-storm?","distribute_population","earliest","wind-threshold","forc-w","evac-w","envc-w","network-distance","network-size","tract-information",")
   file-type text-out
   file-print ""
   ]
@@ -2102,7 +2045,7 @@ to-report Save-Global-Evac-Statistics
         ])
 
 
-   let op (sentence "" behaviorspace-run-number which-storm? distribute_population earliest wind_threshold forc-w evac-w envc-w allpct network-distance network-size test-factor-proportion under-18-assessment-increase "|" output-list-a "|" hist-list "|" hist-pcts "|")
+   let op (sentence "" behaviorspace-run-number which-storm? distribute_population earliest wind-threshold forc-w evac-w envc-w allpct network-distance network-size test-factor-proportion under-18-assessment-increase "|" output-list-a "|" hist-list "|" hist-pcts "|")
 
   file-open word output-filename ".txt"
     file-type op
@@ -2152,13 +2095,13 @@ to Load-GIS-HPC
 
 
      let elevation 0
-     let density 0
+     let density-map 0
      let counties 0
 
      if which-REGION? = "FLORIDA" [
       gis:load-coordinate-system "/home/sbergin/CHIME/REGION/FLORIDA/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Florida_SRTM_1215.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
-      set density gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
+      set density-map gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/Pop_Density_1215.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county-seat-list []
       set county-seats gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "/home/sbergin/CHIME/REGION/FLORIDA/GIS/counties_1.asc"                 ; Raster map - counties
@@ -2168,7 +2111,7 @@ to Load-GIS-HPC
      if which-REGION? = "GULF" [
       gis:load-coordinate-system "REGION/GULF/GIS/block_density.prj"                  ; NetLogo needs a prj file to set up the conversion from GIS to netlogo grid
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"         ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
-      set density gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
+      set density-map gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county-seat-list []
       set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/GULF/GIS/gulf_states_counties_extended.asc"                 ; Raster map - counties
@@ -2188,7 +2131,7 @@ to Load-GIS-HPC
      ;;show re0-0  ;; identifies the 0,0 center of the map (degrees)
 
        gis:apply-raster elevation elev
-       gis:apply-raster density dens
+       gis:apply-raster density-map density
        gis:apply-raster counties county
        gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
        ask patches [set land? true]
@@ -2420,27 +2363,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-15
-488
-184
-521
-4. set up
-setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-14
-599
-184
-634
+17
+527
+187
+562
 Show Network Connections
 make-links
 NIL
@@ -2454,11 +2380,11 @@ NIL
 1
 
 BUTTON
-16
-526
-183
-559
-5. run simulation
+18
+446
+185
+479
+Run Simulation
 go
 T
 1
@@ -2471,63 +2397,12 @@ NIL
 1
 
 BUTTON
-101
-563
-184
-596
+18
+491
+187
+524
 go-once
 go
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-15
-377
-185
-410
-1. load GIS
-load-gis
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-15
-414
-187
-447
-2. load storm
-load-hurricane
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-15
-450
-186
-483
-3. load forecasts
-load-forecasts
 NIL
 1
 T
@@ -2636,8 +2511,8 @@ SLIDER
 242
 186
 275
-wind_threshold
-wind_threshold
+wind-threshold
+wind-threshold
 70
 130
 116.0
@@ -2654,7 +2529,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 16
@@ -2769,12 +2644,12 @@ kids-under-18-factor
 -1000
 
 BUTTON
-16
-339
-185
-372
-SETUP EVERYTHING
-setup-everything
+18
+406
+187
+439
+Setup Simulation
+setup
 NIL
 1
 T
@@ -2835,7 +2710,7 @@ census-tract-min-pop
 census-tract-min-pop
 0
 10000
-5000.0
+5800.0
 100
 1
 NIL
@@ -3002,7 +2877,7 @@ BUTTON
 1271
 819
 PROFILER
-profiler:start\nrepeat 3 [setup-everything]\nprofiler:stop\nprint profiler:report\nprofiler:reset
+profiler:start\nrepeat 3 [setup]\nprofiler:stop\nprint profiler:report\nprofiler:reset
 NIL
 1
 T
@@ -3370,7 +3245,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
