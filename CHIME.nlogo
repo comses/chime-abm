@@ -302,12 +302,12 @@ to Load-GIS
      ]]
 
       if which-region? = "GULF_AND_SE" [
-      set elevation gis:load-dataset "STORMS/MICHAEL/elevation_reduced_by2.asc"         ; Raster map - SRTM elevation data (downscaled by a factor of 2 using QGIS)
+      set elevation gis:load-dataset "REGION/GULF_SE/GIS/elevation_reduced_by2.asc"         ; Raster map - SRTM elevation data (downscaled by a factor of 2 using QGIS)
       gis:set-world-envelope-ds gis:envelope-of elevation
-      set density gis:load-dataset "STORMS/MICHAEL/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
+      set density gis:load-dataset "REGION/GULF_SE/GIS/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
       set county-seat-list []
-      set counties gis:load-dataset "STORMS/MICHAEL/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
-      set county-seats gis:load-dataset "STORMS/MICHAEL/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
+      set counties gis:load-dataset "REGION/GULF_SE/GIS/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
+      set county-seats gis:load-dataset "REGION/GULF_SE/GIS/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
       foreach but-last gis:feature-list-of county-seats [ ?1 ->
       set county-seat-list lput list gis:property-value ?1 "OBJECTID" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
       ]]
@@ -901,7 +901,24 @@ to Create-Agents
        set i i + item j tickets
        set j j + 1 ]
     move-to item (j - 1) ranked-patches ]
-   [move-to one-of patches with [dens >= 0 ] ]
+   [move-to one-of patches with [dens >= 0 ]
+
+   if which-storm? = "MICHAEL" [
+   let landfall_lat 30.0   ;Josh added this
+   let landfall_lon -85.5   ;Josh added this
+   let landfall_lon_netlogo_world (landfall_lon - item 0 re0-0)/ item 0 grid-cell-size
+   let landfall_lat_netlogo_world (landfall_lat - item 1 re0-0)/ item 1 grid-cell-size
+   let distance-citizens 40
+   move-to one-of patches with [(dens >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+   let coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
+    while[coast-distance >= 6] [
+    move-to one-of patches with [(dens >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+    set coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
+   ]]
+
+   ]
+
+
     set heading random 360
     fd random-float .5
 
@@ -1413,7 +1430,7 @@ to-report Past-Forecasts
    let error_list []
    ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
 
-  if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198]]
+  if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]]
 
    while [length error_list > length forecast-matrix] [set error_list but-last error_list]
    let severity_list []
