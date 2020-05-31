@@ -1411,7 +1411,9 @@ to-report Past-Forecasts
    let s-f 0
    let s-f_real (357 / scale )
    let error_list []
-   ifelse which-storm? = "IRMA" or which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
+   ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
+
+  if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198]]
 
    while [length error_list > length forecast-matrix] [set error_list but-last error_list]
    let severity_list []
