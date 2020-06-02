@@ -185,7 +185,7 @@ to Setup
 
 
   if use-census-data and which-region?  != "FLORIDA"
-  [user-message "Census Data is only available for Florida and will not be used for locations or decisions."]
+  [print "*** WARNING: Census Data is only available for Florida and will not be used for locations or decisions. ***"]
 
   ifelse use-census-data and which-region?  = "FLORIDA"
   [Create-Citizen-Agents-From-Census-Tracts];; creates agents based on census data and assigns them
@@ -297,7 +297,7 @@ to Load-GIS
       set elevation gis:load-dataset "REGION/GULF/GIS/gulf_states_extended.asc"                      ; Raster map - SRTM elevation data (downscaled using GRASS GIS)
       set density-map gis:load-dataset "REGION/GULF/GIS/gulf_states_pop_density_extended.asc"            ; Raster map - Population density (calculated by census tract, modified for use w/ GRASS)
       set county-seat-list []
-      set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county-seats.shp"           ; Vector map (points) - location of county seats
+      set county-seats gis:load-dataset "REGION/GULF/GIS/gulf_states_county_seats.shp"           ; Vector map (points) - location of county seats
       set counties gis:load-dataset "REGION/GULF/GIS/gulf_states_counties_extended.asc"                 ; Raster map - counties
        foreach but-last gis:feature-list-of county-seats [ ?1 ->
         set county-seat-list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list
@@ -372,7 +372,7 @@ to Load-Hurricane
 
   let Tparsed "" ; "Tparsed" is an individual string from the list "hurricane-file"
   let parsed []  ; "parsed" is a list that combines all of the strings in "hurricane-file", but with commas removed
-  let all_parsed [] ; "all_parsed" is a list with data for each best track time, with commas removed, and sublists for each time
+  let all-parsed [] ; "all-parsed" is a list with data for each best track time, with commas removed, and sublists for each time
   foreach hurricane-file [ ?1 -> ; "?1" represents each line in "hurricane-file"
      let i 0
    while [i < length ?1] [
@@ -381,19 +381,21 @@ to Load-Hurricane
                          set Tparsed ""
                          ]
               set i i + 1 ]
-     set all_parsed lput parsed all_parsed ; Adds the list "parsed" to the end of the list "all_parsed". "all_parsed" is a list with sublists for each best track time.
+     set all-parsed lput parsed all-parsed ; Adds the list "parsed" to the end of the list "all_parsed". "all_parsed" is a list with sublists for each best track time.
      set parsed [] ]
 
 
-  set all_parsed but-first all_parsed ;JA is not sure why the first time of the best track data is removed.
+  set all-parsed but-first all-parsed ;JA is not sure why the first time of the best track data is removed.
+
   set hurricane-info map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file.
       "-" item 6 ?1 item 7 ?1 item 0 ?1  item 1 ?1 item 8 ?1 item 9 ?1 item 10 ?1 item 11 ?1 item 16 ?1
-      item 17 ?1 item 18 ?1 item 19 ?1) ] all_parsed  ;"hurricane-info" is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
+      item 17 ?1 item 18 ?1 item 19 ?1) ] all-parsed  ;"hurricane-info" is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
 
 end
 
 
 to Load-Forecasts
+
   ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
@@ -511,15 +513,15 @@ end
 
 to Load-Forecasts-New
   ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED:
-  ; CALLED BY:
+  ; VARIABLES MODIFIED: The main variable modified is the forecast-matrix. The forecasts include historical predictions about the storm based on the amount of time before the storm hits
+  ; PROCEDURES CALLED: Calculate-Advisory-Time is called and used to convert forecast times that are saved in forecast-matrix
+  ; CALLED BY: Called by Setup
 
-   set forecast-matrix []
+   set forecast-matrix [] ; This is the main variable that will be modified in this procedure and records forecasts that will be used throughout the simulation
 
-   let storm-file ""
+   let storm-file "" ; The storm file is a csv that is read and parsed into the forecast-matrix
     if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY ADVISORIES.txt" ]
-    if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA ADVISORIES.txt" ]              ;; defines the correct list of advisories from pull-down menu
+    if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA ADVISORIES.txt" ]
     if which-storm? = "WILMA_IDEAL" [set storm-file "STORMS/WILMA_IDEAL/FAKE_WILMA ADVISORIES.txt" ]
     if which-storm? = "CHARLEY_REAL" [ set storm-file "STORMS/CHARLEY_REAL/CHARLEY ADVISORIES.txt" ]
     if which-storm? = "CHARLEY_IDEAL" [ set storm-file "STORMS/CHARLEY_IDEAL/CHARLEY_IDEAL ADVISORIES.txt" ]
@@ -532,9 +534,9 @@ to Load-Forecasts-New
 
   ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
 
-   let advisories-parsed []
+   let advisories-parsed []; the first list used to hold information from the first parsing of all-advisories
 
-   ;; filter out rows that are not used which have a time and pressure of 0
+   ;; First filter out rows that are not used which have a time and pressure of 0 and save them in advisories-parsed
    foreach all-advisories [ this-advisory ->
     let this-forecast-time item 5 this-advisory
     let pressure-value item 9 this-advisory
@@ -544,14 +546,21 @@ to Load-Forecasts-New
    ]
 
   let forecast-time 0
-  let all-forecasts []
-  let unique-advisory []
+  let all-forecasts [] ;; the new list that holds the parsed information
+  let unique-advisory [] ;; a sub list that is saved to the all-forecasts list
 
 
   ;; move each row into a new list entry by date to replicate the previous format - this results in a list which contains a list of all information for each day in one row
+  ;; Previous Format:  Day 1 Time 1
+  ;;                   Day 1 Time 2
+  ;;                   Day 2 Time 1
+  ;;                   Day 2 Time 2
+  ;;  New Format:      Day 1 Time 1 Time 2
+  ;;                   Day 2 Time 1 Time 2
+
   foreach advisories-parsed [this-advisory ->
 
-    ; same forecast time - so keep adding it to the lsit for that day
+    ; same forecast time - so keep adding it to the list for that day
     ifelse forecast-time = (item 2 this-advisory) [
       set unique-advisory  lput this-advisory unique-advisory
     ]
@@ -564,6 +573,7 @@ to Load-Forecasts-New
 
     ]
   ]
+  ;; all-forecasts now contatins the partially parsed information
 
 
   set forecast-time 0
@@ -606,12 +616,9 @@ to Load-Forecasts-New
         ][set new-time-entry false
           set first-entry-from-this-advisory false]
 
-
-
         ifelse new-time-entry[
           ; save the info and reset lists to 0
-          ;print "new entry"
-          ;print this-advisory
+
 
           ifelse length list-34 > 0 [set schedule lput list-34 schedule]
           [let empty (word list-34 "")
@@ -706,21 +713,26 @@ to Load-Forecasts-New
          set entries-for-all-days lput entries-for-one-day entries-for-all-days
   ]
 
+; The parsing is complete and the forecast-matrix is set
 
 set forecast-matrix  entries-for-all-days
+
+
+
 
 end
 
 to-report Calculate-Advisory-Time [time hours-away]
-  ; INFO:    This procedure translates times from the file to the date and the hour.
+  ; INFO:    This procedure translates times from the file to the date and the hour. Its used when the forecast info is parsed during the setup of the model.
   ;           2017090506 6    ->  5 1200
-  ; VARIABLES MODIFIED:
+  ; VARIABLES MODIFIED: converts the time and hours away to a different format - see above line
   ; PROCEDURES CALLED:
-  ; CALLED BY:
+  ; CALLED BY: Load-Forecast
 
 
   let advisory-time[]
   let time-word (word time)
+  ;parse the individual numbers from the incoming variable time
   let day substring time-word 6 8
   let hour substring time-word 8 10
   set day read-from-string day
@@ -738,11 +750,12 @@ to-report Calculate-Advisory-Time [time hours-away]
     set hour hours-past-0
   ]
   set hour hour * 100 ; to make 12, look like 1200 etc.
-
+  ; report a two entry list that contains the parsed day and hour
   set advisory-time lput day advisory-time
   set advisory-time lput hour advisory-time
 
   report advisory-time
+
 end
 
 
@@ -2326,7 +2339,7 @@ SLIDER
 #citizen-agents
 0
 5000
-1000.0
+1001.0
 1
 1
 NIL
@@ -2529,7 +2542,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
