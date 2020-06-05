@@ -514,7 +514,7 @@ to Load-Forecasts
 end
 
 to Load-Forecasts-New
-  ; JA comments: would be nice to have list structures (e.g., which variables are in the list, and at what index).
+  ; JA comments: would be nice to have list structures (e.g., which variables are in the list, and at what index). Also, I am still confused on some lines. Would be nice to have comments for most of lines.
   ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
   ; VARIABLES MODIFIED: The main variable modified is the forecast-matrix. The forecasts include historical predictions about the storm based on the amount of time before the storm hits
   ; PROCEDURES CALLED: Calculate-Advisory-Time is called and used to convert forecast times that are saved in forecast-matrix
@@ -531,7 +531,7 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
 
    let all-advisories csv:from-file storm-file
 
@@ -1419,6 +1419,11 @@ to-report Past-Forecasts
 
    let published_forc []
 
+
+  print length(size_list)
+  print length(time_list)
+  print length(winds34)
+print length(winds64)
    set published_forc (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity_list forecast_list size_list time_list winds34 winds64)
 
   report published_forc
