@@ -9,9 +9,10 @@
         ;2. Calculate-Coordinates: Reports lat-lon coordinates of the storm center in model space.
     ;5. Setup: Sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.
         ;1. Generate-Storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.
-        ;2. Create-Agents: Populates the model with the various breeds of agents (i.e., citizens, forecasters officials, broadcasters, and aggregators). Sets various attributes for each citizen (i.e., evac-zone, self-trust, trust-authority, networks lists, risk thresholds).
+        ;2. Create-Citizen-Agent-Population: Populates the model with citizens. Sets various attributes for each citizen (i.e., evac-zone, self-trust, trust-authority, networks lists, risk thresholds).
             ;1. Check-Zone: Determines the evacuation zone of each citizen, which depends on the number of grid points the citizen is away from the coast (i.e., zone “A” is 1.5 grid points from the coast).
-        ;3. Create-Tract-Agents: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.
+        ;3. Create-Other-Agents: Populates the model with the various breeds of agents other than citizens (i.e., forecasters officials, broadcasters, and aggregators).
+;3. Create-Tract-Agents: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.
             ;1. Create-More-Cit-Ags-Based-On-Census: Populates the model with more agents based on the census.
             ;2. Check-For-Swimmers: Moves citizens located at an ocean patch to a land patch.
             ;3. Add-Census-Factor: Set to true for each citizen that has the census information in their tract (e.g., kids under 18, adults over 65, limited English, use food stamps, no vehicle, no internet). This information is used in the decision-making process to calculate risk parameters.
@@ -106,7 +107,7 @@ citizen-agents-own [
 
          decision-module-frequency         ; sets the frequency that agents run the risk-decision module
          previous-dm-frequency             ; agent remembers feedback1 in case of evacuation (reverts to original value)
-         decision-module-turn               ; helps agents determine when it's their turn to run the risk-decision module
+         decision-module-turn              ; helps agents determine when it's their turn to run the risk-decision module
 
          my-network-list                   ; agent's social network (modified preferential attachment, see below)
          broadcaster-list                  ; the set of broadcasters linked to the agent
@@ -126,7 +127,7 @@ citizen-agents-own [
          info-down                         ; characteristic sets threshold for determining to delay collecting more info (changes feedback1 loop)
          risk-estimate                     ; keeps a list of risk calculations
          completed                         ; keeps a list of previous decisons (and when they were made)
-         risk-packet                       ; list of three main inputs to risk function (forecast info, evac orders, env cues)
+         risk-packet                       ; List the final risk, followed by the three main inputs to the risk function (forecast info, evac orders, env cues)
 
          ;;   Census Tract Information
          tract-information                 ; information from a census tract
@@ -896,23 +897,26 @@ end
 
 to Create-Citizen-Agent-Population
   ; INFO: Creates citizen agents
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY: called by the setup procedure to populate the model with the citizen agents
+  ; VARIABLES MODIFIED: Citizens aquire values for their variables (e.g., location, trust thresholds, risk thresholds).
+  ; PROCEDURES CALLED: Check-Zone
+  ; CALLED BY: Setup
 
 
   set-default-shape citizen-agents "circle"
-  let tickets sort [density] of patches with [density > 0] ;Sorts patches that have a population density greater than zero
-  print tickets
-  let ranked-patches sort-on [density] patches with [density > 0]
-  let sum_T sum tickets
+  let tickets sort [density] of patches with [density > 0] ;Sorts patches that have a population density greater than zero. Tickets is a list storing each population density value.
+  let ranked-patches sort-on [density] patches with [density > 0] ;"ranked-patches" is a list storing the location of each patch with population density greater than zero.
+  let sum_T sum tickets ;"sum_T" is the entire population of the domain.
 
   ;Creates agents and sets the size of the circle displayed on the Netlogo interface
   create-citizen-agents #citizen-agents [
     set color blue
     set size 1
 
-   ifelse distribute_population [
+   ;distribute_population=true means citizens are placed based on population distribution. distribute_population=false means citizens are placed randomly.
+    ifelse distribute_population [
+    ;This is the way population is distributed based on population density. A random values is chosen ("lotto") between 0 and the sum_T. Then, a while loop runs until i is greater than lotto.
+    ;A citizen is placed on the patch where i>=lotto.
+     ;JA: It is difficult to follow how citizens are placed based on population density. To me, the method is confusing - I think I follow the code.
     let lotto random-float sum_T
     let i 0
     let j 0
@@ -920,45 +924,46 @@ to Create-Citizen-Agent-Population
        set i i + item j tickets
        set j j + 1 ]
     move-to item (j - 1) ranked-patches ]
-   [move-to one-of patches with [density >= 0 ]
+   [move-to one-of patches with [density >= 0 ] ;citizen is placed randomly on a patch with a population density greater than zero.
 
-   if which-storm? = "MICHAEL" [
-   let landfall_lat 30.0   ;Josh added this
-   let landfall_lon -85.5   ;Josh added this
-   let landfall_lon_netlogo_world (landfall_lon - item 0 re0-0)/ item 0 grid-cell-size
-   let landfall_lat_netlogo_world (landfall_lat - item 1 re0-0)/ item 1 grid-cell-size
-   let distance-citizens 40
-   move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
-   let coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
-    while[coast-distance >= 6] [
-    move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
-    set coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
+   if which-storm? = "MICHAEL" [ ;Josh added this hard-coded information for hurricane Michael to increase the sample size of citizens near the coast in Michael's path.
+       let landfall_lat 30.0   ;Josh added this
+       let landfall_lon -85.5   ;Josh added this
+       let landfall_lon_netlogo_world (landfall_lon - item 0 re0-0)/ item 0 grid-cell-size
+       let landfall_lat_netlogo_world (landfall_lat - item 1 re0-0)/ item 1 grid-cell-size
+       let distance-citizens 40
+       move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+       let coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
+        while[coast-distance >= 6] [ ;Keep moving citizens until they are, at most, 6 grid points from the coast.
+        move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+        set coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
    ]]
 
    ]
 
-
+    ;JA is not sure what these two things do
     set heading random 360
     fd random-float .5
 
-    set evac-zone Check-Zone
-    set self-trust   .6 + random-float .4
-    set trust-authority random-float 1
+    ;JA: Lots of random values for the trust and risk information below.
+    set evac-zone Check-Zone ;Each citizen runs "Check-Zone" prodedure to determine which evacuation zone they are in.
+    set self-trust .6 + random-float .4 ;citizens set their self-trust
+    set trust-authority random-float 1 ;citizens set their trust in authorities
     set forecast-options [ ]
     set my-network-list [ ]
     set broadcaster-list [ ]
     set aggregator-list  [ ]
     set interpreted-forecast []
-    set memory list self-trust interpreted-forecast
+    set memory list self-trust interpreted-forecast ;"memory" includes a citizen's self trust and interpreted forecast
 
-  ;; for new decision model
-    set risk-life random-normal 14 2
-    set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
-      if risk-property > risk-life [set risk-property risk-life]
-    set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
-      if info-up > risk-property [set info-up risk-property]
+  ;; for new decision model, citizens determine risk perception thresolds
+    set risk-life random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
+    set risk-property random-normal (.7 * risk-life) .5 ;"risk-property" depends on "risk-life"
+      if risk-property > risk-life [set risk-property risk-life] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
+    set info-up random-normal (.4 * risk-life) .5 ;info-up depends on risk-life. If risk to life is greater, a citizen would collect information later.
+      if info-up > risk-property [set info-up risk-property] ;A citizen should collect information before their risk-property threshold is reached.
     set info-down random-normal (.1 * risk-life) .5
-      if info-down > info-up [set info-down info-up - .1]
+      if info-down > info-up [set info-down info-up - .1] ;Collecting less information threshold should be lower than collecting more infomation.
 
     if risk-life < 0 [set risk-life 0]
     if risk-property < 0 [set risk-property 0]
@@ -966,32 +971,50 @@ to Create-Citizen-Agent-Population
     if info-down < 0 [set info-down 0]
 
   ;; other cit-ag  variables
-    set risk-estimate [0]
+    set risk-estimate [0] ;List of risk calculations
     set environmental-cues  0
-    set decision-module-frequency round random-normal 12 2
+    set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
     set previous-dm-frequency decision-module-frequency
-    set decision-module-turn random 10
+    set decision-module-turn random 10 ;Helps agents determine when it's their turn to run the risk-decision module
     set completed []
     set distance-to-storm-track 99
 
-    set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
+    set risk-packet (list item 0 risk-estimate environmental-cues  0 0) ;Contains 4 different risk information
     ]
 
 end
 
+to-report Check-Zone
+  ; INFO:  Used to determine which zone an agent is located in.
+  ; VARIABLES MODIFIED: zn (evacuation zone; either "A", "B", or "C")
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Create-Citizen-Agent-Population
+
+  let zn ""
+   ;JA: We are introducing error here, where citizens think they are in an incorrect evacuation zone 20% of the time. Do we want this? May be unrealistic for a citizen in zone A to think they are in zone C.
+  ;Each citizen determines what evacuation zone they are in, depending on how far away they are from the coast. Random error in a citizen's knowledge is added. Roughly 20% of the time, a citizen will randomly choose an evacuation zone, which may be an inaccurate zone for their location.
+  ifelse random-float 1 < .8 [
+    let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
+    if dist-coast <= 1.5 [set zn "A"]
+    if dist-coast > 1.5 and dist-coast <= 3 [set zn "B"]
+    if dist-coast > 3 and dist-coast <= 5 [set zn "C"]
+   ]
+   [ set zn one-of ["A" "B" "C" ""] ]
+  report zn ;
+end
 
 to  Create-Other-Agents
-  ; INFO: Create agents that are used to spread information. This includes officials, aggregators and broadcasters
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; INFO: Create agents that are used to spread information. This includes forecasters, officials, aggregators and broadcasters. Forecasters, officials, broadcasters, and aggregators are placed on the Netlogo interface.
+  ; VARIABLES MODIFIED: Some variables associated with each agent is assigned.
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Setup
 
-  let tickets sort [density] of patches with [density > 0]
-  let ranked-patches sort-on [density] patches with [density > 0]
-  let sum_T sum tickets
+  let tickets sort [density] of patches with [density > 0] ;Sorts patches that have a population density greater than zero. Tickets is a list storing each population density value.
+  let ranked-patches sort-on [density] patches with [density > 0] ;"ranked-patches" is a list storing the location of each patch with population density greater than zero.
+  let sum_T sum tickets ;"sum_T" is the entire population of the domain.
 
   set-default-shape forecasters "circle"
-  create-forecasters 1 [
+  create-forecasters 1 [ ;There is one forecaster
     set color green
     set size 1
     let lotto random-float sum_T
@@ -1002,7 +1025,7 @@ to  Create-Other-Agents
        set j j + 1
      ]
     move-to item (j - 1) ranked-patches
-    set current-forecast Past-Forecasts
+    set current-forecast Past-Forecasts ;Past-Forecasts is the advisory data
     ]
 
 
@@ -1011,14 +1034,13 @@ to  Create-Other-Agents
   create-officials 1 [
     set color red
     set size 1.5
-    set xcor item 0 item 1 ?1
+    set xcor item 0 item 1 ?1 ;official is placed at the location given in the county-seat-list data
     set ycor item 1 item 1 ?1
     set orders 0
     set distance-to-track 99
     set county-id item 0 ?1
     ]
   ]
-
 
   set-default-shape broadcasters "circle"
   create-broadcasters #broadcasters [
@@ -1055,25 +1077,6 @@ to  Create-Other-Agents
   set-default-shape hurricanes "storm"
 
 end
-
-to-report Check-Zone
-  ; INFO:  Used to determine which zone an agent is located in
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
-
-  let zn ""
-
-   ifelse random-float 1 < .8 [
-    let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
-    if dist-coast <= 1.5 [set zn "A"]
-    if dist-coast > 1.5 and dist-coast <= 3 [set zn "B"]
-    if dist-coast > 3 and dist-coast <= 5 [set zn "C"]
-   ]
-   [ set zn one-of ["A" "B" "C" ""] ]
-  report zn
-end
-
 
 to Create-Citizen-Agents-From-Census-Tracts
   ; INFO: Create citizen agents based on census information
@@ -1156,7 +1159,7 @@ to Create-Citizen-Agents-From-Census-Tracts
       set decision-module-turn random 10
       set completed []
       set distance-to-storm-track 99
-      set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
+      set risk-packet (list item 0 risk-estimate environmental-cues  0 0) ;List the final risk, followed by the three main inputs to the risk function (forecast info, evac orders, env cues)
 
     ];; end bracket of cit-ags creation
   ]
