@@ -31,7 +31,6 @@
     ;1. Save-Individual-Cit-Ag-Evac-Records
     ;2. Save-Global-Evac-Statistics
     ;3. Save-View: Saves a .png of the Netlogo model space for each time step.
-    ;4. IsNaN
 
 ;Buttons but not called in the code:
     ;1. Make-Links: Creates lines that show which citizens are in which social network.
@@ -550,7 +549,8 @@ to Load-Forecasts-New
   let unique-advisory [] ;; a sub list that is saved to the all-forecasts list
 
 
-  ;; move each row into a new list entry by date to replicate the previous format - this results in a list which contains a list of all information for each day in one row
+  ;; This next section of code below is to move each row into a new list entry by date to replicate the previous format
+  ;; - this results in a list which contains a list of all information for each day in one row
   ;; Previous Format:  Day 1 Time 1
   ;;                   Day 1 Time 2
   ;;                   Day 2 Time 1
@@ -825,6 +825,10 @@ to Generate-Storm
    ;; the following is basically brute-force interpoloation. The code marches through the array of storm info
    ;; and takes the difference from one 6-hour data point to the next, then calculates the interpolated points
    ;; It does this for all of the dozen or so characteristics of the storm at each point
+
+
+  ;; ***SMB pull out the 6? Not everythign is 6 hours We need a better way to deal with this.
+  ;;
 
    while [i < length re-scaled] [
       set t-y item 1 item i re-scaled - item 1 item (i - 1) re-scaled
@@ -2082,17 +2086,6 @@ to Make-Links
      create-link-to item 0 ?1 [set color yellow] ] ] ]
 end
 
-to-report IsNaN [x]
-  ; INFO: Reports if a value is an actual number and not NULL or something not numerical
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
-
-  ;; routine to find NaN values
-  report not ( x > 0 or x < 0 or x = 0 )
-end
-
-
 
 to Load-GIS-HPC
   ; INFO: Load GIS information. It is a HPC Specific version so that the paths don't need to be changed and two versions of the model don't need to be maintained.
@@ -2542,7 +2535,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+0
 
 SWITCH
 16
