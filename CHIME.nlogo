@@ -531,7 +531,7 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
 
    let all-advisories csv:from-file storm-file
 
@@ -895,17 +895,19 @@ end
 
 
 to Create-Citizen-Agent-Population
-  ; INFO: Create citizen agents
+  ; INFO: Creates citizen agents
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY: called by the setup procedure to populate the model with the citizen agents
 
 
   set-default-shape citizen-agents "circle"
-  let tickets sort [density] of patches with [density > 0]
+  let tickets sort [density] of patches with [density > 0] ;Sorts patches that have a population density greater than zero
+  print tickets
   let ranked-patches sort-on [density] patches with [density > 0]
   let sum_T sum tickets
 
+  ;Creates agents and sets the size of the circle displayed on the Netlogo interface
   create-citizen-agents #citizen-agents [
     set color blue
     set size 1
