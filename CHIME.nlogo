@@ -166,7 +166,11 @@ to Setup
 
   __clear-all-and-reset-ticks
   Load-GIS
-  import-drawing "Legend/Legend_ABM.png"
+  ;import-drawing "Legend/Legend_ABM.png"
+  import-drawing "/Users/jalland/Downloads/Legend_Upper_Right.png"
+  import-drawing "/Users/jalland/Downloads/Legend_Lower_Right.png"
+  import-drawing "/Users/jalland/Downloads/Legend_Upper_Left.png"
+  import-drawing "/Users/jalland/Downloads/Legend_Lower_Left.png"
   Load-Hurricane
 
 
@@ -2535,7 +2539,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-0
+7
 
 SWITCH
 16
@@ -3251,7 +3255,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
