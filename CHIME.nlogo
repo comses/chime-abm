@@ -790,16 +790,22 @@ to-report Calculate-Coordinates [long lat]
 end
 
 
-;; *** SMB this should be redone- hurricane_info is only made once and read once
 to Generate-Storm
   ; INFO: Translates the storm data and interpolate its characteristics fore the in-between hours
-  ; VARIABLES MODIFIED:
+  ; VARIABLES MODIFIED: modifies best-track-data and creates hurricane-coords which is used to draw the hurricane
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: SETUP
+
 
    let re-scaled best-track-data
 
-   ;; first the hurricane_info array is re-worked to model-space coordinates and strings converted to numbers
+   ;; first the hurricane_info array is re-worked to model-space coordinates and strings converted to numbers. Values are intially saved as strings when read from text files
+   ;; Lat/Long coordinates are converted to Netlogo coordinates
+   ;; The hour is extracted from the time stamp
+   ;; For Example:
+   ;; [[ LO  18.1  -86.9   25  1004 20181007  0000     0     0     0     0     0     0     0     0] ......
+   ;; [[ LO -215.33360000140334 -32.462238805294746 25 1004 7 0 0 0 0 0 0 0 0 0]
+
       set re-scaled map  [ ?1 -> (list item 0 ?1 (( read-from-string item 1 ?1  - item 1 re0-0) / item 1 grid-cell-size )
            ((read-from-string item 2 ?1 - item 0 re0-0) / item 0 grid-cell-size ) read-from-string item 3 ?1
            read-from-string item 4 ?1 (read-from-string word last but-last item 5 ?1 last item 5 ?1) read-from-string item 6 ?1
@@ -807,7 +813,9 @@ to Generate-Storm
                                 read-from-string item 10 ?1 read-from-string item 11 ?1 read-from-string item 12 ?1 read-from-string item 13 ?1
                                 read-from-string item 14 ?1)  ]   re-scaled
 
-   let t-y 0            ;; temporary variables used in the calculation of interpoloated storm characteristics
+
+   ;; Temporary variables used in the calculation of interpoloated storm characteristics
+   let t-y 0
    let t-x 0
    let t-z 0
    let t-34-ne 0
@@ -821,7 +829,7 @@ to Generate-Storm
    let day item 5 item 0 re-scaled
    let hour item 6 item 0 re-scaled
    let i 1
-   set hurricane-coords  []
+   set hurricane-coords  [] ; the list that will contain the newly interpolated storm location information
 
    ;; the following is basically brute-force interpoloation. The code marches through the array of storm info
    ;; and takes the difference from one 6-hour data point to the next, then calculates the interpolated points
@@ -832,6 +840,7 @@ to Generate-Storm
   ;;
 
    while [i < length re-scaled] [
+
       set t-y item 1 item i re-scaled - item 1 item (i - 1) re-scaled
       set t-x item 2 item i re-scaled - item 2 item (i - 1) re-scaled
       set t-z item 3 item i re-scaled - item 3 item (i - 1) re-scaled
@@ -845,6 +854,7 @@ to Generate-Storm
       set t-64-nw item 14 item i re-scaled - item 14 item (i - 1) re-scaled
       set day item 5 item (i - 1) re-scaled
       set hour item 6 item (i - 1) re-scaled
+    ; variables that record the newlyy interpolated storm location information
       let new-y []
       let new-x []
       let new-z []
@@ -858,7 +868,7 @@ to Generate-Storm
       let new-64-nw []
       let new-day []
       let new-hour []
-      let j 0
+      let j 0  ; used to track which 1/6 of the interpolation is being calculated
         repeat 6 [set new-y lput ((j * (t-y / 6)) + item 1 item (i - 1) re-scaled) new-y
                   set new-x lput ((j * (t-x / 6)) + item 2 item (i - 1) re-scaled) new-x
                   set new-z lput ((j * (t-z / 6)) + item 3 item (i - 1) re-scaled) new-z
@@ -881,12 +891,16 @@ to Generate-Storm
 
    set hurricane-coords  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords
 
+  ;; Now drawer agents are used to create a storm track path across the screen. Then links are made between the agents.
+  ;; This results in a gray line that shows the storm path across the screen.
+  ;; These agents are not used in the evacuation simulation.
+
    foreach hurricane-coords [ ?1 -> if (item 0 ?1 > min-pxcor and item 0 ?1 < max-pxcor and
                            item 1 ?1 > min-pycor and item 1 ?1 < max-pycor)  [
-         create-drawers 1 [set size .01
+         create-drawers 1 [set size 0.1
                            setxy item 0 ?1 item 1 ?1]
          ] ]
-    let draw-line turtle-set drawers with [size = .01]
+    let draw-line turtle-set drawers with [size = 0.1]
       set i 0
     while [i < (length sort draw-line - 1)] [
       ask item i sort draw-line [create-link-to item (i + 1) sort draw-line ]
@@ -1428,7 +1442,7 @@ to-report Past-Forecasts
   print length(size_list)
   print length(time_list)
   print length(winds34)
-print length(winds64)
+  print length(winds64)
    set published_forc (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity_list forecast_list size_list time_list winds34 winds64)
 
   report published_forc
@@ -3261,7 +3275,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
