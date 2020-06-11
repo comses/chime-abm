@@ -834,10 +834,8 @@ to Generate-Storm
    ;; the following is basically brute-force interpoloation. The code marches through the array of storm info
    ;; and takes the difference from one 6-hour data point to the next, then calculates the interpolated points
    ;; It does this for all of the dozen or so characteristics of the storm at each point
+   ;; We assume that the difference between each storm info is less than a day
 
-
-  ;; ***SMB pull out the 6? Not everythign is 6 hours We need a better way to deal with this.
-  ;;
 
    while [i < length re-scaled] [
 
@@ -854,6 +852,9 @@ to Generate-Storm
       set t-64-nw item 14 item i re-scaled - item 14 item (i - 1) re-scaled
       set day item 5 item (i - 1) re-scaled
       set hour item 6 item (i - 1) re-scaled
+      let hour2 item 6 item i re-scaled
+      let hours-between-storm-info Calculate-Time-Between-Storm-Info hour hour2
+
     ; variables that record the newlyy interpolated storm location information
       let new-y []
       let new-x []
@@ -869,17 +870,17 @@ to Generate-Storm
       let new-day []
       let new-hour []
       let j 0  ; used to track which 1/6 of the interpolation is being calculated
-        repeat 6 [set new-y lput ((j * (t-y / 6)) + item 1 item (i - 1) re-scaled) new-y
-                  set new-x lput ((j * (t-x / 6)) + item 2 item (i - 1) re-scaled) new-x
-                  set new-z lput ((j * (t-z / 6)) + item 3 item (i - 1) re-scaled) new-z
-                  set new-34-ne lput ((j * (t-34-ne / 6)) + item 7 item (i - 1) re-scaled) new-34-ne
-                  set new-34-se lput ((j * (t-34-se / 6)) + item 8 item (i - 1) re-scaled) new-34-se
-                  set new-34-sw lput ((j * (t-34-sw / 6)) + item 9 item (i - 1) re-scaled) new-34-sw
-                  set new-34-nw lput ((j * (t-34-nw / 6)) + item 10 item (i - 1) re-scaled) new-34-nw
-                  set new-64-ne lput ((j * (t-64-ne / 6)) + item 11 item (i - 1) re-scaled) new-64-ne
-                  set new-64-se lput ((j * (t-64-se / 6)) + item 12 item (i - 1) re-scaled) new-64-se
-                  set new-64-sw lput ((j * (t-64-sw / 6)) + item 13 item (i - 1) re-scaled) new-64-sw
-                  set new-64-nw lput ((j * (t-64-nw / 6)) + item 14 item (i - 1) re-scaled) new-64-nw
+        repeat hours-between-storm-info [set new-y lput ((j * (t-y / 6)) + item 1 item (i - 1) re-scaled) new-y
+                  set new-x lput ((j * (t-x / hours-between-storm-info)) + item 2 item (i - 1) re-scaled) new-x
+                  set new-z lput ((j * (t-z / hours-between-storm-info)) + item 3 item (i - 1) re-scaled) new-z
+                  set new-34-ne lput ((j * (t-34-ne / hours-between-storm-info)) + item 7 item (i - 1) re-scaled) new-34-ne
+                  set new-34-se lput ((j * (t-34-se / hours-between-storm-info)) + item 8 item (i - 1) re-scaled) new-34-se
+                  set new-34-sw lput ((j * (t-34-sw / hours-between-storm-info)) + item 9 item (i - 1) re-scaled) new-34-sw
+                  set new-34-nw lput ((j * (t-34-nw / hours-between-storm-info)) + item 10 item (i - 1) re-scaled) new-34-nw
+                  set new-64-ne lput ((j * (t-64-ne / hours-between-storm-info)) + item 11 item (i - 1) re-scaled) new-64-ne
+                  set new-64-se lput ((j * (t-64-se / hours-between-storm-info)) + item 12 item (i - 1) re-scaled) new-64-se
+                  set new-64-sw lput ((j * (t-64-sw / hours-between-storm-info)) + item 13 item (i - 1) re-scaled) new-64-sw
+                  set new-64-nw lput ((j * (t-64-nw / hours-between-storm-info)) + item 14 item (i - 1) re-scaled) new-64-nw
                   set new-day lput day new-day
                   set new-hour lput ((100 * j) + hour) new-hour
                   set j j + 1]
@@ -906,6 +907,17 @@ to Generate-Storm
       ask item i sort draw-line [create-link-to item (i + 1) sort draw-line ]
       set i i + 1 ]
 
+end
+
+to-report Calculate-Time-Between-Storm-Info [ time1 time2 ]
+  ; numbers are stored as 600 and 1200 - so you have to divide by 100
+  let time-difference (time2 - time1) / 100
+  ; if the time is the next day then a negative number results so we have to calculate things to account for that
+  if time-difference < 0 [
+    set time-difference 24 - (time1 / 100)
+    set time-difference time-difference + (time2 / 100)
+  ]
+  report time-difference
 end
 
 
@@ -1438,11 +1450,6 @@ to-report Past-Forecasts
 
    let published_forc []
 
-
-  print length(size_list)
-  print length(time_list)
-  print length(winds34)
-  print length(winds64)
    set published_forc (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity_list forecast_list size_list time_list winds34 winds64)
 
   report published_forc
