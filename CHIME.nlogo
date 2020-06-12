@@ -9,10 +9,11 @@
         ;2. Calculate-Coordinates: Reports lat-lon coordinates of the storm center in model space.
     ;5. Setup: Sets the scale of the model world, generates the storm, and populates the model with agents (randomly distributed, based on population density, or based on census data). Assigns social networks to each citizen.
         ;1. Generate-Storm: Translates the best track data to the model grid and interpolates storm characteristics to 1-hourly data. Currently, brute-force interpolation is used to convert 6-hourly data to 1-hourly data. Draws a line that represents the actual track of the storm.
+            ;1. Calculate-Time-Between-Storm-Info: Calculates the time interal between best track times.
         ;2. Create-Citizen-Agent-Population: Populates the model with citizens. Sets various attributes for each citizen (i.e., evac-zone, self-trust, trust-authority, networks lists, risk thresholds).
             ;1. Check-Zone: Determines the evacuation zone of each citizen, which depends on the number of grid points the citizen is away from the coast (i.e., zone “A” is 1.5 grid points from the coast).
         ;3. Create-Other-Agents: Populates the model with the various breeds of agents other than citizens (i.e., forecasters officials, broadcasters, and aggregators).
-;3. Create-Tract-Agents: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.
+        ;4. Create-Citizen-Agents-From-Census-Tracts: Populates the model with citizens based on census data. Other agents (i.e., forecasters, officials, broadcasters, and aggregators) are populated similarly to create-agents.
             ;1. Create-More-Cit-Ags-Based-On-Census: Populates the model with more agents based on the census.
             ;2. Check-For-Swimmers: Moves citizens located at an ocean patch to a land patch.
             ;3. Add-Census-Factor: Set to true for each citizen that has the census information in their tract (e.g., kids under 18, adults over 65, limited English, use food stamps, no vehicle, no internet). This information is used in the decision-making process to calculate risk parameters.
@@ -791,7 +792,7 @@ end
 
 
 to Generate-Storm
-  ; INFO: Translates the storm data and interpolate its characteristics fore the in-between hours
+  ; INFO: Translates the best track data and interpolates its characteristics for the in-between hours
   ; VARIABLES MODIFIED: modifies best-track-data and creates hurricane-coords which is used to draw the hurricane
   ; PROCEDURES CALLED
   ; CALLED BY: SETUP
@@ -910,14 +911,19 @@ to Generate-Storm
 end
 
 to-report Calculate-Time-Between-Storm-Info [ time1 time2 ]
+  ; INFO: Calculates the time interval between best track times.
+  ; VARIABLES MODIFIED: time-difference-best-track
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Generate-Storm
+
   ; numbers are stored as 600 and 1200 - so you have to divide by 100
-  let time-difference (time2 - time1) / 100
+  let time-difference-best-track (time2 - time1) / 100
   ; if the time is the next day then a negative number results so we have to calculate things to account for that
-  if time-difference < 0 [
-    set time-difference 24 - (time1 / 100)
-    set time-difference time-difference + (time2 / 100)
+  if time-difference-best-track < 0 [
+    set time-difference-best-track 24 - (time1 / 100)
+    set time-difference-best-track time-difference-best-track + (time2 / 100)
   ]
-  report time-difference
+  report time-difference-best-track
 end
 
 
@@ -3282,7 +3288,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
