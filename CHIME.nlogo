@@ -871,7 +871,7 @@ to Generate-Storm
       let new-day []
       let new-hour []
       let j 0  ; used to track which 1/6 of the interpolation is being calculated
-        repeat hours-between-storm-info [set new-y lput ((j * (t-y / 6)) + item 1 item (i - 1) re-scaled) new-y
+        repeat hours-between-storm-info [set new-y lput ((j * (t-y / hours-between-storm-info)) + item 1 item (i - 1) re-scaled) new-y
                   set new-x lput ((j * (t-x / hours-between-storm-info)) + item 2 item (i - 1) re-scaled) new-x
                   set new-z lput ((j * (t-z / hours-between-storm-info)) + item 3 item (i - 1) re-scaled) new-z
                   set new-34-ne lput ((j * (t-34-ne / hours-between-storm-info)) + item 7 item (i - 1) re-scaled) new-34-ne
@@ -959,8 +959,8 @@ to Create-Citizen-Agent-Population
    [move-to one-of patches with [density >= 0 ] ;citizen is placed randomly on a patch with a population density greater than zero.
 
    if which-storm? = "MICHAEL" [ ;Josh added this hard-coded information for hurricane Michael to increase the sample size of citizens near the coast in Michael's path.
-       let landfall_lat 30.0   ;Josh added this
-       let landfall_lon -85.5   ;Josh added this
+       let landfall_lat 30.0
+       let landfall_lon -85.5
        let landfall_lon_netlogo_world (landfall_lon - item 0 re0-0)/ item 0 grid-cell-size
        let landfall_lat_netlogo_world (landfall_lat - item 1 re0-0)/ item 1 grid-cell-size
        let distance-citizens 40
@@ -973,11 +973,10 @@ to Create-Citizen-Agent-Population
 
    ]
 
-    ;JA is not sure what these two things do
+    ;These two lines spread out citizens slightly so they are not in the same place.
     set heading random 360
     fd random-float .5
 
-    ;JA: Lots of random values for the trust and risk information below.
     set evac-zone Check-Zone ;Each citizen runs "Check-Zone" prodedure to determine which evacuation zone they are in.
     set self-trust .6 + random-float .4 ;citizens set their self-trust
     set trust-authority random-float 1 ;citizens set their trust in authorities
@@ -1002,7 +1001,7 @@ to Create-Citizen-Agent-Population
     if info-up < 0 [set info-up 0]
     if info-down < 0 [set info-down 0]
 
-  ;; other cit-ag  variables
+  ;; other cit-ag variables
     set risk-estimate [0] ;List of risk calculations
     set environmental-cues  0
     set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
@@ -1023,7 +1022,7 @@ to-report Check-Zone
   ; CALLED BY: Create-Citizen-Agent-Population
 
   let zn ""
-   ;JA: We are introducing error here, where citizens think they are in an incorrect evacuation zone 20% of the time. Do we want this? May be unrealistic for a citizen in zone A to think they are in zone C.
+
   ;Each citizen determines what evacuation zone they are in, depending on how far away they are from the coast. Random error in a citizen's knowledge is added. Roughly 20% of the time, a citizen will randomly choose an evacuation zone, which may be an inaccurate zone for their location.
   ifelse random-float 1 < .8 [
     let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
@@ -1049,7 +1048,7 @@ to  Create-Other-Agents
   create-forecasters 1 [ ;There is one forecaster
     set color green
     set size 1
-    let lotto random-float sum_T
+    let lotto random-float sum_T ;The next lines places the forecaster at a location based on population density
     let i 0
     let j 0
     while [i < lotto] [
@@ -1066,7 +1065,7 @@ to  Create-Other-Agents
   create-officials 1 [
     set color red
     set size 1.5
-    set xcor item 0 item 1 ?1 ;official is placed at the location given in the county-seat-list data
+    set xcor item 0 item 1 ?1 ;Official is placed at the location given in the county-seat-list data
     set ycor item 1 item 1 ?1
     set orders 0
     set distance-to-track 99
@@ -1078,7 +1077,7 @@ to  Create-Other-Agents
   create-broadcasters #broadcasters [
     set color yellow
     set size .5
-    let lotto random-float sum_T
+    let lotto random-float sum_T ;The next lines places the broadcasters at a location based on population density
     let i 0
     let j 0
     while [i < lotto] [
@@ -1094,7 +1093,7 @@ to  Create-Other-Agents
   create-aggregators #net-aggregators [
     set color pink
     set size .5
-    let lotto random-float sum_T
+    let lotto random-float sum_T ;The next lines places the broadcasters at a location based on population density
     let i 0
     let j 0
     while [i < lotto] [
