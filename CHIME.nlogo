@@ -1436,12 +1436,7 @@ to-report Past-Forecasts
    let severity_list []
    let size_list []
    let time_list []
-    print "forecast-matrix"
-  print forecast-matrix
-  print clock
   let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix ;Makes sure the advisory data begins at or before the best track time
-print "new-forecast"
-  print new-forecast
 
   let current_F but-first new-forecast
 
