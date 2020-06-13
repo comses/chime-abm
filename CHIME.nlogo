@@ -132,8 +132,8 @@ citizen-agents-own [
 
          ;;   Census Tract Information
          tract-information                 ; information from a census tract
-         my-pop                            ; population from census tract
-         my-hh-amount                      ; total number of households from a census tract
+         my-tract-population               ; population from census tract
+         my-tract-household                ; total number of households from a census tract
          census-tract-number               ; number assigned to each census tract - assigned by the US government
          kids-under-18?                    ; records if the census tract has kids under 18
          adults-over-65?                   ; records if the census tract has adults over 65
@@ -1003,7 +1003,7 @@ to Create-Citizen-Agent-Population
     if info-up < 0 [set info-up 0]
     if info-down < 0 [set info-down 0]
 
-  ;; other cit-ag variables
+  ;; other citizen variables
     set risk-estimate [0] ;List of risk calculations
     set environmental-cues  0
     set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
@@ -1012,7 +1012,7 @@ to Create-Citizen-Agent-Population
     set completed []
     set distance-to-storm-track 99
 
-    set risk-packet (list item 0 risk-estimate environmental-cues  0 0) ;Contains 4 different risk information
+    set risk-packet (list item 0 risk-estimate environmental-cues  0 0) ;List the final risk, followed by the three main inputs to the risk function (forecast info, evac orders, env cues)
     ]
 
 end
@@ -1021,7 +1021,7 @@ to-report Check-Zone
   ; INFO:  Used to determine which zone an agent is located in.
   ; VARIABLES MODIFIED: zn (evacuation zone; either "A", "B", or "C")
   ; PROCEDURES CALLED: None
-  ; CALLED BY: Create-Citizen-Agent-Population
+  ; CALLED BY: Create-Citizen-Agent-Population; Create-Citizen-Agents-From-Census-Tracts
 
   let zn ""
 
@@ -1111,125 +1111,127 @@ to  Create-Other-Agents
 
 end
 
+;Census tract definition: Small, relatively permanent statistical subdivisions of a county. Census tracts average about 4000 people (minimum of 1200; maximum of 8000 people)
 to Create-Citizen-Agents-From-Census-Tracts
-  ; INFO: Create citizen agents based on census information
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; INFO: Create citizens based on census information. More citizens are created if the tract population is at least two times greater than a ratio set by a user button (citizen-to-census-population-ratio).
+  ; VARIABLES MODIFIED: New citizens are created based on census tract data.
+  ; PROCEDURES CALLED: Create-More-Cit-Ags-Based-On-Census; Check-For-Swimmers; Add-Census-Factor
+  ; CALLED BY: Setup
 
-  ;; original density distribution code
-  let tickets sort [density] of patches with [density > 0]
-  let ranked-patches sort-on [density] patches with [density > 0]
+  ;JA: Are the three lines below needed? This procedure does not seem to be using population density data.
+  ;Sorts patches that have a population density greater than zero. "tickets" is a list storing each population density value.
+  let tickets sort [density] of patches with [density > 0] ;Sorts patches that have a population density greater than zero. "tickets" is a list storing each population density value.
+  let ranked-patches sort-on [density] patches with [density > 0] ;"ranked-patches" is a list storing the location of each patch with population density greater than zero.
   let sum_T sum tickets
 
   let tractfile ""
+  ;JA: Is this if statement needed?
   ifelse  using-hpc?
-  [set tractfile "/home/sbergin/CHIME/flcensusdata/fltractpoint5.shp"
+  [set tractfile "flcensusdata/fltractpoint5.shp" ;This data works for only the Florida domain
   print "using HPC file Location"
   ]
   [set tractfile "flcensusdata/fltractpoint5.shp"]
 
-  set tract-points gis:load-dataset tractfile
-  let sitefields gis:property-names tract-points
-  let feature-list gis:feature-list-of tract-points
+  set tract-points gis:load-dataset tractfile ;Load census data, which consists of many variables (see sitefields for a list of variables)
+  let sitefields gis:property-names tract-points ;Name of tract data: [CAT STATE_FIPS CNTY_FIPS STCOFIPS TRACT FIPS POPULATION POP_SQMI POP2010 POP10_SQMI AGE_UNDER5 AGE_5_9 AGE_10_14 AGE_15_19 AGE_20_24 AGE_25_34 AGE_35_44 AGE_45_54 AGE_55_64 AGE_65_74 AGE_75_84 AGE_85_UP MED_AGE MED_AGE_M MED_AGE_F HOUSEHOLDS AVE_HH_SZ HSEHLD_1_M HSEHLD_1_F MARHH_CHD MARHH_NO_C MHH_CHILD FHH_CHILD FAMILIES AVE_FAM_SZ HSE_UNITS VACANT OWNER_OCC RENTER_OCC SQMI SHAPE_LENG SHAPE_AREA LONGITUDE LATITUDE TOTAL_HH HH_WUNDR18 HH_WOVER65 HHWOVR65_1 HHWOVR65_2 LMTED_ENG HHUSEFSTMP OVR60FDSTM HH_WDISABI HH_WDISAFS HH_WCOMPUT HHNOINTERN HNOINT20K HNOINT20_7 HOVR65NOCO HH_NOVEHIC EDLESSHS NOWRK12M]
+  let feature-list gis:feature-list-of tract-points ;Contains the value for each sitefields. Each point is represented by its own feature list.
   set-default-shape citizen-agents "circle"
 
-
-  foreach feature-list [ ?1 ->
+  foreach feature-list [ ?1 ->  ;Go through each feature list (each census tract point)
     ;; create a census tract agent for each GIS vector point
-    let sitepoint gis:centroid-of ?1
+    let sitepoint gis:centroid-of ?1 ;Reports a single Vertex representing the centroid (center of gravity) of the given feature
     let prop-list []
     let this-feature ?1
     foreach sitefields [ ??1 -> ;; iterate through all of the data that corresponsds to each site and make a list that will be handed off to agents
-      let prop-field gis:property-value this-feature ??1
-      set prop-list lput prop-field prop-list
+      let prop-field gis:property-value this-feature ??1 ;Returns the value of each feature in the tract point
+      set prop-list lput prop-field prop-list ;Puts the values of each feature into a list. This list contains all of the tract infomration for each point.
     ]
 
-    let location gis:location-of sitepoint
+    let location gis:location-of sitepoint ;Reports a two-element list containing the x and y values (in that order) of the given vertex translated into NetLogo world space using the current transformation
     ifelse empty? location [
+    print "ERROR: Tract data has missing values"
     ][
     create-citizen-agents 1 [ ;; initialize an agent to represent a tract in the simulation
-      setxy item 0 location item 1 location
+      setxy item 0 location item 1 location ;Sets the citizen location in Netlogo space
       set color blue
       set size 1
       ;; new cit-ag info
-      set tract-information prop-list
-      set my-pop item 6 tract-information
-      set my-hh-amount item 44 tract-information
-      set census-tract-number item 5 tract-information
-      ;;set my-hh-amount read-from-string my-hh-amount
+      set tract-information prop-list ;tract-information may look like the following, which lists all of the tract information for a point: [39 12 091 12091 022600 12091022600 3408 3550 3053 3180.2 222 169 143 145 280 574 316 454 301 210 166 73 34.9 32.8 38.5 1449 2 319 341 111 207 36 186 621 2.84 1748 299 387 1062 0.96 0.06979775537 2.3394793E-4 -86.6094201866 30.4076438608 1672 381 367 255 112 38 352 81 410 197 1331 539 183 318 117 180 80 0.171651495]
+      set my-tract-population item 6 tract-information ;sets the population of a given tract point
+      set my-tract-household item 44 tract-information ;sets the number of total households in the tract
+      set census-tract-number item 5 tract-information ;sets the unique tract number
 
-      ;; original cit-ag info
-      set evac-zone Check-Zone
-      set self-trust   .6 + random-float .4
-      set trust-authority random-float 1
+      ;; original citizen information (as used above)
+      set evac-zone Check-Zone ;Each citizen runs "Check-Zone" prodedure to determine which evacuation zone they are in.
+      set self-trust   .6 + random-float .4 ;citizens set their self-trust
+      set trust-authority random-float 1 ;citizens set their trust in authorities
       set forecast-options [ ]
       set my-network-list [ ]
       set broadcaster-list [ ]
       set aggregator-list  [ ]
       set interpreted-forecast []
-      set memory list self-trust interpreted-forecast
+      set memory list self-trust interpreted-forecast ;"memory" includes a citizen's self trust and interpreted forecast
 
-      ;; for new decision model
-      set risk-life random-normal 14 2
-      set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
-        if risk-property > risk-life [set risk-property risk-life]
-      set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
-        if info-up > risk-property [set info-up risk-property]
+      ;; for new decision model, citizens determine risk perception thresolds
+      set risk-life random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
+      set risk-property random-normal (.7 * risk-life) .5 ;"risk-property" depends on "risk-life"
+        if risk-property > risk-life [set risk-property risk-life] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
+      set info-up random-normal (.4 * risk-life) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
+        if info-up > risk-property [set info-up risk-property] ;A citizen should collect information before their "risk-property" threshold is reached.
       set info-down random-normal (.1 * risk-life) .5
-        if info-down > info-up [set info-down info-up - .1]
+        if info-down > info-up [set info-down info-up - .1] ;The threshold for collecting less information should be lower than collecting more infomation.
 
+      ;Zero out risk properties if they are less than zero.
       if risk-life < 0 [set risk-life 0]
       if risk-property < 0 [set risk-property 0]
       if info-up < 0 [set info-up 0]
       if info-down < 0 [set info-down 0]
 
-      ;; other cit-ag  variables
-      set risk-estimate [0]
+      ;; other citizen variables
+      set risk-estimate [0] ;List of risk calculations
       set environmental-cues  0
-      set decision-module-frequency round random-normal 12 2
+      set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
       set previous-dm-frequency decision-module-frequency
-      set decision-module-turn random 10
+      set decision-module-turn random 10 ;Helps agents determine when it's their turn to run the risk-decision module
       set completed []
       set distance-to-storm-track 99
       set risk-packet (list item 0 risk-estimate environmental-cues  0 0) ;List the final risk, followed by the three main inputs to the risk function (forecast info, evac orders, env cues)
 
-    ];; end bracket of cit-ags creation
+    ]
   ]
   ]
 
-
-  ;; Now create more agents based on the census numbers
+  ;Create more agents based on the census numbers
   ask citizen-agents [Create-More-Cit-Ags-Based-On-Census]
-  ;; make sure there are no agents in the water
+
+  ;; Make sure there are no agents in the water
   ask citizen-agents [Check-For-Swimmers]
 
-  ifelse kids-under-18-factor [ask citizen-agents [set kids-under-18? Add-Census-Factor 45]] [ask citizen-agents [set kids-under-18? false]]
+  ifelse kids-under-18-factor [ask citizen-agents [set kids-under-18? Add-Census-Factor 45]] [ask citizen-agents [set kids-under-18? false]] ;If user button is "On", then "kids-under-18-factor" is set to true. There is randomness such that "kids-under-18-factor" is sometimes not set equal to true (see Add-Census_Factor).
   ifelse adults-over-65-factor [ask citizen-agents [set adults-over-65? Add-Census-Factor 46]] [ask citizen-agents [set adults-over-65? false]]
   ifelse limited-english-factor [ask citizen-agents [set limited-english? Add-Census-Factor 49]] [ask citizen-agents [set limited-english? false]]
   ifelse use-food-stamps-factor [ask citizen-agents [set food-stamps? Add-Census-Factor 50]] [ask citizen-agents [set food-stamps? false]]
   ifelse no-vehicle-factor [ask citizen-agents [set no-vehicle? Add-Census-Factor 59]] [ask citizen-agents [set no-vehicle? false]]
   ifelse no-internet-factor [ask citizen-agents [set no-internet? Add-Census-Factor 55]] [ask citizen-agents [set no-internet? false]]
-
-
 end
 
 to Create-More-Cit-Ags-Based-On-Census
-  ; INFO: Used to create extra citizen agents if a census tract has a large population
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED:
-  ; CALLED BY:
+  ; INFO: Used to create more citizens if a census tract has a large population. The user sets citizen-to-census-population-ratio. If the tract population is at least two times greater than this ratio, at least one more citizen will be created.
+  ; VARIABLES MODIFIED: Creates more citizens. New citizens obtain their "parent" information, except randomly-assinged variables (e.g., risk information) are re-assigned to the new citizen.
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Create-Citizen-Agents-From-Census-Tracts
 
+  ;JA: Is this line needed? I did not find any tract points with a population of zero.
+  if my-tract-population < 1 [die] ;; get rid of any problematic citizen agents
 
-  if my-pop < 1 [die] ;; get rid of any problematic cit-ags
+  let citizens-to-make round (my-tract-population / citizen-to-census-population-ratio) ;User sets citizen-to-census-population-ratio (a button). If the tract population is at least double this ratio, then more citizens will be greated for that tract point.
 
-  let cit-ags-to-make round (my-pop / cit-ag-to-census-pop-ratio)
-
-  if cit-ags-to-make >= 2[ ;;make sure you need to make more cit-ags since one is already made
-     hatch-citizen-agents (cit-ags-to-make - 1) [
-      ;; this command means that all of the info from the parent is inherited, so only values that need to be randomized are modified below
-      set self-trust   .6 + random-float .4
-      set trust-authority random-float 1
+  if citizens-to-make >= 2[ ;make sure you need to make more citizens since one is already made
+    ;JA: Are these citizens places at the exact same location as the parent citizen? Should we move these citizens a bit so they are not right on top of the parent?
+     hatch-citizen-agents (citizens-to-make - 1) [ ;Creates "citizens-to-make - 1" new citizens
+      ;; this command means that all of the information from the parent is inherited, so only values that need to be randomized are modified below
+      set self-trust   .6 + random-float .4 ;citizens set their self-trust
+      set trust-authority random-float 1 ;citizens set their trust in authorities
       set forecast-options [ ]
       set my-network-list [ ]
       set broadcaster-list [ ]
@@ -1238,28 +1240,29 @@ to Create-More-Cit-Ags-Based-On-Census
       set memory list self-trust interpreted-forecast
 
       ;; for new decision model
-      set risk-life random-normal 14 2
-      set risk-property random-normal (.7 * risk-life) .5 ; - random-float 3
-        if risk-property > risk-life [set risk-property risk-life]
-      set info-up random-normal (.4 * risk-life) .5 ; - random-float 3
-        if info-up > risk-property [set info-up risk-property]
+      set risk-life random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
+      set risk-property random-normal (.7 * risk-life) .5 ;"risk-property" depends on "risk-life"
+        if risk-property > risk-life [set risk-property risk-life] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
+      set info-up random-normal (.4 * risk-life) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
+        if info-up > risk-property [set info-up risk-property] ;A citizen should collect information before their "risk-property" threshold is reached.
       set info-down random-normal (.1 * risk-life) .5
-        if info-down > info-up [set info-down info-up - .1]
+        if info-down > info-up [set info-down info-up - .1] ;The threshold for collecting less information should be lower than collecting more infomation.
 
+      ;Zero out risk properties if they are less than zero.
       if risk-life < 0 [set risk-life 0]
       if risk-property < 0 [set risk-property 0]
       if info-up < 0 [set info-up 0]
       if info-down < 0 [set info-down 0]
 
-      ;; other cit-ag  variables
-      set risk-estimate [0]
+      ;; other citizen variables
+      set risk-estimate [0] ;List of risk calculations
       set environmental-cues  0
-      set decision-module-frequency round random-normal 12 2
+      set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
       set previous-dm-frequency decision-module-frequency
-      set decision-module-turn random 10
+      set decision-module-turn random 10 ;Helps agents determine when it's their turn to run the risk-decision module
       set completed []
       set distance-to-storm-track 99
-      set risk-packet (list item 0 risk-estimate environmental-cues  0 0)
+      set risk-packet (list item 0 risk-estimate environmental-cues  0 0) ;List the final risk, followed by the three main inputs to the risk function (forecast info, evac orders, env cues)
 
     ]
  ]
@@ -1267,33 +1270,31 @@ to Create-More-Cit-Ags-Based-On-Census
 end
 
 to Check-For-Swimmers
-  ; INFO: Moves agents that are located in the water to nearby land.
-  ; This situation can occur when an agent is in a coastal location that was both land and water in one projection, but is labeled water when reprojected in Netlogo
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; INFO: Moves citizens that are located in the water to nearby land. This situation can occur when an agent is in a coastal location that was both land and water in one projection, but is labeled water when reprojected in Netlogo.
+  ; VARIABLES MODIFIED: None. This procedure simply moves citizens.
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Create-Citizen-Agents-From-Census-Tracts
 
-  let this-patch-is-land [land?] of patch-here
-  if not this-patch-is-land [
-     let nearby-patch min-one-of land-patches [distance myself]
-     ifelse nearby-patch != nobody [move-to nearby-patch]
-     [die]
+  let this-patch-is-land [land?] of patch-here ;"this-patch-is-land"=true if the patch is land
+  if not this-patch-is-land [ ;If the partch a citizen is on is currently a water patch, move the citizen to the closest land patch.
+     let nearby-patch min-one-of land-patches [distance myself] ;Finds the nearest land-patch
+     ifelse nearby-patch != nobody [move-to nearby-patch] ;If a land patch is found, the citizen moves to that land patch.
+     [die] ;The citizen dies if it does not have a nearby land patch.
   ]
-
 end
 
 
 to-report Add-Census-Factor [x]
-  ; INFO: Reads census information from a givne column number and uses the number of people with that characteristic to determine the likelhood that an agent will also have that characteristic
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; INFO: Reads census information from a given column number and uses the number of people with that characteristic to determine the likelhood that an agent will also have that characteristic.
+  ; VARIABLES MODIFIED: is_factor?
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Create-Citizen-Agents-From-Census-Tracts
 
         let is-factor? false
-        let factor-from-census item x tract-information
-        if  factor-from-census != 0 [
-        let factor-likelihood  (factor-from-census /  my-hh-amount) * 100
-        ifelse   factor-likelihood  >= ((random 100) + 1)
+        let factor-from-census item x tract-information ;"factor-from-census" is the value of the specific tract data (e.g., how many kids under 18).
+        if  factor-from-census != 0 [ ;If the valie is greater than zero, continue
+        let factor-likelihood  (factor-from-census /  my-tract-household) * 100 ;Sets "factor-likelihood" as the ratio between the number in the census compared the number of households in the tract (e.g., "2 kids under 18" per household).
+        ifelse   factor-likelihood  >= ((random 100) + 1) ;Random generator to determine if is-factor? is set to true. It is set to true if "factor-likelihood" is greater than a random number between 0 and 100.
           [set is-factor?  true] [set is-factor? false]
       ]
   report is-factor?
@@ -2573,7 +2574,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 16
@@ -2582,7 +2583,7 @@ SWITCH
 157
 distribute_population
 distribute_population
-1
+0
 1
 -1000
 
@@ -2664,10 +2665,10 @@ HORIZONTAL
 SLIDER
 9
 833
-220
+298
 866
-cit-ag-to-census-pop-ratio
-cit-ag-to-census-pop-ratio
+citizen-to-census-population-ratio
+citizen-to-census-population-ratio
 0
 10000
 7000.0
@@ -2782,7 +2783,7 @@ SWITCH
 712
 use-census-data
 use-census-data
-1
+0
 1
 -1000
 
