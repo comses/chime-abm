@@ -387,7 +387,7 @@ to Load-Hurricane
      set parsed [] ]
 
 
-  ;set all-parsed but-first all-parsed ;JA is not sure why the first time of the best track data is removed.
+  set all-parsed but-first all-parsed ;This line makes sure the best track first time is AT or AFTER the first time of the forecast advisories (so the forecast starts at or before the best track data). Example of the issue: For Hurricane Michael, advisories (starting at 2100 UTC) would start after the best track time (starting at 1800 UTC), which means the forecast does not cover the first best track time.
 
   set best-track-data map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file.
       "-" item 6 ?1 item 7 ?1 item 0 ?1  item 1 ?1 item 8 ?1 item 9 ?1 item 10 ?1 item 11 ?1 item 16 ?1
@@ -1421,7 +1421,7 @@ to-report Past-Forecasts
   ; thin black circles show the current forecast on the display
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; CALLED BY: Create-Other-Agents; Go
 
 
    let forecast_list []
@@ -1432,13 +1432,16 @@ to-report Past-Forecasts
    ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
 
   if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]]
-  print forecast-matrix
    while [length error_list > length forecast-matrix] [set error_list but-last error_list]
    let severity_list []
    let size_list []
    let time_list []
-
-  let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
+    print "forecast-matrix"
+  print forecast-matrix
+  print clock
+  let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix ;Makes sure the advisory data begins at or before the best track time
+print "new-forecast"
+  print new-forecast
 
   let current_F but-first new-forecast
 
@@ -2574,7 +2577,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
@@ -2583,7 +2586,7 @@ SWITCH
 157
 distribute_population
 distribute_population
-0
+1
 1
 -1000
 
@@ -2783,7 +2786,7 @@ SWITCH
 712
 use-census-data
 use-census-data
-0
+1
 1
 -1000
 
