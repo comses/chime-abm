@@ -35,11 +35,11 @@
     ;3. Save-View: Saves a .png of the Netlogo model space for each time step.
 
 ;Buttons but not called in the code:
-    ;1. Make-Links: Creates lines that show which citizens are in which social network.
+    ;1. Show-Links: Creates lines that show which citizens are in which social network.
 
 
 ;; Declare netlogo extensions needed for the model
-extensions [gis profiler csv]
+extensions [gis profiler csv nw]
 
 
 ;; Declare global variables
@@ -198,6 +198,7 @@ to Setup
   Create-Other-Agents;; Officials, Broadcasters and Aggregators are created
 
   Social-Network ;; defines the agents' social networks
+
 
 
    set risk-total 0        ;; these are all related to the risk function plot on the interface
@@ -514,7 +515,6 @@ to Load-Forecasts
 end
 
 to Load-Forecasts-New
-  ; JA comments: would be nice to have list structures (e.g., which variables are in the list, and at what index). Also, I am still confused on some lines. Would be nice to have comments for most of lines.
   ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
   ; VARIABLES MODIFIED: The main variable modified is the forecast-matrix. The forecasts include historical predictions about the storm based on the amount of time before the storm hits
   ; PROCEDURES CALLED: Calculate-Advisory-Time is called and used to convert forecast times that are saved in forecast-matrix
@@ -553,13 +553,13 @@ to Load-Forecasts-New
 
 
   ;; This next section of code below is to move each row into a new list entry by date to replicate the previous format
-  ;; - this results in a list which contains a list of all information for each day in one row
-  ;; Previous Format:  Day 1 Time 1
-  ;;                   Day 1 Time 2
-  ;;                   Day 2 Time 1
-  ;;                   Day 2 Time 2
-  ;;  New Format:      Day 1 Time 1 Time 2
-  ;;                   Day 2 Time 1 Time 2
+  ;; This results in a list which contains a list of all information for each day in one row
+  ;; Previous Format:  [ [Day 1 Time 1]
+  ;;                   [Day 1 Time 2]
+  ;;                   [Day 2 Time 1]
+  ;;                   [Day 2 Time 2]]
+  ;;  New Format:      [[Day 1 Time 1 Time 2]
+  ;;                   [Day 2 Time 1 Time 2]]
 
   foreach advisories-parsed [this-advisory ->
 
@@ -567,7 +567,7 @@ to Load-Forecasts-New
     ifelse forecast-time = (item 2 this-advisory) [
       set unique-advisory  lput this-advisory unique-advisory
     ]
-    ;JA: Is the new forecast date added to a new sublist?
+    ; Each unique forecast is added to its own list called unique-advisory. When a new forecast time is detected, that sub-list is added to the list of all information, all-forecasts
     ;new forecast time
     [
       if forecast-time != 0 [set all-forecasts lput unique-advisory all-forecasts]
@@ -577,21 +577,21 @@ to Load-Forecasts-New
 
     ]
   ]
-  ;; all-forecasts now contatins the partially parsed information
+  ;; all-forecasts now contatins the partially parsed information that has each forecast time recorded as its own sublist
 
   set forecast-time 0
   let entries-for-one-day []
   let entries-for-all-days []
 
   ; Now parse each day into one entry that follows the format used to load previous information
-  ; [Date of Forecast [ individual forecast time, coordinates, max wind [wind 34] [wind 64] ]
-  ; [5 1200 [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]]
+  ; The format contains different types of information within sub-lists as shown below:
+  ;          [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64] ]
+  ; EXAMPLE: [5 1200 [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]]
   foreach all-forecasts [whole-advisory-day ->
-    ;print "new day"
 
     let first-entry item 0 whole-advisory-day
     let date item 2 first-entry
-    let hours-away item 5 first-entry ; used to id the current time
+    let hours-away item 5 first-entry ; used to id the current time for this list entry
     let schedule Calculate-Advisory-Time date hours-away
     set entries-for-one-day []
     set entries-for-one-day lput schedule entries-for-one-day  ;; uses a reporter that update the time correctly
@@ -603,8 +603,7 @@ to Load-Forecasts-New
     let first-entry-from-this-advisory true
     let current-forecast-time 0
 
-    ; This section goes through each forecast entry for a forecast time and parses the information
-    ;JA: This section is for one forecast time, correct?
+    ; This section goes through each forecast entry for a unique forecast time and parses the information
     foreach whole-advisory-day [ this-advisory ->
 
       ;; we don't save the forecast info that is currently occuring - just future ones, so get rid of a few
@@ -622,7 +621,6 @@ to Load-Forecasts-New
 
         ifelse new-time-entry[
           ; save the info and reset lists to 0
-
 
           ifelse length list-34 > 0 [set schedule lput list-34 schedule]
           [let empty (word list-34 "")
@@ -669,9 +667,7 @@ to Load-Forecasts-New
             set list-64 lput item 16 this-advisory list-64
           ]
 
-        ][
-          ;print "old entry"
-          ;print this-advisory
+        ][ ; Repeat the same steps as above, this is for a different time from the same forecast
 
           ; save current info
           ;save windspeed list
@@ -718,21 +714,23 @@ to Load-Forecasts-New
   ]
 
 ; The parsing is complete and the forecast-matrix is set
+; The format is as follows:
+  ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
+  ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
 
- ;JA: What is the sturcture of forecast-matrix?
-set forecast-matrix  entries-for-all-days
+  set forecast-matrix  entries-for-all-days
 
 
 end
 
 to-report Calculate-Advisory-Time [time hours-away]
-  ; INFO:    This procedure translates times from the file to the date and the hour. Its used when the forecast info is parsed during the setup of the model.
+  ; INFO:    This procedure translates times from the file to the date and the hour.
   ;           2017090506 6    ->  5 1200
   ; VARIABLES MODIFIED: Converts the time and hours away to a different format - see above line
-  ; PROCEDURES CALLED:
+  ; PROCEDURES CALLED: Its used when the forecast info is parsed during the setup of the model.
   ; CALLED BY: Load-Forecast
 
-  ;JA: What happens if the month changes for a storm?
+  ;JA: What happens if the month changes for a storm? - SB - The immediate effect is an extra day. We could try and prevent this - but I'm waiting till we get to past-forecast so that I can understand how these forecasts are read
   let advisory-time[]
   let time-word (word time)
   ;parse the individual numbers from the incoming variable time
@@ -892,8 +890,11 @@ to Generate-Storm
       set i i + 1
    ]
 
-   ;JA: Sean, can you comment on what this is doing?
+  ; Now all of the coordinates are rounded to two decimal places
+  ; EX: [[-32.462238805294746 -215.33360000140334 25 7 0 0 0 0 0 0 0 0 0] .....
+  ; ->  [[-32.46 -215.33 25 7 0 0 0 0 0 0 0 0 0] .....
    set hurricane-coords-best-track  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords-best-track
+
 
   ;; Now drawer agents are used to create a storm track path across the screen. Then links are made between the agents.
   ;; This results in a gray line that shows the storm path across the screen.
@@ -1118,19 +1119,7 @@ to Create-Citizen-Agents-From-Census-Tracts
   ; PROCEDURES CALLED: Create-More-Cit-Ags-Based-On-Census; Check-For-Swimmers; Add-Census-Factor
   ; CALLED BY: Setup
 
-  ;JA: Are the three lines below needed? This procedure does not seem to be using population density data.
-  ;Sorts patches that have a population density greater than zero. "tickets" is a list storing each population density value.
-  let tickets sort [density] of patches with [density > 0] ;Sorts patches that have a population density greater than zero. "tickets" is a list storing each population density value.
-  let ranked-patches sort-on [density] patches with [density > 0] ;"ranked-patches" is a list storing the location of each patch with population density greater than zero.
-  let sum_T sum tickets
-
-  let tractfile ""
-  ;JA: Is this if statement needed?
-  ifelse  using-hpc?
-  [set tractfile "flcensusdata/fltractpoint5.shp" ;This data works for only the Florida domain
-  print "using HPC file Location"
-  ]
-  [set tractfile "flcensusdata/fltractpoint5.shp"]
+  let tractfile "flcensusdata/fltractpoint5.shp" ;This data works for only the Florida domain
 
   set tract-points gis:load-dataset tractfile ;Load census data, which consists of many variables (see sitefields for a list of variables)
   let sitefields gis:property-names tract-points ;Name of tract data: [CAT STATE_FIPS CNTY_FIPS STCOFIPS TRACT FIPS POPULATION POP_SQMI POP2010 POP10_SQMI AGE_UNDER5 AGE_5_9 AGE_10_14 AGE_15_19 AGE_20_24 AGE_25_34 AGE_35_44 AGE_45_54 AGE_55_64 AGE_65_74 AGE_75_84 AGE_85_UP MED_AGE MED_AGE_M MED_AGE_F HOUSEHOLDS AVE_HH_SZ HSEHLD_1_M HSEHLD_1_F MARHH_CHD MARHH_NO_C MHH_CHILD FHH_CHILD FAMILIES AVE_FAM_SZ HSE_UNITS VACANT OWNER_OCC RENTER_OCC SQMI SHAPE_LENG SHAPE_AREA LONGITUDE LATITUDE TOTAL_HH HH_WUNDR18 HH_WOVER65 HHWOVR65_1 HHWOVR65_2 LMTED_ENG HHUSEFSTMP OVR60FDSTM HH_WDISABI HH_WDISAFS HH_WCOMPUT HHNOINTERN HNOINT20K HNOINT20_7 HOVR65NOCO HH_NOVEHIC EDLESSHS NOWRK12M]
@@ -1221,13 +1210,20 @@ to Create-More-Cit-Ags-Based-On-Census
   ; PROCEDURES CALLED: None
   ; CALLED BY: Create-Citizen-Agents-From-Census-Tracts
 
-  ;JA: Is this line needed? I did not find any tract points with a population of zero.
-  if my-tract-population < 1 [die] ;; get rid of any problematic citizen agents
+
+
+ ;JA: Is this line needed? I did not find any tract points with a population of zero. 
+ ;; SB: In some of the initial census data there were some points that were problematic and had pops of zero. I ended up editing the shape files to get rid of the points but it doesn't hurt to leave it there in case of new problematic data.
+  if my-tract-population < 1 [
+    die
+    print "Problematic tract information - census tract reported no people"
+  ] ;; get rid of any problematic citizen agents
 
   let citizens-to-make round (my-tract-population / citizen-to-census-population-ratio) ;User sets citizen-to-census-population-ratio (a button). If the tract population is at least double this ratio, then more citizens will be greated for that tract point.
 
   if citizens-to-make >= 2[ ;make sure you need to make more citizens since one is already made
     ;JA: Are these citizens places at the exact same location as the parent citizen? Should we move these citizens a bit so they are not right on top of the parent?
+    ;; SB I don't think so - moving them is just for visualization purposes and not really worth it since we have so many agents
      hatch-citizen-agents (citizens-to-make - 1) [ ;Creates "citizens-to-make - 1" new citizens
       ;; this command means that all of the information from the parent is inherited, so only values that need to be randomized are modified below
       set self-trust   .6 + random-float .4 ;citizens set their self-trust
@@ -1303,66 +1299,69 @@ end
 
 to Social-Network
   ; INFO:  Creates the networks used by citizen agents to make decisions and gather forecast information
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; VARIABLES MODIFIED: The variables my-network-list broadcaster-list and aggregator-list
+  ; PROCEDURES CALLED:
+  ; CALLED BY: Called in Setup after all of the agents have been created
 
  ;; uses a simple routine to create a scale-free network
-  let net-power network-size
+  let net-power network-size   ; network-size is set in the UI
   ask citizen-agents [
-      let t-set []
-      set t-set citizen-agents with [distance myself < network-distance]
-    let total random-float sum [length my-network-list ^ net-power] of t-set
-   let partner nobody
-    if any? t-set [
-     ask t-set [
-       let nc length my-network-list ^ net-power
-       ;; if there's no winner yet...
-        if partner = nobody [
-          ifelse nc > total
-          [ set partner self
-            set my-network-list lput myself my-network-list ]
-          [ set total total - nc ]
-               ] ] ]
-             if partner = nobody [set partner one-of citizen-agents with [distance myself < (network-distance + network-distance)] ]
-             set my-network-list lput partner my-network-list
-           ]
 
-   ask citizen-agents [ set my-network-list remove nobody my-network-list
-                 ]
+    let nearby-agents citizen-agents with [distance myself < network-distance] ; network-distance is set in the UI and a maximum distance to choose agents from
+    let partner nobody
+
+        if any? nearby-agents [
+              ; chooses a random maximum number of agents to add to the network list
+              ; since each agent runs this code in succession, the length of my-network-list starts out at 0 and increases
+              let total-agents-needed random-float sum [length my-network-list ^ net-power] of nearby-agents
+              ; if both the original agent and the agent that is nearby need an agent to fill their network list, then make a link between the two of them
+              ask nearby-agents [
+              let nc length my-network-list ^ net-power
+                   if partner = nobody [
+                        ifelse nc > total-agents-needed
+                        [ set partner self
+                          set my-network-list lput myself my-network-list ]
+                        [ set total-agents-needed total-agents-needed - nc ]
+                    ]
+              ]
+        ]
+       if partner = nobody [set partner one-of citizen-agents with [distance myself < (network-distance + network-distance)] ]
+       set my-network-list lput partner my-network-list
+    ]
+
+   ask citizen-agents [ set my-network-list remove nobody my-network-list ] ; if there are agent sets with nobody recorded - get rid of that entry
 
  ;; hooks up some triads in the network, creating greater density
    ask citizen-agents [
-     let newL nobody
+     let new-link nobody
      let net-list turtle-set my-network-list
        ask one-of net-list [
          let T-net-list turtle-set my-network-list
-         set newL one-of T-net-list
-         if newL = nobody [ set newL one-of citizen-agents with [distance myself < network-distance ] ]
+         set new-link one-of T-net-list
+         if new-link = nobody [ set new-link one-of citizen-agents with [distance myself < network-distance ] ]
        ]
-        ask newL [ set my-network-list lput myself my-network-list ]
-        set my-network-list lput newL my-network-list
+        ask new-link [ set my-network-list lput myself my-network-list ]
+        set my-network-list lput new-link my-network-list
        ]
 
- ;; cleans up each agent's network list
+ ;; cleans up each agent's network list by removing duplicates and connections to itself
   ask citizen-agents [
        set my-network-list sort remove-duplicates my-network-list
        set my-network-list remove self my-network-list
 
-      ; adds random trust-factor
+      ; adds random trust-factor -  since the order of links determines the trust
        set my-network-list sort-by [ [?1 ?2] -> item 1 ?1 > item 1 ?2 ] map [ ?1 -> list ?1 random-float 1 ] my-network-list
-     ]
+  ]
 
- ;; creates media preferences (broadcasters & aggretators) for the agents  (adds trust factor)
+ ;; creates media preferences (broadcasters & aggretators) for the agents  (adds trust factor)  -  since the order of links determines the trust
   ask citizen-agents [
        set broadcaster-list sort-by [ [?1 ?2] -> item 1 ?1 > item 1 ?2 ] map [ ?1 -> list ?1 random-float 1 ] sort n-of random count broadcasters broadcasters
        set aggregator-list  sort-by [ [?1 ?2] -> item 1 ?1 > item 1 ?2 ] map [ ?1 -> list ?1 random-float 1 ] sort n-of random count aggregators aggregators
-      ]
+  ]
 
 end
 
 
-;;  move the hurricane (called by the go procedure)
 ;; *** SMB this should be turned off if using an hpc since its just a visualization?
 
 to Move-Hurricane
@@ -1394,7 +1393,6 @@ to Move-Hurricane
 
 
   ;; next section simply updates the info box on the current state of the storm
-    let wide ""
 
     let intense ""
      if item 2 item ticks hurricane-coords-best-track < 34 [ set intense "TD" ]
@@ -1431,12 +1429,12 @@ to-report Past-Forecasts
    let error_list []
    ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
 
-  if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]]
+  if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]] ; SB this is probably wrong - The error list is specific to each storm. Not sure why these are created or if they are still needed with the new readi in procedures
    while [length error_list > length forecast-matrix] [set error_list but-last error_list]
    let severity_list []
    let size_list []
    let time_list []
-  let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix ;Makes sure the advisory data begins at or before the best track time
+   let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix ;Makes sure the advisory data begins at or before the best track time
 
   let current_F but-first new-forecast
 
@@ -2111,7 +2109,7 @@ to-report Save-Global-Evac-Statistics
 
 end
 
-to Make-Links
+to Show-Links
   ; INFO: Link the nodes in the model. Makes a good picture, but functionally does nothing
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
@@ -2121,7 +2119,11 @@ to Make-Links
      foreach my-network-list [ ?1 ->
        if item 0 ?1 != nobody [
      create-link-to item 0 ?1 [set color yellow] ] ] ]
+
+
 end
+
+
 
 
 to Load-GIS-HPC
@@ -2411,7 +2413,7 @@ BUTTON
 187
 562
 Show Network Connections
-make-links
+Show-Links
 NIL
 1
 T
@@ -2572,7 +2574,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 16
@@ -2639,7 +2641,7 @@ network-distance
 network-distance
 0
 50
-25.0
+50.0
 5
 1
 NIL
@@ -2781,7 +2783,7 @@ SWITCH
 712
 use-census-data
 use-census-data
-1
+0
 1
 -1000
 
@@ -3298,7 +3300,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
