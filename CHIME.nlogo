@@ -248,7 +248,7 @@ to Go
          Decision-Module ;; runs the decision model code
         ] ]
 
-  ;;*** Why do what is mentioned below   SB****
+  ;;*** Why do what is mentioned below   SB**** JA: I am wondering the same...
   ;; cit-ags who have evacuated revert back to original decision module frequency and only collect info (no DM
   ask citizen-agents with [completed = "evacuate" ] [
          ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
@@ -1211,19 +1211,14 @@ to Create-More-Cit-Ags-Based-On-Census
   ; CALLED BY: Create-Citizen-Agents-From-Census-Tracts
 
 
-
- ;JA: Is this line needed? I did not find any tract points with a population of zero. 
- ;; SB: In some of the initial census data there were some points that were problematic and had pops of zero. I ended up editing the shape files to get rid of the points but it doesn't hurt to leave it there in case of new problematic data.
   if my-tract-population < 1 [
     die
     print "Problematic tract information - census tract reported no people"
   ] ;; get rid of any problematic citizen agents
 
-  let citizens-to-make round (my-tract-population / citizen-to-census-population-ratio) ;User sets citizen-to-census-population-ratio (a button). If the tract population is at least double this ratio, then more citizens will be greated for that tract point.
+  let citizens-to-make round (my-tract-population / citizen-to-census-population-ratio) ;User sets citizen-to-census-population-ratio (a button). If the tract population is at least double this ratio, then more citizens will be created for that tract point.
 
   if citizens-to-make >= 2[ ;make sure you need to make more citizens since one is already made
-    ;JA: Are these citizens places at the exact same location as the parent citizen? Should we move these citizens a bit so they are not right on top of the parent?
-    ;; SB I don't think so - moving them is just for visualization purposes and not really worth it since we have so many agents
      hatch-citizen-agents (citizens-to-make - 1) [ ;Creates "citizens-to-make - 1" new citizens
       ;; this command means that all of the information from the parent is inherited, so only values that need to be randomized are modified below
       set self-trust   .6 + random-float .4 ;citizens set their self-trust
@@ -1288,7 +1283,7 @@ to-report Add-Census-Factor [x]
 
         let is-factor? false
         let factor-from-census item x tract-information ;"factor-from-census" is the value of the specific tract data (e.g., how many kids under 18).
-        if  factor-from-census != 0 [ ;If the valie is greater than zero, continue
+        if  factor-from-census != 0 [ ;If the value is greater than zero, continue
         let factor-likelihood  (factor-from-census /  my-tract-household) * 100 ;Sets "factor-likelihood" as the ratio between the number in the census compared the number of households in the tract (e.g., "2 kids under 18" per household).
         ifelse   factor-likelihood  >= ((random 100) + 1) ;Random generator to determine if is-factor? is set to true. It is set to true if "factor-likelihood" is greater than a random number between 0 and 100.
           [set is-factor?  true] [set is-factor? false]
@@ -1300,14 +1295,14 @@ end
 to Social-Network
   ; INFO:  Creates the networks used by citizen agents to make decisions and gather forecast information
   ; VARIABLES MODIFIED: The variables my-network-list broadcaster-list and aggregator-list
-  ; PROCEDURES CALLED:
-  ; CALLED BY: Called in Setup after all of the agents have been created
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Setup after all of the agents have been created
 
  ;; uses a simple routine to create a scale-free network
-  let net-power network-size   ; network-size is set in the UI
+  let net-power network-size   ; network-size is set in the user interface
   ask citizen-agents [
 
-    let nearby-agents citizen-agents with [distance myself < network-distance] ; network-distance is set in the UI and a maximum distance to choose agents from
+    let nearby-agents citizen-agents with [distance myself < network-distance] ; network-distance is set in the user interface and a maximum distance to choose agents from
     let partner nobody
 
         if any? nearby-agents [
@@ -1430,7 +1425,8 @@ to-report Past-Forecasts
    ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
 
   if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]] ; SB this is probably wrong - The error list is specific to each storm. Not sure why these are created or if they are still needed with the new readi in procedures
-   while [length error_list > length forecast-matrix] [set error_list but-last error_list]
+                                                                                  ; JA: I think they are still needed and are associated with the cone of uncertainty in the model. error_list has 7 numbers, representing 12h, 24h, 36h, 48h, 72h, 96h, and 120h forecasts. Not sure exactly how these numbers were obtained (do not agree with National Hurricane Center values). I just added two extra numbers because my Michael forecast has forecasts out to 168 h. I think ultimately, it would be nice to have hourly error data directly related to the input forecast time intervals. Note that current NHC error data only goes out to 120 hours, so we could extrapolate the error from 120 to 168 hrs, if the input forecast data has forecasts out to that time range (like Hurricane Michael and many other more recent hurricanes).
+  while [length error_list > length forecast-matrix] [set error_list but-last error_list]
    let severity_list []
    let size_list []
    let time_list []
@@ -3300,7 +3296,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
