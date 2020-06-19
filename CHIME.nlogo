@@ -387,9 +387,10 @@ to Load-Hurricane
      set all-parsed lput parsed all-parsed ; Adds the list "parsed" to the end of the list "all_parsed". "all_parsed" is a list with sublists for each best track time.
      set parsed [] ]
 
+; This line makes sure the best track first time is AT or AFTER the first time of the forecast advisories (so the forecast starts at or before the best track data).
+; Example of the issue: For Hurricane Michael, advisories (starting at 2100 UTC) would start after the best track time (starting at 1800 UTC), which means the forecast does not cover the first best track time.
 
-  set all-parsed but-first all-parsed ;This line makes sure the best track first time is AT or AFTER the first time of the forecast advisories (so the forecast starts at or before the best track data). Example of the issue: For Hurricane Michael, advisories (starting at 2100 UTC) would start after the best track time (starting at 1800 UTC), which means the forecast does not cover the first best track time.
-
+  set all-parsed but-first all-parsed
   set best-track-data map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file.
       "-" item 6 ?1 item 7 ?1 item 0 ?1  item 1 ?1 item 8 ?1 item 9 ?1 item 10 ?1 item 11 ?1 item 16 ?1
       item 17 ?1 item 18 ?1 item 19 ?1) ] all-parsed  ;"best-track-data" is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
@@ -1285,7 +1286,7 @@ to-report Add-Census-Factor [x]
         let factor-from-census item x tract-information ;"factor-from-census" is the value of the specific tract data (e.g., how many kids under 18).
         if  factor-from-census != 0 [ ;If the value is greater than zero, continue
         let factor-likelihood  (factor-from-census /  my-tract-household) * 100 ;Sets "factor-likelihood" as the ratio between the number in the census compared the number of households in the tract (e.g., "2 kids under 18" per household).
-        ifelse   factor-likelihood  >= ((random 100) + 1) ;Random generator to determine if is-factor? is set to true. It is set to true if "factor-likelihood" is greater than a random number between 0 and 100.
+        ifelse   factor-likelihood  >= ((random 99) + 1) ;Random generator to determine if is-factor? is set to true. It is set to true if "factor-likelihood" is greater than a random number between 0 and 100.
           [set is-factor?  true] [set is-factor? false]
       ]
   report is-factor?
@@ -1299,6 +1300,8 @@ to Social-Network
   ; CALLED BY: Setup after all of the agents have been created
 
  ;; uses a simple routine to create a scale-free network
+  ;SB change network size name
+  ;SB describe the lists
   let net-power network-size   ; network-size is set in the user interface
   ask citizen-agents [
 
@@ -1308,7 +1311,9 @@ to Social-Network
         if any? nearby-agents [
               ; chooses a random maximum number of agents to add to the network list
               ; since each agent runs this code in succession, the length of my-network-list starts out at 0 and increases
+      ;SB ???
               let total-agents-needed random-float sum [length my-network-list ^ net-power] of nearby-agents
+; print total-agents-needed
               ; if both the original agent and the agent that is nearby need an agent to fill their network list, then make a link between the two of them
               ask nearby-agents [
               let nc length my-network-list ^ net-power
@@ -1320,6 +1325,7 @@ to Social-Network
                     ]
               ]
         ]
+    ;SB how often does that happen
        if partner = nobody [set partner one-of citizen-agents with [distance myself < (network-distance + network-distance)] ]
        set my-network-list lput partner my-network-list
     ]
@@ -1421,10 +1427,11 @@ to-report Past-Forecasts
    ask forcstxs [die]
    let s-f 0
    let s-f_real (357 / scale )
-   let error_list []
+   let error_list [] ;  cone of uncertainty
+  ;SB add in interpolation for hourly 0-12 is 0-26 (nautical miles)  - maybe not actual nautical miles
+  ; SB - convert degreees to nautical miles?
    ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
-
-  if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]] ; SB this is probably wrong - The error list is specific to each storm. Not sure why these are created or if they are still needed with the new readi in procedures
+   if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]] ; SB this is probably wrong - The error list is specific to each storm. Not sure why these are created or if they are still needed with the new readi in procedures
                                                                                   ; JA: I think they are still needed and are associated with the cone of uncertainty in the model. error_list has 7 numbers, representing 12h, 24h, 36h, 48h, 72h, 96h, and 120h forecasts. Not sure exactly how these numbers were obtained (do not agree with National Hurricane Center values). I just added two extra numbers because my Michael forecast has forecasts out to 168 h. I think ultimately, it would be nice to have hourly error data directly related to the input forecast time intervals. Note that current NHC error data only goes out to 120 hours, so we could extrapolate the error from 120 to 168 hrs, if the input forecast data has forecasts out to that time range (like Hurricane Michael and many other more recent hurricanes).
   while [length error_list > length forecast-matrix] [set error_list but-last error_list]
    let severity_list []
@@ -3296,7 +3303,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
