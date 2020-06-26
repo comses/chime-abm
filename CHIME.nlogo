@@ -225,7 +225,7 @@ to Go
   ; CALLED BY:
 
   ;;The hurricane moves to its historical location based on the time.
-  if using-hpc? [][Move-Hurricane]    ;; calls procedure to move the hurricane one time step - only show the visualization if using a local computer copy
+  ifelse using-hpc? [][Move-Hurricane]    ;; calls procedure to move the hurricane one time step - only show the visualization if using a local computer copy
 
   ;; update the forecast
   ask forecasters [  set current-forecast Past-Forecasts  ]
@@ -1315,9 +1315,8 @@ to Social-Network
         if any? nearby-agents [
               ; chooses a random maximum number of agents to add to the network list
               ; since each agent runs this code in succession, the length of my-network-list starts out at 0 and increases
-      ;SB ???
               let total-agents-needed random-float sum [length my-network-list ^ net-power] of nearby-agents
-; print total-agents-needed
+
               ; if both the original agent and the agent that is nearby need an agent to fill their network list, then make a link between the two of them
               ask nearby-agents [
               let nc length my-network-list ^ net-power
@@ -1329,7 +1328,6 @@ to Social-Network
                     ]
               ]
         ]
-    ;SB how often does that happen
        if partner = nobody [set partner one-of citizen-agents with [distance myself < (network-distance + network-distance)] ]
        set my-network-list lput partner my-network-list
     ]
@@ -1358,6 +1356,9 @@ to Social-Network
        set my-network-list sort-by [ [?1 ?2] -> item 1 ?1 > item 1 ?2 ] map [ ?1 -> list ?1 random-float 1 ] my-network-list
   ]
 
+  ;;my-network-list now contains a list of agents and a trust factor associated with each agent
+  ;; For example: [[(citizen-agent 3603) 0.6855141520445518] [(citizen-agent 2751) 0.2831065466947966] [(citizen-agent 572) 0.26522023914016035] [(citizen-agent 3138) 0.2623628848068422]]
+
  ;; creates media preferences (broadcasters & aggretators) for the agents  (adds trust factor)  -  since the order of links determines the trust
   ask citizen-agents [
        set broadcaster-list sort-by [ [?1 ?2] -> item 1 ?1 > item 1 ?2 ] map [ ?1 -> list ?1 random-float 1 ] sort n-of random count broadcasters broadcasters
@@ -1367,7 +1368,6 @@ to Social-Network
 end
 
 
-;; *** SMB this should be turned off if using an hpc since its just a visualization?
 
 to Move-Hurricane
   ; INFO: Moves a visualization of the hurricane across the screen to locations recorded in the list hurricane-coords-best-track
@@ -2359,7 +2359,7 @@ to Setup-HPC
 
   Load-Hurricane-HPC
 
-  ;; *SMB We can change this once we finish redoing the forecasts
+  ;; *SMB FOR HPC the load forecast procedure needs to be updated
   ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts-HPC]
 
 
@@ -2382,15 +2382,6 @@ to Setup-HPC
   Create-Other-Agents;; Officials, Broadcasters and Aggregators are created
 
   Social-Network ;; defines the agents' social networks
-
-
-
-   set risk-total 0        ;; these are all related to the risk function plot on the interface
-   set risk-funct 0
-   set risk-error 0
-   set risk-orders 0
-   set risk-env 0
-   set risk-surge 0
 
 
 end
@@ -2715,8 +2706,8 @@ SLIDER
 network-size
 network-size
 1
-5
-5.0
+10
+2.0
 1
 1
 NIL
@@ -2815,7 +2806,7 @@ census-tract-min-pop
 census-tract-min-pop
 0
 10000
-5800.0
+5900.0
 100
 1
 NIL
@@ -2979,9 +2970,9 @@ HORIZONTAL
 BUTTON
 1182
 786
-1271
+1320
 819
-PROFILER
+PROFILER - Setup
 profiler:start\nrepeat 3 [setup]\nprofiler:stop\nprint profiler:report\nprofiler:reset
 NIL
 1
