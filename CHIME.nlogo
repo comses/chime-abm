@@ -164,7 +164,10 @@ drawers-own  [ cone-size ]          ; stores the cone size at the relevant hour 
 
 to Setup
   __clear-all-and-reset-ticks
+
+  ;;Load Geographic Data Used in the Simulation
   Load-GIS
+
 
   ;Where to have the legend displayed on the Netlogo interface
   let legend-location where-to-place-legend?  ;1=upper-right...2=upper-left...3=lower-left...4=lower-right
@@ -222,7 +225,7 @@ to Go
   ; CALLED BY:
 
   ;;The hurricane moves to its historical location based on the time.
-  Move-Hurricane    ;; calls procedure to move the hurricane one time step
+  if using-hpc? [][Move-Hurricane]    ;; calls procedure to move the hurricane one time step - only show the visualization if using a local computer copy
 
   ;; update the forecast
   ask forecasters [  set current-forecast Past-Forecasts  ]
@@ -237,8 +240,7 @@ to Go
   ;; broadcasters translate and publish forecast
   ask broadcasters [ set broadcast from-forecaster ]
 
-  ;  *SMB this is actually 1/4
-  ;; aggregators are like broadcasters, just translate and publish forecast (1/3 chance of running this code every time step)
+  ;; aggregators are like broadcasters, just translate and publish forecast (1/4 chance of running this code every time step)
   ask aggregators [ if random 3 = 2 [ set info from-forecaster] ]
 
   ;; cit-ags only run DM code when it's time, based on their internal schedule, and if they haven't evacuated already
@@ -248,9 +250,11 @@ to Go
          Decision-Module ;; runs the decision model code
         ] ]
 
-  ;;*** Why do what is mentioned below   SB**** JA: I am wondering the same...
+  ;;*** Why do what is mentioned below   SB **** JA: I am wondering the same...
+  ;; UPDATE: 6/26/20 -  this bit of code doesn't actually happen - completed is a list so it never just equals completed
   ;; cit-ags who have evacuated revert back to original decision module frequency and only collect info (no DM
   ask citizen-agents with [completed = "evacuate" ] [
+    print "It happened!"
          ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
        [ set decision-module-turn 0
          Just-Collect-Info
@@ -1366,15 +1370,15 @@ end
 ;; *** SMB this should be turned off if using an hpc since its just a visualization?
 
 to Move-Hurricane
-  ; INFO: Moves a visualization of the hurricane across the screen
+  ; INFO: Moves a visualization of the hurricane across the screen to locations recorded in the list hurricane-coords-best-track
   ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
+  ; PROCEDURES CALLED: None
+  ; CALLED BY:  GO
 
         let hx round item 0 item ticks hurricane-coords-best-track
         let hy round item 1 item ticks hurricane-coords-best-track
 
         ;; only move the hurricane when it is within the boundaries of the world (create the hurricane if there isn't one already)
-
            if not any? hurricanes and any? patches with [pxcor = hx and pycor = hy]  [
               create-hurricanes 1 [
                 set size 2 * max (list item 5 item ticks hurricane-coords-best-track item 6 item ticks hurricane-coords-best-track item 7 item ticks hurricane-coords-best-track item 8 item ticks hurricane-coords-best-track) / scale
@@ -1382,10 +1386,10 @@ to Move-Hurricane
                 set label-color red
                 set label item 2 item ticks hurricane-coords-best-track ] ]
 
-        ;; if the hurricane passes off the map, kill it
+        ;; if the hurricane passes off the map, delete it
            if any? hurricanes and not any? patches with [pxcor = hx and pycor = hy] [ ask hurricanes [die] ]
 
-        ;; while the hurricane is within the map, set coordinates and other characteristics based on the hurr-coords array
+        ;; while the hurricane is within the map, set coordinates and other characteristics based on the hurricane-coords-best-track array
            if any? hurricanes [
              ask last sort hurricanes [
                 set size 2 * max (list item 5 item ticks hurricane-coords-best-track item 6 item ticks hurricane-coords-best-track item 7 item ticks hurricane-coords-best-track item 8 item ticks hurricane-coords-best-track) / scale
@@ -1393,9 +1397,8 @@ to Move-Hurricane
                 set heading heading - 14] ]
 
 
-  ;; next section simply updates the info box on the current state of the storm
-
-    let intense ""
+  ;; next section simply updates the info box on the current state of the storm that is shown in the visualization
+     let intense ""
      if item 2 item ticks hurricane-coords-best-track < 34 [ set intense "TD" ]
      if item 2 item ticks hurricane-coords-best-track >= 34 and item 2 item ticks hurricane-coords-best-track < 64 [ set intense "TS" ]
      if item 2 item ticks hurricane-coords-best-track >= 64 and item 2 item ticks hurricane-coords-best-track < 83 [ set intense "H1" ]
@@ -2336,6 +2339,60 @@ to Load-Forecasts-HPC
  ;;show forecast-matrix
 
  file-close-all
+end
+
+to Setup-HPC
+  ; INFO:
+  ; VARIABLES MODIFIED:
+  ; PROCEDURES CALLED
+  ; CALLED BY:
+
+
+
+  __clear-all-and-reset-ticks
+
+  set using-hpc? true
+
+  ;;Load Geographic Data Used in the Simulation
+  Load-GIS-HPC
+
+
+  Load-Hurricane-HPC
+
+  ;; *SMB We can change this once we finish redoing the forecasts
+  ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts-HPC]
+
+
+  set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
+
+  Generate-Storm  ;; generates the hurricane
+
+  set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track    ;; defines the clock
+
+  ;; Setup Agents Based on if the Census Information is Being Used
+
+
+  if use-census-data and which-region?  != "FLORIDA"
+  [print "*** WARNING: Census Data is only available for Florida and will not be used for locations or decisions. ***"]
+
+  ifelse use-census-data and which-region?  = "FLORIDA"
+  [Create-Citizen-Agents-From-Census-Tracts];; creates agents based on census data and assigns them
+  [Create-Citizen-Agent-Population];; creates the agents and distribtues them randomly or based on population density
+
+  Create-Other-Agents;; Officials, Broadcasters and Aggregators are created
+
+  Social-Network ;; defines the agents' social networks
+
+
+
+   set risk-total 0        ;; these are all related to the risk function plot on the interface
+   set risk-funct 0
+   set risk-error 0
+   set risk-orders 0
+   set risk-env 0
+   set risk-surge 0
+
+
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
