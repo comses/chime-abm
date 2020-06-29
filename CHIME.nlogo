@@ -1608,11 +1608,11 @@ to Coastal-Patches-Alerts
 
        if length working-forecast > 1 [
           set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;forecast changes such that the closest distance of the hurricane center to the patch is listed first
-             let set_right-left list item 0 working-forecast item 1 working-forecast ;"set_right-left" is equal to the latest two entries in the working foreacast
+        ;JA: Why are the lines with "set_right-left", "storm-head" and "direction" needed?
+        let set_right-left list item 0 working-forecast item 1 working-forecast ;"set_right-left" is equal to the latest two entries in the working foreacast
              set set_right-left sort-by [ [?1 ?2] -> item 0 item 3 ?1 + ((item 1 item 3 ?1 / 100) * (1 / 24)) > item 0 item 3 ?2 + ((item 1 item 3 ?2 / 100) * (1 / 24)) ] set_right-left ;Makes sure the first item in the list is temporally after the second item in the list
         ;JA: The time of landfall varies between each time step - why?
         set working-forecast first working-forecast ;"working-forecast" is now the latest time
-              ;JA: storm-head does not seem needed
              let storm-head atan (item 0 item 1 item 1 set_right-left - item 0 item 1 item 0 set_right-left)
                                     (item 1 item 1 item 1 set_right-left - item 1 item 1 item 0 set_right-left)
              let direction atan (item 0 item 1 item 0 set_right-left - pxcor) (item 1 item 1 item 0 set_right-left - pycor)  ;pxcor and pycor are the patch coordinates. direction is the direction from the hurricane center to the patch. 0 degrees is straight up. 90 degrees is to the right.
