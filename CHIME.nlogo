@@ -1603,37 +1603,38 @@ to Coastal-Patches-Alerts
    let working-forecast []   ;Creates a temporary variable for the current forecast
        if alerts != 1 [          ;Only runs this code if no evac orders issued already
 
-       let fav one-of broadcasters with [not empty? broadcast]            ;Picks one Broadcaster
+       let fav one-of broadcasters with [not empty? broadcast]            ;Picks one Broadcaster to obtain a forecast
        if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;Imports the forecast from that Broadcaster ([[97.91666666666667 [-23.382636815154182 -71.83359999996831] 100.58333333333333 [9 1700]] [98.95833333333334 [-24.19109452660506 -68.58359999993581] 101.79166666666666 [9 1800]])
 
        if length working-forecast > 1 [
-          set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;forecast changes such that the closest distance of the hurricane center to the patch is listed first
+        set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;Forecast list changes such that the closest distance of the hurricane center to the patch is listed first
+
         ;JA: Why are the lines with "set_right-left", "storm-head" and "direction" needed?
         let set_right-left list item 0 working-forecast item 1 working-forecast ;"set_right-left" is equal to the latest two entries in the working foreacast
-             set set_right-left sort-by [ [?1 ?2] -> item 0 item 3 ?1 + ((item 1 item 3 ?1 / 100) * (1 / 24)) > item 0 item 3 ?2 + ((item 1 item 3 ?2 / 100) * (1 / 24)) ] set_right-left ;Makes sure the first item in the list is temporally after the second item in the list
+        set set_right-left sort-by [ [?1 ?2] -> item 0 item 3 ?1 + ((item 1 item 3 ?1 / 100) * (1 / 24)) > item 0 item 3 ?2 + ((item 1 item 3 ?2 / 100) * (1 / 24)) ] set_right-left ;Makes sure the first item in the list is temporally after the second item in the list
         ;JA: The time of landfall varies between each time step - why?
         set working-forecast first working-forecast ;"working-forecast" is now the latest time
-             let storm-head atan (item 0 item 1 item 1 set_right-left - item 0 item 1 item 0 set_right-left)
+        let storm-head atan (item 0 item 1 item 1 set_right-left - item 0 item 1 item 0 set_right-left)
                                     (item 1 item 1 item 1 set_right-left - item 1 item 1 item 0 set_right-left)
-             let direction atan (item 0 item 1 item 0 set_right-left - pxcor) (item 1 item 1 item 0 set_right-left - pycor)  ;pxcor and pycor are the patch coordinates. direction is the direction from the hurricane center to the patch. 0 degrees is straight up. 90 degrees is to the right.
-           ;; determines how far out (temporally) till the storm reaches closest point
-            let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
-            let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane will make landfall
-            ;JA: Won't we have problems if the month changes?
-            let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
-          let interp_sz item 2 working-forecast ;size of the hurricane at landfall
-          let intens item 0 working-forecast ;intensity of the hurricane at landfall
-           let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
-           if (scale * dist_trk) < interp_sz [ set dist_trk 0 ] ;If the patch is within the 64-kt wind radii, set "dist_trk"=0
+        let direction atan (item 0 item 1 item 0 set_right-left - pxcor) (item 1 item 1 item 0 set_right-left - pycor)  ;pxcor and pycor are the patch coordinates. direction is the direction from the hurricane center to the patch. 0 degrees is straight up. 90 degrees is to the right.
 
-          if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1 ] ;If the time before arrival is lower than "earliest", the patch is within the 64-kt wind radius, and the intensity is greater than the wind threshold, set alerts=1
+        ;Determine how far out (temporally) until the storm reaches closest point of the patch
+        let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
+        let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane is closest to the patch
+        print arriv
+        ;JA: Won't we have problems if the month changes?
+        let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
+        let interp_sz item 2 working-forecast ;size of the hurricane at landfall
+        let intens item 0 working-forecast ;intensity of the hurricane at landfall
+        let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
+        if (scale * dist_trk) < interp_sz [ set dist_trk 0 ] ;If the patch is within the 64-kt wind radii, set "dist_trk"=0
+        if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1 ] ;If the time before arrival is lower than "earliest", the patch is within the 64-kt wind radius, and the intensity is greater than the wind threshold, set alerts=1
 
       ] ] ]
-
-
 end
 
 
+;JA: Much of this code is repetitive from Coastal-Patches-Alerts. May only need the last 5 lines of the procedure.
 to Issue-Alerts
   ; INFO: Used to determine if evacuation orders are needed.
   ; VARIABLES MODIFIED: orders
@@ -1644,26 +1645,21 @@ to Issue-Alerts
 
           if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] and not (land? = false) [
 
-               let working-forecast [] ;Creates a temporary variable for the current forecast
+             let working-forecast [] ;Creates a temporary variable for the current forecast
 
-               let fav one-of broadcasters with [not empty? broadcast]            ;Picks one Broadcaster
-               if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;Imports the forecast from that Broadcaster
-
-
+             let fav one-of broadcasters with [not empty? broadcast]            ;Picks one Broadcaster
+             if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;Imports the forecast from that Broadcaster
                if length working-forecast > 1 [
-                  set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;forecast changes such that the closest distance of the hurricane center to the patch is listed first
-             set working-forecast first working-forecast ;"working-forecast" is now the latest time
+                 set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;forecast changes such that the closest distance of the hurricane center to the patch is listed first
+                 set working-forecast first working-forecast ;"working-forecast" is now the latest time
 
-           ;; determines how far out (temporally) till the storm reaches closest point
-              let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
-              let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane will make landfall
-              let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
-
-            set when-issued counter ;"when-issued" is set to the number of hours before landfall that an evacuation order was issued
-            set orders 1
-
+                 ;; determines how far out (temporally) till the storm reaches closest point
+                 let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
+                 let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane will make landfall
+                 let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
+                 set when-issued counter ;"when-issued" is set to the number of hours before landfall that an evacuation order was issued
+                 set orders 1
                ] ] ]
-
           if orders = 1 [ set color white]
 
 end
