@@ -1289,7 +1289,7 @@ to-report Add-Census-Factor [x]
         let is-factor? false
         let factor-from-census item x tract-information ;"factor-from-census" is the value of the specific tract data (e.g., how many kids under 18).
         if  factor-from-census != 0 [ ;If the value is greater than zero, continue
-        let factor-likelihood  (factor-from-census /  my-tract-household) * 100 ;Sets "factor-likelihood" as the ratio between the number in the census compared the number of households in the tract (e.g., "2 kids under 18" per household).
+        let factor-likelihood  (factor-from-census /  my-tract-household) * 100 ;Sets "factor-likelihood" as the ratio between the number of households in the census compared the number of households in the tract (e.g., "2 households with kids under 18" per household).
         ifelse   factor-likelihood  >= ((random 99) + 1) ;Random generator to determine if is-factor? is set to true. It is set to true if "factor-likelihood" is greater than a random number between 0 and 100.
           [set is-factor?  true] [set is-factor? false]
       ]
@@ -1588,47 +1588,45 @@ end
 
 ;  Not sure I understand why this is done differently...
 
+;JA: Is this function needed, Can't the EM determine how far the storm is from its location instead of the patch doing it?
 to Coastal-Patches-Alerts
   ; INFO: Issue alerts for coastal patches based on the distance of the storm
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY: Go Procedure
+  ; VARIABLES MODIFIED: alerts (evaculation order)
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Go
 
-   ask ocean-patches with [alerts != 1 and county > 0] [
+   ask ocean-patches with [alerts != 1 and county > 0] [  ;Ask only ocean patches that have not issued alerts yet
    ;ask patches with [alerts != 1 and county > 0 and not (elev >= 0 or elev <= 0)] [
    ;show " coastal alert"
    ;set pcolor green
 
-   let working-forecast []   ;; creates a temp variable for the current forecast
-       if alerts != 1 [          ;; only runs this code if no evac orders issued already
+   let working-forecast []   ;Creates a temporary variable for the current forecast
+       if alerts != 1 [          ;Only runs this code if no evac orders issued already
 
-       let fav one-of broadcasters with [not empty? broadcast]            ;; picks one Broadcaster
-       if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;; imports the forecast from that Broadcaster
-
+       let fav one-of broadcasters with [not empty? broadcast]            ;Picks one Broadcaster
+       if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;Imports the forecast from that Broadcaster ([[97.91666666666667 [-23.382636815154182 -71.83359999996831] 100.58333333333333 [9 1700]] [98.95833333333334 [-24.19109452660506 -68.58359999993581] 101.79166666666666 [9 1800]])
 
        if length working-forecast > 1 [
-          set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast
-
-             let set_right-left list item 0 working-forecast item 1 working-forecast
-
-             set set_right-left sort-by [ [?1 ?2] -> item 0 item 3 ?1 + ((item 1 item 3 ?1 / 100) * (1 / 24)) > item 0 item 3 ?2 + ((item 1 item 3 ?2 / 100) * (1 / 24)) ] set_right-left
-
-           ;  show set_right-left
-             set working-forecast first working-forecast
-
+          set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;forecast changes such that the closest distance of the hurricane center to the patch is listed first
+             let set_right-left list item 0 working-forecast item 1 working-forecast ;"set_right-left" is equal to the latest two entries in the working foreacast
+             set set_right-left sort-by [ [?1 ?2] -> item 0 item 3 ?1 + ((item 1 item 3 ?1 / 100) * (1 / 24)) > item 0 item 3 ?2 + ((item 1 item 3 ?2 / 100) * (1 / 24)) ] set_right-left ;Makes sure the first item in the list is temporally after the second item in the list
+        ;JA: The time of landfall varies between each time step - why?
+        set working-forecast first working-forecast ;"working-forecast" is now the latest time
+              ;JA: storm-head does not seem needed
              let storm-head atan (item 0 item 1 item 1 set_right-left - item 0 item 1 item 0 set_right-left)
                                     (item 1 item 1 item 1 set_right-left - item 1 item 1 item 0 set_right-left)
-             let direction atan (item 0 item 1 item 0 set_right-left - pxcor) (item 1 item 1 item 0 set_right-left - pycor)
+             let direction atan (item 0 item 1 item 0 set_right-left - pxcor) (item 1 item 1 item 0 set_right-left - pycor)  ;pxcor and pycor are the patch coordinates. direction is the direction from the hurricane center to the patch. 0 degrees is straight up. 90 degrees is to the right.
            ;; determines how far out (temporally) till the storm reaches closest point
-            let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
-            let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24))
-            let counter (arriv - tc) * 24
-          let interp_sz item 2 working-forecast
-          let intens item 0 working-forecast
-           let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast
-           if (scale * dist_trk) < interp_sz [ set dist_trk 0 ]
+            let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
+            let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane will make landfall
+            ;JA: Won't we have problems if the month changes?
+            let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
+          let interp_sz item 2 working-forecast ;size of the hurricane at landfall
+          let intens item 0 working-forecast ;intensity of the hurricane at landfall
+           let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
+           if (scale * dist_trk) < interp_sz [ set dist_trk 0 ] ;If the patch is within the 64-kt wind radii, set "dist_trk"=0
 
-          if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1 ]
+          if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1 ] ;If the time before arrival is lower than "earliest", the patch is within the 64-kt wind radius, and the intensity is greater than the wind threshold, set alerts=1
 
       ] ] ]
 
@@ -1637,31 +1635,31 @@ end
 
 
 to Issue-Alerts
-  ; INFO: Used to determine if alerts are needed for land patches
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY: Officials in the Go procedure
+  ; INFO: Used to determine if evacuation orders are needed.
+  ; VARIABLES MODIFIED: orders
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Go (by Officials)
 
           if orders != 1 [          ;; only runs this code if no evac orders issued already
 
           if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] and not (land? = false) [
 
-               let working-forecast []   ;; creates a temp variable for the current forecast
+               let working-forecast [] ;Creates a temporary variable for the current forecast
 
-               let fav one-of broadcasters with [not empty? broadcast]            ;; picks one Broadcaster
-               if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;; imports the forecast from that Broadcaster
+               let fav one-of broadcasters with [not empty? broadcast]            ;Picks one Broadcaster
+               if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;Imports the forecast from that Broadcaster
 
 
                if length working-forecast > 1 [
-                  set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast
-             set working-forecast first working-forecast
+                  set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;forecast changes such that the closest distance of the hurricane center to the patch is listed first
+             set working-forecast first working-forecast ;"working-forecast" is now the latest time
 
            ;; determines how far out (temporally) till the storm reaches closest point
-              let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
-              let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24))
-              let counter (arriv - tc) * 24
+              let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
+              let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane will make landfall
+              let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
 
-            set when-issued counter
+            set when-issued counter ;"when-issued" is set to the number of hours before landfall that an evacuation order was issued
             set orders 1
 
                ] ] ]
@@ -2625,7 +2623,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
@@ -2992,7 +2990,7 @@ CHOOSER
 where-to-place-legend?
 where-to-place-legend?
 "upper-right" "upper-left" "lower-right" "lower-left"
-3
+0
 
 @#$#@#$#@
 1. "setup" initializes the simulation.
@@ -3351,7 +3349,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
