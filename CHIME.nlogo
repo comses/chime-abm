@@ -1585,9 +1585,6 @@ to-report Publish-New-Mental-Model
 
 end
 
-
-;  Not sure I understand why this is done differently...
-
 ;JA: Is this function needed, Can't the EM determine how far the storm is from its location instead of the patch doing it?
 to Coastal-Patches-Alerts
   ; INFO: Issue alerts for coastal patches based on the distance of the storm
@@ -1601,7 +1598,7 @@ to Coastal-Patches-Alerts
    ;set pcolor green
 
    let working-forecast []   ;Creates a temporary variable for the current forecast
-       if alerts != 1 [          ;Only runs this code if no evac orders issued already
+       if alerts != 1 [          ;Only runs this code if no evacuation order has been issued already
 
        let fav one-of broadcasters with [not empty? broadcast]            ;Picks one Broadcaster to obtain a forecast
        if fav != nobody [set working-forecast [item 0 broadcast] of fav]  ;Imports the forecast from that Broadcaster ([[97.91666666666667 [-23.382636815154182 -71.83359999996831] 100.58333333333333 [9 1700]] [98.95833333333334 [-24.19109452660506 -68.58359999993581] 101.79166666666666 [9 1800]])
@@ -1629,7 +1626,6 @@ to Coastal-Patches-Alerts
         let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
         if (scale * dist_trk) < interp_sz [ set dist_trk 0 ] ;If the patch is within the 64-kt wind radii, set "dist_trk"=0
         if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1 ] ;If the time before arrival is lower than "earliest", the patch is within the 64-kt wind radius, and the intensity is greater than the wind threshold, set alerts=1
-
       ] ] ]
 end
 
