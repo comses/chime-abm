@@ -244,21 +244,39 @@ to Go
   ask aggregators [ if random 3 = 2 [ set info from-forecaster] ]
 
   ;; cit-ags only run DM code when it's time, based on their internal schedule, and if they haven't evacuated already
-  ask citizen-agents with [empty? completed or item 0 item 0 completed != "evacuate" ] [
-         ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
-       [ set decision-module-turn 0
+;  ask citizen-agents with [empty? completed or item 0 item 0 completed != "evacuate" ] [
+;         ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
+;       [ set decision-module-turn 0
+;         Decision-Module ;; runs the decision model code
+;        ] ]
+;
+;  ;;*** Why do what is mentioned below   SB **** JA: I am wondering the same...
+;  ;; UPDATE: 6/26/20 -  this bit of code doesn't actually happen - completed is a list so it never just equals completed
+;  ;; cit-ags who have evacuated revert back to original decision module frequency and only collect info (no DM
+;  ask citizen-agents with [completed = "evacuate" ] [
+;    print "It happened!"
+;         ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
+;       [ set decision-module-turn 0
+;         Just-Collect-Info
+;        ] ]
+;
+  ask citizen-agents[
+    ifelse empty? completed or item 0 item 0 completed != "evacuate" [
+      ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
+      [
+         set decision-module-turn 0 ;; update the counter that decides how often to check info
          Decision-Module ;; runs the decision model code
-        ] ]
-
-  ;;*** Why do what is mentioned below   SB **** JA: I am wondering the same...
-  ;; UPDATE: 6/26/20 -  this bit of code doesn't actually happen - completed is a list so it never just equals completed
-  ;; cit-ags who have evacuated revert back to original decision module frequency and only collect info (no DM
-  ask citizen-agents with [completed = "evacuate" ] [
-    print "It happened!"
-         ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
-       [ set decision-module-turn 0
+      ]
+    ]
+    [;; the citizen agents that have evacuated run this code - they update so that their network connections still get up to date info
+      ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
+       [ set decision-module-turn 0 ;; update the counter that decides how often to check info
          Just-Collect-Info
-        ] ]
+        ]
+    ]
+
+  ]
+
 
   ask citizen-agents with [color = black] [set color blue]  ;; updates colors
   ask citizen-agents with [color = white] [set color blue]
@@ -1618,7 +1636,6 @@ to Coastal-Patches-Alerts
         ;Determine how far out (temporally) until the storm reaches closest point of the patch
         let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
         let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane is closest to the patch
-        print arriv
         ;JA: Won't we have problems if the month changes?
         let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
         let interp_sz item 2 working-forecast ;size of the hurricane at landfall
@@ -1728,7 +1745,6 @@ to Decision-Module
 
 ;    let surge-info map [list item 0 ? item 1 item 1 ?] options
     set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options
-
 
     if not empty? forecast-options and not empty? item 1 item 0 forecast-options [    ;; rest of following code dependent on this conditional
 
@@ -1915,7 +1931,6 @@ to Just-Collect-Info
   ; PROCEDURES CALLED
   ; CALLED BY:
 
-
        set forecast-options []
        set interpreted-forecast []
 
@@ -1936,9 +1951,65 @@ to Just-Collect-Info
 
     set forecast-options sort-by [ [?1 ?2] -> item 0 ?1 > item 0 ?2 ] forecast-options
     set forecast-options filter [ ?1 -> item 1 ?1 != [] ] forecast-options
-    set interpreted-forecast first forecast-options
+    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options
+
+    if not empty? forecast-options and not empty? item 1 item 0 forecast-options [    ;; rest of following code dependent on this conditional
+
+     let int1 map [ ?1 -> item 1 ?1 ] forecast-options
+
+     ;; new filter to keep the list of options constrained to the forecasts visible on the map
+     set int1 map [ ?1 -> filter [ ??1 -> item 0 item 1 ??1 > min-pxcor and item 0 item 1 ??1 < max-pxcor and item 1 item 1 ??1 > min-pycor and item 1 item 1 ??1 < max-pycor ] ?1 ] int1
+
+
+   ;; short list of days included in the agent's forecast
+    let day-list sort remove-duplicates map [ ?1 -> item 0 ?1 ] map remove-duplicates reduce sentence map [ ?1 -> map [ ??1 -> item 3 ??1 ] ?1 ] int1
+
+   ;; makes a list of all possible days/hours included in the forecast grab bag
+    let s-list []
+    foreach day-list [ ?1 ->
+     let t ?1
+     set s-list sentence filter [ ??1 -> item 0 ??1 = t ] map remove-duplicates reduce sentence map [ ??1 -> map [ ???1 -> item 3 ???1 ] ??1 ] int1 s-list
+     set s-list sort-by [ [??1 ??2] -> (item 0 ??1 * 2400 + item 1 ??1) < (item 0 ??2 * 2400 + item 1 ??2) ] remove-duplicates s-list
+     ]
+
+
+   ;; sets up lists for blending forecasts, weighting according to trust factor
+   ;; functionally, for each day/hour all the right forecasts are grouped and weighted
+   ;; the output variable (interp) is a mashup forecast
+    let c-matrix []
+    let d-matrix []
+    let x-matrix []
+    let y-matrix []
+
+    foreach s-list [ ?1 ->
+      let t ?1
+      let c []
+      let d []
+      let x []
+      let y []
+        (foreach int1 forecast-options [ [??1 ??2] ->
+          let TF item 0 ??2
+          foreach ??1 [ ???1 ->
+          if item 3 ???1 = t [ set c lput list TF item 0 ???1 c
+                            set d lput list TF item 2 ???1 d
+                            set x lput list TF item 0 item 1 ???1 x
+                            set y lput list TF item 1 item 1 ???1 y
+         ] ] ])
+        set c-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] c))) ] c c-matrix
+        set d-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] d))) ] d d-matrix
+        set x-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] x))) ] x x-matrix
+        set y-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] y))) ] y y-matrix
+        ]
+
+
+     set interpreted-forecast (map [ [?1 ?2 ?3 ?4 ?5] -> (list ?2 list ?4 ?5 ?3 ?1) ] s-list c-matrix d-matrix x-matrix y-matrix)
+  ]
+
+      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
 end
+
+
 
 to-report Save-Individual-Cit-Ag-Evac-Records
   ; INFO: Used at the conclusion of the simulation. Records simulation information for each agent which creates a large data file.
@@ -2586,7 +2657,7 @@ latest
 latest
 0
 12
-0.0
+3.0
 3
 1
 NIL
@@ -2615,7 +2686,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 16
@@ -3341,7 +3412,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
