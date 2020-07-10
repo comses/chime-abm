@@ -182,7 +182,6 @@ to Setup
   ;; *SMB We can change this once we finish redoing the forecasts
   ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts]
 
-
   set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
 
   Generate-Storm  ;; generates the hurricane
@@ -203,15 +202,12 @@ to Setup
 
   Social-Network ;; defines the agents' social networks
 
-
-
    set risk-total 0        ;; these are all related to the risk function plot on the interface
    set risk-funct 0
    set risk-error 0
    set risk-orders 0
    set risk-env 0
    set risk-surge 0
-
 
 end
 
@@ -991,10 +987,10 @@ to Create-Citizen-Agent-Population
        let landfall_lat_netlogo_world (landfall_lat - item 1 re0-0)/ item 1 grid-cell-size
        let distance-citizens 40
        move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
-       let coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
+       let coast-distance [distance myself] of min-one-of coastal-patches  [distance myself]
         while[coast-distance >= 6] [ ;Keep moving citizens until they are, at most, 6 grid points from the coast.
         move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
-        set coast-distance [distance myself] of min-one-of ocean-patches  [distance myself]
+        set coast-distance [distance myself] of min-one-of coastal-patches  [distance myself]
    ]]
 
    ]
@@ -1052,7 +1048,7 @@ to-report Check-Zone
 
   ;Each citizen determines what evacuation zone they are in, depending on how far away they are from the coast. Random error in a citizen's knowledge is added. Roughly 20% of the time, a citizen will randomly choose an evacuation zone, which may be an inaccurate zone for their location.
   ifelse random-float 1 < .8 [
-    let dist-coast [distance myself] of min-one-of ocean-patches  [distance myself]
+    let dist-coast [distance myself] of min-one-of coastal-patches  [distance myself]
     if dist-coast <= 1.5 [set zn "A"]
     if dist-coast > 1.5 and dist-coast <= 3 [set zn "B"]
     if dist-coast > 3 and dist-coast <= 5 [set zn "C"]
@@ -1650,7 +1646,7 @@ to Issue-Alerts
 
           if orders != 1 [          ;; only runs this code if no evac orders issued already
 
-          if any? ocean-patches with [alerts = 1 and county = [[county] of patch-here] of myself] and not (land? = false) [
+          if any? coastal-patches with [alerts = 1 and county = [[county] of patch-here] of myself] and not (land? = false) [
 
              let working-forecast [] ;Creates a temporary variable for the current forecast
 
