@@ -27,7 +27,7 @@
     ;4. Coastal-Patches-Alerts: Coastal patches diagnose if their patch is within an intensity threshold and distance threshold to issue an alert. If so, the patch communicates with the official to issue an alert.
     ;5. Issue-Alerts: The official issues an evacuation order after coastal-patches-alerts issues an alert.
     ;6. Decision-Module: The main Protective Action Decision-Making process called by citizen agents. Citizens check environmental cues, collect and process information, assess risk, assess alternative protective actions, and decide whether to act.
-    ;7. Just-Collect-Info: Citizens who have already evacuated just collect information (no DM).
+    ;7. Process-Forecasts: Citizens who have already evacuated just collect information (no DM).
 
 ;Not called in code:
     ;1. Save-Individual-Cit-Ag-Evac-Records
@@ -212,9 +212,6 @@ to Setup
 end
 
 
-
-
-
 to Go
   ; INFO:   The go procedure calls the various procedures that happen every time step in the model
   ; VARIABLES MODIFIED:
@@ -240,23 +237,6 @@ to Go
   ;; aggregators are like broadcasters, just translate and publish forecast (1/4 chance of running this code every time step)
   ask aggregators [ if random 3 = 2 [ set info from-forecaster] ]
 
-  ;; cit-ags only run DM code when it's time, based on their internal schedule, and if they haven't evacuated already
-;  ask citizen-agents with [empty? completed or item 0 item 0 completed != "evacuate" ] [
-;         ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
-;       [ set decision-module-turn 0
-;         Decision-Module ;; runs the decision model code
-;        ] ]
-;
-;  ;;*** Why do what is mentioned below   SB **** JA: I am wondering the same...
-;  ;; UPDATE: 6/26/20 -  this bit of code doesn't actually happen - completed is a list so it never just equals completed
-;  ;; cit-ags who have evacuated revert back to original decision module frequency and only collect info (no DM
-;  ask citizen-agents with [completed = "evacuate" ] [
-;    print "It happened!"
-;         ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
-;       [ set decision-module-turn 0
-;         Just-Collect-Info
-;        ] ]
-;
   ask citizen-agents[
     ifelse empty? completed or item 0 item 0 completed != "evacuate" [
       ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
@@ -268,7 +248,9 @@ to Go
     [;; the citizen agents that have evacuated run this code - they update so that their network connections still get up to date info
       ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
        [ set decision-module-turn 0 ;; update the counter that decides how often to check info
-         Just-Collect-Info
+         ;Just-Collect-Info
+          Process-Forecasts
+          set interpreted-forecast list interpreted-forecast ["no surge forecast"]
         ]
     ]
 
@@ -1674,16 +1656,16 @@ to Decision-Module
   ; They check environmental cues, collect and process information, assess risk, assess
   ; alternative protective actions, and decide whether to act.
   ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
+  ; PROCEDURES CALLED: Process-Forecasts
   ; CALLED BY:
 
 
  ;; INFO COLLECTION PROCESSES
 
-  ;;** SMB Why 3?
   ;; Personal interpretation of location in vulnerable zone
-      let zone_warning 0
-      if evac-zone = "A" [ set zone_warning 3 ]
+  ;; conditional sets whether the agent's zone should be considered in the risk function
+      let zone 1
+      ifelse evac-zone = "A" [set zone 0] [set zone 1]
 
 
   ;; Check for evacuation orders
@@ -1691,8 +1673,8 @@ to Decision-Module
       let official-orders [orders] of nearby-official
       set when-evac-1st-ordered [when-issued] of nearby-official
 
-  ;; ** SMB What is going on with direction here
-  ;; ** SMB ASK about environmental cues ***
+  ;; ** SMB What is going on with direction here - ask if anyone knows about this in the meeting
+
   ;; Check for environmental cues
         ;;let environmental-cues 0
         let direction 0
@@ -1705,95 +1687,18 @@ to Decision-Module
          if (scale * distance one-of hurricanes) < direction [ set environmental-cues 1] ]
 
 
-  ;; main pre-decisional processes
-     ;; select a subset of broadcasters, aggregators, and social network
-     ;; add their interpretation of the storm to agent's own list
-       set forecast-options []
-       set interpreted-forecast []
-
-       set forecast-options (sentence
-                   (list memory)
-                   map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster-list
-                   map [ ?1 -> list item 1 ?1 [info] of item 0 ?1 ] aggregator-list
-                   map [ ?1 -> list item 1 ?1 [interpreted-forecast] of item 0 ?1 ] my-network-list
-                   )
-
-; these lists can be around 5 long and the network list tends to be the smallest at 2-3 and a total of 15 sources then memory too!
+     ;; Main Pre-Decisional Processes that selects a subset of broadcasters, aggregators, and social network
+     ;; then adds their interpretation of the storm to agent's own list
+     Process-Forecasts
 
 
-     ;; attention to info?
-     ;; ignore some previously collected info
-  ;*** SMB ????
-        repeat random (length forecast-options - 1) [
-        set forecast-options but-first shuffle forecast-options ]
-
-    ;; sets agent's own interpretation of the storm track (use broadcasters and social network).
-    ;; picks one from their own assessment of the most reliable source
-
-    set forecast-options sort-by [ [?1 ?2] -> item 0 ?1 > item 0 ?2 ] forecast-options
-    set forecast-options filter [ ?1 -> item 1 ?1 != [] ] forecast-options
-
-;    let surge-info map [list item 0 ? item 1 item 1 ?] options
-    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options
-
-    if not empty? forecast-options and not empty? item 1 item 0 forecast-options [    ;; rest of following code dependent on this conditional
-
-     let int1 map [ ?1 -> item 1 ?1 ] forecast-options
-
-     ;; new filter to keep the list of options constrained to the forecasts visible on the map
-     set int1 map [ ?1 -> filter [ ??1 -> item 0 item 1 ??1 > min-pxcor and item 0 item 1 ??1 < max-pxcor and item 1 item 1 ??1 > min-pycor and item 1 item 1 ??1 < max-pycor ] ?1 ] int1
-
-
-   ;; short list of days included in the agent's forecast
-    let day-list sort remove-duplicates map [ ?1 -> item 0 ?1 ] map remove-duplicates reduce sentence map [ ?1 -> map [ ??1 -> item 3 ??1 ] ?1 ] int1
-
-   ;; makes a list of all possible days/hours included in the forecast grab bag
-    let s-list []
-    foreach day-list [ ?1 ->
-     let t ?1
-     set s-list sentence filter [ ??1 -> item 0 ??1 = t ] map remove-duplicates reduce sentence map [ ??1 -> map [ ???1 -> item 3 ???1 ] ??1 ] int1 s-list
-     set s-list sort-by [ [??1 ??2] -> (item 0 ??1 * 2400 + item 1 ??1) < (item 0 ??2 * 2400 + item 1 ??2) ] remove-duplicates s-list
-     ]
-
-
-   ;; sets up lists for blending forecasts, weighting according to trust factor
-   ;; functionally, for each day/hour all the right forecasts are grouped and weighted
-   ;; the output variable (interp) is a mashup forecast
-    let c-matrix []
-    let d-matrix []
-    let x-matrix []
-    let y-matrix []
-
-    foreach s-list [ ?1 ->
-      let t ?1
-      let c []
-      let d []
-      let x []
-      let y []
-        (foreach int1 forecast-options [ [??1 ??2] ->
-          let TF item 0 ??2
-          foreach ??1 [ ???1 ->
-          if item 3 ???1 = t [ set c lput list TF item 0 ???1 c
-                            set d lput list TF item 2 ???1 d
-                            set x lput list TF item 0 item 1 ???1 x
-                            set y lput list TF item 1 item 1 ???1 y
-         ] ] ])
-        set c-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] c))) ] c c-matrix
-        set d-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] d))) ] d d-matrix
-        set x-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] x))) ] x x-matrix
-        set y-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] y))) ] y y-matrix
-        ]
-
-     set interpreted-forecast (map [ [?1 ?2 ?3 ?4 ?5] -> (list ?2 list ?4 ?5 ?3 ?1) ] s-list c-matrix d-matrix x-matrix y-matrix)
-
-
-    ;; identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
-
+  if not empty? forecast-options and not empty? item 1 item 0 forecast-options [
+    ;;identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
      let X_V first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
 
-    set interpreted-forecast list interpreted-forecast ["no surge forecast"]
+     set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
-    ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
+     ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
      set memory list self-trust interpreted-forecast
      if color = blue [set color white]
 
@@ -1824,10 +1729,6 @@ to Decision-Module
 
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
      ifelse intensity >= 95 [set intensity 0] [set intensity 1]
-
-   ;; conditional sets whether the agent's zone (set above in pre-decisional processes) should be considered in the risk function
-     let zone 1
-     ifelse zone_warning = 3 [set zone 0] [set zone 1]
 
    ;; conditional sets whether the agent is inside or outside of the storm track
      if (scale * dist_trk) < err_bars [ set dist_trk 0 ]
@@ -1914,12 +1815,7 @@ to Decision-Module
 end
 
 
-to Just-Collect-Info
-  ; INFO: This is the main pre-decisional processes. The agent selects a subset of broadcasters, officials, aggregators, and social network
-  ; They then add their interpretation of the storm to agent's own list
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
+to Process-Forecasts
 
        set forecast-options []
        set interpreted-forecast []
@@ -1995,8 +1891,7 @@ to Just-Collect-Info
      set interpreted-forecast (map [ [?1 ?2 ?3 ?4 ?5] -> (list ?2 list ?4 ?5 ?3 ?1) ] s-list c-matrix d-matrix x-matrix y-matrix)
   ]
 
-      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
-
+      ;set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 end
 
 
@@ -2435,7 +2330,6 @@ to Setup-HPC
 
   Social-Network ;; defines the agents' social networks
 
-
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -2774,7 +2668,7 @@ citizen-to-census-population-ratio
 citizen-to-census-population-ratio
 0
 10000
-7000.0
+6000.0
 500
 1
 NIL
@@ -3013,7 +2907,7 @@ test-factor-proportion
 test-factor-proportion
 0
 1
-0.25
+0.3
 0.05
 1
 NIL
