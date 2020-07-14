@@ -1683,13 +1683,14 @@ to Decision-Module
   ;; Check for environmental cues
         ;;let environmental-cues 0
         let direction 0
+        let wind-speed 0
         if any? hurricanes  [set direction towards-nowrap one-of hurricanes ; reports the heading of the hurricane to an agent
-                             if direction >= 0 and direction < 90 [ set direction item 8 item ticks hurricane-coords-best-track ]
-                             if direction >= 90 and direction < 180 [ set direction item 9 item ticks hurricane-coords-best-track ]
-                             if direction >= 180 and direction < 270 [ set direction item 6 item ticks hurricane-coords-best-track ]
-                             if direction >= 270 and direction < 360 [ set direction item 7 item ticks hurricane-coords-best-track ]
+                             if direction >= 0 and direction < 90 [ set wind-speed item 8 item ticks hurricane-coords-best-track ]
+                             if direction >= 90 and direction < 180 [ set wind-speed item 9 item ticks hurricane-coords-best-track ]
+                             if direction >= 180 and direction < 270 [ set wind-speed item 6 item ticks hurricane-coords-best-track ]
+                             if direction >= 270 and direction < 360 [ set wind-speed item 7 item ticks hurricane-coords-best-track ]
 
-         if (scale * distance one-of hurricanes) < direction [ set environmental-cues 1] ]
+         if (scale * distance one-of hurricanes) < wind-speed [ set environmental-cues 1] ]
 
 
      ;; Main Pre-Decisional Processes that selects a subset of broadcasters, aggregators, and social network
@@ -1699,13 +1700,15 @@ to Decision-Module
 
   if not empty? forecast-options and not empty? item 1 item 0 forecast-options [
     ;;identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
+
+    ;; *** SMB not sure about this variable name
      let X_V first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
 
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
      set memory list self-trust interpreted-forecast
-     if color = blue [set color white]
+     if color = blue [set color white] ; changed to signify that the agent is thinking in the visualization
 
     ;; determines how far out (temporally) till the storm reaches closest point
      let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
@@ -1719,9 +1722,6 @@ to Decision-Module
      let HEIGHT 0                            ; recalculated below to set the height fo the risk function
 
 
-   ;; HEIGHT is calculated as a mix of storm intensity, distance from track, recommendations (evac zone)... weighted/calibrated to get reasonable behavior
-   ;; given the Gaussian curve below, HEIGHT values look like this (.04 gives a peak at just about 10, 0.2 gives 20, 0.08 gives 5... you see the relationship)
-   ;; note that most agents' risk-life threshold is somewhere near 10
 
    ;; dertimines how far out (spatially) for the storm's closest approach
      let dist_trk distancexy item 0 item 1 X_V item 1 item 1 X_V
@@ -1741,13 +1741,13 @@ to Decision-Module
    ;; transforms the distance from the storm track into a value used in the risk function
      set dist_trk   (((scale * .5 * dist_trk) * (.0011 / err_bars)) + .0011)
 
+   ;; HEIGHT is calculated as a mix of storm intensity, distance from track, recommendations (evac zone)... weighted/calibrated to get reasonable behavior
+   ;; given the Gaussian curve below, HEIGHT values look like this (.04 gives a peak at just about 10, 0.2 gives 20, 0.08 gives 5... you see the relationship)
    ;; sets the HEIGHT variable as a function of distance from the storm track + zone + intensity (weighted/calibrated to get reasonable numbers)
      set HEIGHT sqrt (dist_trk + (.003 * zone) + (.000525 * intensity))
 
-
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
     let risk ((1 / (HEIGHT * sqrt (2 * pi) )) * (e ^ (-1 * (((X_VALUE - CENTER) ^ 2) / (2 * (SD_SPREAD ^ 2))))))  ;; bell curve
-
 
     if self = watching [ set risk-funct risk]
 
@@ -1760,10 +1760,10 @@ to Decision-Module
 
     let temp-f-risk final-risk
 
-   ;; adds in evacuation orders
-     ;; checks if they even think they're in a relevant evac zone, changes value for this math...
-    ifelse zone = 0  [set zone 1] [set zone 0.4] ;[set zone 1] [set zone 0.4]
-    set final-risk final-risk + (trust-authority * 6 * official-orders * zone)   ;; trust in authority?  ;;; default is 9, trying 6 and 1.5x for forecasts.
+    ;; adds in evacuation orders
+    ;; checks if they even think they're in a relevant evac zone, changes value for this math...
+    ifelse zone = 0  [set zone 1] [set zone 0.4] ;
+    set final-risk final-risk + (trust-authority * 6 * official-orders * zone)   ;;; default is 9, trying 6 and 1.5x for forecasts. **SMB default is 9 - not my comment
 
 
     if self = watching [ set risk-orders (trust-authority * 6 * official-orders * zone) ]
@@ -1774,16 +1774,19 @@ to Decision-Module
 
     if self = watching [ set risk-env (3 * environmental-cues) ]
 
+    ;; risk-packet is a list for storing information about the environemntal cues used for risk assesments. Not used in the decision process.
     set risk-packet (list precision final-risk 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
-
+    ;; records the final risk assesment through time for the agent. Not used in the decision process.
     set risk-estimate lput final-risk risk-estimate
 
-     let c1 (temp-f-risk) * forc-w
-     let c2 ((trust-authority * 6 * official-orders * zone)) * evac-w
-     let c3 ((3 * environmental-cues)) * envc-w
+    let c1 (temp-f-risk) * forc-w
+    let c2 ((trust-authority * 6 * official-orders * zone)) * evac-w
+    let c3 ((3 * environmental-cues)) * envc-w
 
-     set final-risk sum (list c1 c2 c3)
+    ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
+    set final-risk sum (list c1 c2 c3)
 
+    ;; Modify the final risk value based on census information. The impact is set in the interface.
     if kids-under-18? = true [set final-risk final-risk + (final-risk * under-18-assessment-increase)]
     if adults-over-65? = true [set final-risk final-risk - (final-risk * over-65-assessment-decrease)]
     if limited-english? = true [set final-risk final-risk - (final-risk * limited-english-assessment-decrease)]
@@ -1796,6 +1799,7 @@ to Decision-Module
 
    ;; conditionals determine the decision outcome based on the risk assessment (records what they did and when they did it, updates colors)
    ;; note "feedback1" variable sets the frequency an agent runs this whole loop, min is 1 tick (every step), max is 12 ticks
+   ;; note that most agents' risk-life threshold is somewhere near 10
     if final-risk > risk-life [set color orange
                          set completed fput (list "evacuate" clock counter) completed
                          ]
