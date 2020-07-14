@@ -331,10 +331,21 @@ to Load-GIS
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
      file-close-all
 
-   gis:apply-raster elevation elev
-   gis:apply-raster density-map density
-   gis:apply-raster counties county
+;   gis:apply-raster elevation elev
+;   gis:apply-raster density-map density
+;   gis:apply-raster counties county
    ;gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
+
+  gis:set-sampling-method elevation "NEAREST_NEIGHBOR"
+  gis:set-sampling-method density-map "NEAREST_NEIGHBOR"
+  gis:set-sampling-method counties "NEAREST_NEIGHBOR"
+  ask patches [
+      let coords ( list [ pxcor ] of self [ pycor ] of self )
+      set elev gis:raster-sample elevation coords
+      set density gis:raster-sample density-map coords
+      set county gis:raster-sample counties coords ]
+  ;gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
+
    ask patches [set land? true]
    ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
 
@@ -1269,7 +1280,8 @@ to Check-For-Swimmers
   ; CALLED BY: Create-Citizen-Agents-From-Census-Tracts
 
   let this-patch-is-land [land?] of patch-here ;"this-patch-is-land"=true if the patch is land
-  if not this-patch-is-land [ ;If the partch a citizen is on is currently a water patch, move the citizen to the closest land patch.
+  if not this-patch-is-land [
+    ;If the partch a citizen is on is currently a water patch, move the citizen to the closest land patch.
      let nearby-patch min-one-of land-patches [distance myself] ;Finds the nearest land-patch
      ifelse nearby-patch != nobody [move-to nearby-patch] ;If a land patch is found, the citizen moves to that land patch.
      [die] ;The citizen dies if it does not have a nearby land patch.
@@ -1423,43 +1435,37 @@ to-report Past-Forecasts
   ; CALLED BY: Create-Other-Agents; Go
 
 
-   let forecast_list []
+   let forecast-list []
    ask forcstxs [die]
    let s-f 0
    let s-f_real (357 / scale )
-   let error_list [] ;  cone of uncertainty
+   let error-list [] ;  cone of uncertainty
   ;SB add in interpolation for hourly 0-12 is 0-26 (nautical miles)  - maybe not actual nautical miles
-  ; SB - convert degreees to nautical miles?
-   ifelse which-storm? = "IRMA" [ set error_list [26 43 56 74 103 151 198]] [set error_list [44 77 111 143 208 266 357]]
-   if which-storm? = "MICHAEL" [ set error_list [26 43 56 74 103 151 198 198 198]] ; SB this is probably wrong - The error list is specific to each storm. Not sure why these are created or if they are still needed with the new readi in procedures
-                                                                                  ; JA: I think they are still needed and are associated with the cone of uncertainty in the model. error_list has 7 numbers, representing 12h, 24h, 36h, 48h, 72h, 96h, and 120h forecasts. Not sure exactly how these numbers were obtained (do not agree with National Hurricane Center values). I just added two extra numbers because my Michael forecast has forecasts out to 168 h. I think ultimately, it would be nice to have hourly error data directly related to the input forecast time intervals. Note that current NHC error data only goes out to 120 hours, so we could extrapolate the error from 120 to 168 hrs, if the input forecast data has forecasts out to that time range (like Hurricane Michael and many other more recent hurricanes).
-  while [length error_list > length forecast-matrix] [set error_list but-last error_list]
-   let severity_list []
-   let size_list []
-   let time_list []
+  ;The values for the error-list are associated with the cone of uncertainty in the model. error_list has 7 numbers, representing 12h, 24h, 36h, 48h, 72h, 96h, and 120h forecasts.
+
+   ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
+   if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
+  while [length error-list > length forecast-matrix] [set error-list but-last error-list]
+   let severity-list []
+   let size-list []
+   let time-list []
    let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix ;Makes sure the advisory data begins at or before the best track time
 
-  let current_F but-first new-forecast
+  let current-F but-first new-forecast
 
-  while [length error_list > length current_F] [set error_list but-last error_list ]
+  while [length error-list > length current-F] [set error-list but-last error-list ]
 
-   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current_F
+   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current-F
+   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current-F
+   set time-list map [ ?1 -> list item 0 ?1 item 1 ?1 ] current-F
+   set forecast-list map [ ?1 -> list item 3 ?1 item 2 ?1 ] current-F
+   set severity-list map [ ?1 -> item 4 ?1 ] current-F
+   set size-list map [ ?1 -> ?1 ] error-list
 
-   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current_F
+   let published-forecast []
+   set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity-list forecast-list size-list time-list winds34 winds64)
 
-   set time_list map [ ?1 -> list item 0 ?1 item 1 ?1 ] current_F
-
-   set forecast_list map [ ?1 -> list item 3 ?1 item 2 ?1 ] current_F
-
-   set severity_list map [ ?1 -> item 4 ?1 ] current_F
-
-   set size_list map [ ?1 -> ?1 ] error_list
-
-   let published_forc []
-
-   set published_forc (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity_list forecast_list size_list time_list winds34 winds64)
-
-  report published_forc
+  report published-forecast
 
 end
 
@@ -1602,7 +1608,8 @@ to Coastal-Patches-Alerts
        if length working-forecast > 1 [
          set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;Forecast list changes such that the closest distance of the hurricane center to the patch is listed first
 
-          ;JA: The time of landfall varies between each time step - why?
+         ;JA: The time of landfall varies between each time step - why?
+         ;SB Not sure I understand this question - could it be an estimated time of landfall which would change because the current forecast changed
          set working-forecast first working-forecast ;"working-forecast" is now the latest time
 
          ;Determine how far out (temporally) until the storm reaches closest point of the patch
@@ -1618,8 +1625,6 @@ to Coastal-Patches-Alerts
        ] ] ]
 end
 
-
-;JA: Much of this code is repetitive from Coastal-Patches-Alerts. May only need the last 5 lines of the procedure.
 to Issue-Alerts
   ; INFO: Used to determine if evacuation orders are needed.
   ; VARIABLES MODIFIED: orders
