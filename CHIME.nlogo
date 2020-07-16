@@ -1588,8 +1588,7 @@ to-report Publish-New-Mental-Model
 
 end
 
-;JA: Is this function needed, Can't the EM determine how far the storm is from its location instead of the patch doing it?
-;SB: I think the difference is that what is being calculated is the individual distance of each coastal patch of land to the storm. The EM is located on land, these patches have their own unique distances
+
 to Coastal-Patches-Alerts
   ; INFO: Issue alerts for coastal patches based on the distance of the storm
   ; VARIABLES MODIFIED: alerts (evaculation order)
@@ -1662,7 +1661,7 @@ to Decision-Module
   ; alternative protective actions, and decide whether to act.
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED: Process-Forecasts
-  ; CALLED BY:
+  ; CALLED BY: Go
 
 
  ;; INFO COLLECTION PROCESSES
@@ -1670,44 +1669,46 @@ to Decision-Module
   ;; Personal interpretation of location in vulnerable zone
   ;; conditional sets whether the agent's zone should be considered in the risk function
       let zone 1
-      ifelse evac-zone = "A" [set zone 0] [set zone 1]
+      ifelse evac-zone = "A" [set zone 0] [set zone 1] ;JA: How does it make sense that being in evac-zone "A" (right on coast) results in a zone of 0 (less risk)?
 
 
   ;; Check for evacuation orders
-      let nearby-official min-one-of officials [distance myself]
+      let nearby-official min-one-of officials [distance myself] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county?
       let official-orders [orders] of nearby-official
       set when-evac-1st-ordered [when-issued] of nearby-official
 
   ;; ** SMB What is going on with direction here - ask if anyone knows about this in the meeting
+  ;;  JA - What I think is happening: wind-speed is not actually a wind speed. It is the radius of the 34-kt wind. So, wind-speed is set to the radius of the 34-kt wind in a given quadrant.
+  ;; Then, agents check if they are within the radius of the 34-kt wind (meaning they are experiencing tropical storm-force winds).
 
   ;; Check for environmental cues
         ;;let environmental-cues 0
         let direction 0
         let wind-speed 0
         if any? hurricanes  [set direction towards-nowrap one-of hurricanes ; reports the heading of the hurricane to an agent
-                             if direction >= 0 and direction < 90 [ set wind-speed item 8 item ticks hurricane-coords-best-track ]
+                             if direction >= 0 and direction < 90 [ set wind-speed item 8 item ticks hurricane-coords-best-track ] ;This line (and the following three lines) finds the quadrant each citizen is in with respect to the hurricane and sets wind-speed equal to the radius of the 34-kt wind in that quadrant.
                              if direction >= 90 and direction < 180 [ set wind-speed item 9 item ticks hurricane-coords-best-track ]
                              if direction >= 180 and direction < 270 [ set wind-speed item 6 item ticks hurricane-coords-best-track ]
                              if direction >= 270 and direction < 360 [ set wind-speed item 7 item ticks hurricane-coords-best-track ]
 
-         if (scale * distance one-of hurricanes) < wind-speed [ set environmental-cues 1] ]
+         if (scale * distance one-of hurricanes) < wind-speed [ set environmental-cues 1] ] ;If agent is within the 34-kt wind radius (experiencing tropical storm-force wind), environmental cues is set to 1.
 
 
      ;; Main Pre-Decisional Processes that selects a subset of broadcasters, aggregators, and social network
      ;; then adds their interpretation of the storm to agent's own list
      Process-Forecasts
 
-
-  if not empty? forecast-options and not empty? item 1 item 0 forecast-options [
+  if not empty? forecast-options and not empty? item 1 item 0 forecast-options [ ;Forecast is needed for an agent to continue in the DM.
     ;;identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
-
     ;; *** SMB not sure about this variable name
+    ;JA: What is the difference between "forecast-options" and "interpreted-forecast"? Seems like the only difference is that "forecast-options" includes the memory of each citizen.
      let X_V first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
 
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
-     set memory list self-trust interpreted-forecast
+     set memory list self-trust interpreted-forecast ;JA: memory does not include the citizen's memory? Seems that a citizen's memory is in "forecast-options"
+
      if color = blue [set color white] ; changed to signify that the agent is thinking in the visualization
 
     ;; determines how far out (temporally) till the storm reaches closest point
@@ -2580,7 +2581,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
@@ -2789,7 +2790,7 @@ SWITCH
 712
 use-census-data
 use-census-data
-0
+1
 1
 -1000
 
@@ -3306,7 +3307,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
