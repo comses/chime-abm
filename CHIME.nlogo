@@ -1670,7 +1670,7 @@ to Decision-Module
 
 
   ;; Check for evacuation orders
-      let nearby-official min-one-of officials [distance myself] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county?
+      let nearby-official min-one-of officials [distance myself] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
       let official-orders [orders] of nearby-official
       set when-evac-1st-ordered [when-issued] of nearby-official
 
@@ -1693,19 +1693,21 @@ to Decision-Module
 
      ;; Main Pre-Decisional Processes that selects a subset of broadcasters, aggregators, and social network
      ;; then adds their interpretation of the storm to agent's own list
+     ;; All of the forecast-options are distilled into an interpreted-forecast for each agent
      Process-Forecasts
 
-  if not empty? forecast-options and not empty? item 1 item 0 forecast-options [ ;Forecast is needed for an agent to continue in the DM.
+  if not empty? interpreted-forecast and not empty? item 1 item 0 interpreted-forecast [ ;Forecast is needed for an agent to continue in the DM.
     ;;identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
     ;; *** SMB not sure about this variable name
     ;JA: What is the difference between "forecast-options" and "interpreted-forecast"? Seems like the only difference is that "forecast-options" includes the memory of each citizen.
+    ;SB: forecast-options is all of the differnet forecasts from other citizens, broadcasters, etc - interpreted-forecast is the agent's own assessment of those
     ;X_V format: [intensity [x_location y_location] error_in_forecast [day hour]]
      let X_V first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
 
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
-     set memory list self-trust interpreted-forecast ;JA: memory does not include the citizen's memory? Seems that a citizen's memory is in "forecast-options"
+     set memory list self-trust interpreted-forecast ;JA: memory does not include the citizen's memory? Seems that a citizen's memory is in "forecast-options" -- SB memory includes only an agent's past and current interperted-forecasts, not the forecasts given to it
 
      if color = blue [set color white] ; changed to signify that the agent is thinking in the visualization
 
@@ -1732,7 +1734,7 @@ to Decision-Module
      let intensity item 0 X_V
 
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
-     ifelse intensity >= 95 [set intensity 0] [set intensity 1] ;JA: Hard-coded intensity. We may want to make this value into a slider bar (or maybe it already is as "wind-threshold"?)
+     ifelse intensity >= 95 [set intensity 0] [set intensity 1] ;JA: Hard-coded intensity. We may want to make this value into a slider bar (or maybe it already is as "wind-threshold"?) -- SB wind-threshold is for the evac orders
 
 
    ;; conditional sets whether the agent is inside or outside of the storm track (cone of uncertainty)
@@ -1749,7 +1751,7 @@ to Decision-Module
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
     let risk ((1 / (HEIGHT * sqrt (2 * pi) )) * (e ^ (-1 * (((X_VALUE - CENTER) ^ 2) / (2 * (SD_SPREAD ^ 2))))))  ;; bell curve
 
-    if self = watching [ set risk-funct risk] ;JA: Not sure what this does (i.e. what is "watching")? Do all citizens do this?
+    if self = watching [ set risk-funct risk] ;JA: Not sure what this does (i.e. what is "watching")? Do all citizens do this? -- SB: this is here for debugging - there are a number of statements like this - I've left them in case they are needed up till now
 
    ;; takes the risk assessment and adds a little error either side
     let final-risk random-normal risk .5
@@ -1779,7 +1781,7 @@ to Decision-Module
     set risk-packet (list precision final-risk 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
     ;; records the final risk assesment through time for the agent. Not used in the decision process.
     set risk-estimate lput final-risk risk-estimate ;JA: Sean, do you know what is the point of risk-estimate? I think it may be a list, for each citizen, the final risk for each time they run the decision module. Note that this final risk does not include the weights (forc-w, evac-w, envc-w)
-
+     ;; SB -- this is the risk assessment from each time step. I guess that JW wanted to record that risk instead of the final one?
     ;Calculate the final risk for each individual risk elements (forecast, evacuation orders, environmental cues) using the weights set in the interface by the user.
     let c1 (temp-f-risk) * forc-w
     let c2 ((trust-authority * 6 * official-orders * zone)) * evac-w
@@ -2581,7 +2583,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 16
@@ -3307,7 +3309,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
