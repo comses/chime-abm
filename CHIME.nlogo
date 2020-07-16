@@ -1659,17 +1659,14 @@ to Decision-Module
   ; INFO: The main Protective Action Decision-Making process called by citizen agents
   ; They check environmental cues, collect and process information, assess risk, assess
   ; alternative protective actions, and decide whether to act.
-  ; VARIABLES MODIFIED:
+  ; VARIABLES MODIFIED: risk-total (one number),risk-packet[final risk, environemntal cues risk, and official orders risk]
   ; PROCEDURES CALLED: Process-Forecasts
   ; CALLED BY: Go
-
-
- ;; INFO COLLECTION PROCESSES
 
   ;; Personal interpretation of location in vulnerable zone
   ;; conditional sets whether the agent's zone should be considered in the risk function
       let zone 1
-      ifelse evac-zone = "A" [set zone 0] [set zone 1] ;JA: How does it make sense that being in evac-zone "A" (right on coast) results in a zone of 0 (less risk)?
+      ifelse evac-zone = "A" [set zone 0] [set zone 1]
 
 
   ;; Check for evacuation orders
@@ -1702,6 +1699,7 @@ to Decision-Module
     ;;identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
     ;; *** SMB not sure about this variable name
     ;JA: What is the difference between "forecast-options" and "interpreted-forecast"? Seems like the only difference is that "forecast-options" includes the memory of each citizen.
+    ;X_V format: [intensity [x_location y_location] error_in_forecast [day hour]]
      let X_V first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
 
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
@@ -1714,29 +1712,30 @@ to Decision-Module
     ;; determines how far out (temporally) till the storm reaches closest point
      let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
      let arriv item 0 item 3 X_V + ((item 1 item 3 X_V / 100) * (1 / 24))
-     let counter (arriv - tc) * 24
+     let counter (arriv - tc) * 24 ;counter is the time (in hours) before arrival
 
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
-     let X_VALUE counter                     ; x value of the risk function is  time till arrival
-     let CENTER random-normal 36 3          ; sets peak utility/risk at 48 before arrival... (random number w/ mean 46 and stdev 2)
-     let SD_SPREAD random-normal 24 12        ; sets the incline/decline rate of the risk function... (random number w/ mean 10 stdev 2)
-     let HEIGHT 0                            ; recalculated below to set the height fo the risk function
+     let X_VALUE counter                     ; x value of the risk function is  time till arrival (in hours)
+     let CENTER random-normal 36 3          ; sets peak utility/risk at 48 before arrival... (random number w/ mean 46 and stdev 2) ;JA: Were these values changed? - does not agree with the comment here.
+     let SD_SPREAD random-normal 24 12        ; sets the incline/decline rate of the risk function... (random number w/ mean 10 stdev 2) ;JA: Were these values changed? - does not agree with the comment here.
+     let HEIGHT 0                            ; recalculated below to set the height for the risk function
 
 
 
-   ;; dertimines how far out (spatially) for the storm's closest approach
+   ;; determines how far out (spatially) between the hurricane and the citizen when the hurricane is closest to the citizen
      let dist_trk distancexy item 0 item 1 X_V item 1 item 1 X_V
 
-   ;; parses the size of the error of the storm forecast
+   ;; the size of the error of the storm forecast (cone of uncertainty)
      let err_bars item 2 X_V
 
-   ;; parses the intensity of the storm forecast
+   ;; the intensity of the storm forecast
      let intensity item 0 X_V
 
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
-     ifelse intensity >= 95 [set intensity 0] [set intensity 1]
+     ifelse intensity >= 95 [set intensity 0] [set intensity 1] ;JA: Hard-coded intensity. We may want to make this value into a slider bar (or maybe it already is as "wind-threshold"?)
 
-   ;; conditional sets whether the agent is inside or outside of the storm track
+
+   ;; conditional sets whether the agent is inside or outside of the storm track (cone of uncertainty)
      if (scale * dist_trk) < err_bars [ set dist_trk 0 ]
 
    ;; transforms the distance from the storm track into a value used in the risk function
@@ -1750,21 +1749,21 @@ to Decision-Module
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
     let risk ((1 / (HEIGHT * sqrt (2 * pi) )) * (e ^ (-1 * (((X_VALUE - CENTER) ^ 2) / (2 * (SD_SPREAD ^ 2))))))  ;; bell curve
 
-    if self = watching [ set risk-funct risk]
+    if self = watching [ set risk-funct risk] ;JA: Not sure what this does (i.e. what is "watching")? Do all citizens do this?
 
    ;; takes the risk assessment and adds a little error either side
     let final-risk random-normal risk .5
 
-    if self = watching [ set risk-error (final-risk - risk) ]
+    if self = watching [ set risk-error (final-risk - risk) ] ;Calculate the error in a citizen's risk
 
     set final-risk 1.1 * final-risk
 
-    let temp-f-risk final-risk
+    let temp-f-risk final-risk ;"temp-f-risk" is a temporary variable that has the final risk before adding in risk from the evacuation zone, official orders, and environmental cues
 
     ;; adds in evacuation orders
     ;; checks if they even think they're in a relevant evac zone, changes value for this math...
-    ifelse zone = 0  [set zone 1] [set zone 0.4] ;
-    set final-risk final-risk + (trust-authority * 6 * official-orders * zone)   ;;; default is 9, trying 6 and 1.5x for forecasts. **SMB default is 9 - not my comment
+    ifelse zone = 0  [set zone 1] [set zone 0.4] ;zone=0 is for citizens in evacuation zone "A" (coastal citizens)
+    set final-risk final-risk + (trust-authority * 6 * official-orders * zone)   ;;; default is 9, trying 6 and 1.5x for forecasts. **SMB default is 9 - not my comment. JA: Agreed - I don't know what is meant by "default is 9"
 
 
     if self = watching [ set risk-orders (trust-authority * 6 * official-orders * zone) ]
@@ -1775,11 +1774,13 @@ to Decision-Module
 
     if self = watching [ set risk-env (3 * environmental-cues) ]
 
-    ;; risk-packet is a list for storing information about the environemntal cues used for risk assesments. Not used in the decision process.
+    ;; risk-packet is a list for storing information about the [final risk, environemntal cues risk, and official orders risk] used for risk assesments. Not used in the decision process.
+    ;JA: Why does the risk packet not have risk from forecasts (i.e. c1 below)?
     set risk-packet (list precision final-risk 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
     ;; records the final risk assesment through time for the agent. Not used in the decision process.
-    set risk-estimate lput final-risk risk-estimate
+    set risk-estimate lput final-risk risk-estimate ;JA: Sean, do you know what is the point of risk-estimate? I think it may be a list, for each citizen, the final risk for each time they run the decision module. Note that this final risk does not include the weights (forc-w, evac-w, envc-w)
 
+    ;Calculate the final risk for each individual risk elements (forecast, evacuation orders, environmental cues) using the weights set in the interface by the user.
     let c1 (temp-f-risk) * forc-w
     let c2 ((trust-authority * 6 * official-orders * zone)) * evac-w
     let c3 ((3 * environmental-cues)) * envc-w
@@ -1787,7 +1788,7 @@ to Decision-Module
     ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
     set final-risk sum (list c1 c2 c3)
 
-    ;; Modify the final risk value based on census information. The impact is set in the interface.
+    ;; Modify the final risk value based on census information. The impact is set in the interface by the user.
     if kids-under-18? = true [set final-risk final-risk + (final-risk * under-18-assessment-increase)]
     if adults-over-65? = true [set final-risk final-risk - (final-risk * over-65-assessment-decrease)]
     if limited-english? = true [set final-risk final-risk - (final-risk * limited-english-assessment-decrease)]
@@ -1795,30 +1796,29 @@ to Decision-Module
     if no-vehicle? = true [set final-risk final-risk - (final-risk * no-vehicle-assessment-modification)]
     if no-internet? = true [set final-risk final-risk - (final-risk * no-internet-assessment-modification)]
 
-    set risk-watcher final-risk
-
+    set risk-watcher final-risk ;JA: Not used anymore?
 
    ;; conditionals determine the decision outcome based on the risk assessment (records what they did and when they did it, updates colors)
    ;; note "feedback1" variable sets the frequency an agent runs this whole loop, min is 1 tick (every step), max is 12 ticks
    ;; note that most agents' risk-life threshold is somewhere near 10
-    if final-risk > risk-life [set color orange
+    if final-risk > risk-life [set color orange ;evacuate if the final risk is greater than the risk to life
                          set completed fput (list "evacuate" clock counter) completed
                          ]
-    if final-risk < risk-life and final-risk > risk-property [set color green
+    if final-risk < risk-life and final-risk > risk-property [set color green ;if the final risk is less than the risk to life, but greater than risk to property, then have the citizen gather new information more often and have the citizen document that they are taking an action
                          set decision-module-frequency round (decision-module-frequency / 2)
                          if decision-module-frequency = 0 [set decision-module-frequency 1]
                          set completed fput (list "other_PA" clock counter) completed ]
-    if final-risk < risk-property and final-risk > info-up [ set decision-module-frequency round (decision-module-frequency / 2)
+    if final-risk < risk-property and final-risk > info-up [ set decision-module-frequency round (decision-module-frequency / 2) ;If the final risk is less than the risk to property, but greater than the "info-up" threshold, then have the citizen gather new information more often
                                             if decision-module-frequency = 0 [set decision-module-frequency 1]
                                             ]
-    if final-risk < info-up and final-risk > info-down [
+    if final-risk < info-up and final-risk > info-down [ ;JA: Is this needed?
       ]
-    if final-risk < info-down  [set decision-module-frequency round (decision-module-frequency * 2)
+    if final-risk < info-down  [set decision-module-frequency round (decision-module-frequency * 2) ;If the final risk is less than the "info-down" threshold, then have the citizen gather new information less often
                        if decision-module-frequency > 32 [set decision-module-frequency 32]
                        ]
 
      if self = watching [
-      set risk-total final-risk ]
+      set risk-total final-risk ] ;JA: Do we need so many different variables for final-risk (e.g., final-risk, risk-total, risk-estimate, temp-f-risk)?
 
   ]
 
