@@ -1718,11 +1718,11 @@ to Decision-Module
 
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
      let X_VALUE counter                     ; x value of the risk function is  time till arrival (in hours)
-     let CENTER random-normal 36 3          ; sets peak utility/risk at 48 before arrival... (random number w/ mean 46 and stdev 2) ;JA: Were these values changed? - does not agree with the comment here.
-     let SD_SPREAD random-normal 24 12        ; sets the incline/decline rate of the risk function... (random number w/ mean 10 stdev 2) ;JA: Were these values changed? - does not agree with the comment here.
+     let CENTER random-normal 36 3          ; sets peak utility/risk at 36 before arrival... (random number w/ mean 36 and stdev 3)
+     let SD_SPREAD random-normal 24 12        ; sets the incline/decline rate of the risk function... (random number w/ mean 24 stdev 12)
      let HEIGHT 0                            ; recalculated below to set the height for the risk function
 
-
+;END CONVERSATION WITH SEAN AND REBECCA JULY 17
 
    ;; determines how far out (spatially) between the hurricane and the citizen when the hurricane is closest to the citizen
      let dist_trk distancexy item 0 item 1 X_V item 1 item 1 X_V
@@ -2583,7 +2583,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
@@ -3309,7 +3309,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
