@@ -1823,7 +1823,7 @@ to Process-Forecasts
 
        set forecast-options []
        set interpreted-forecast []
-
+      ; Collect forecast information from the broadcasters, information aggregators, and social connections
        set forecast-options (sentence
                    (list memory)
                    map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster-list
@@ -1831,71 +1831,72 @@ to Process-Forecasts
                    map [ ?1 -> list item 1 ?1 [interpreted-forecast] of item 0 ?1 ] my-network-list
                    )
 
-     ;; attention to info?
-     ;; ignore some previously collected info
+
+     ;; randomly ignore some previously collected info  -- *SB we shoudl talk a little more about this in the next meeting
         repeat random (length forecast-options - 1) [
         set forecast-options but-first shuffle forecast-options ]
 
+
     ;; sets agent's own interpretation of the storm track (use broadcasters and social network).
     ;; picks one from their own assessment of the most reliable source
-
+    ;; each forecast entry begins with a number ranging from 0 - 1 and those with the highest number are placed at the 'top' of the list
     set forecast-options sort-by [ [?1 ?2] -> item 0 ?1 > item 0 ?2 ] forecast-options
-    set forecast-options filter [ ?1 -> item 1 ?1 != [] ] forecast-options
+    set forecast-options filter [ ?1 -> item 1 ?1 != [] ] forecast-options ;; removes some empty forecast entries
     set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options
 
     if not empty? forecast-options and not empty? item 1 item 0 forecast-options [    ;; rest of following code dependent on this conditional
 
-     let int1 map [ ?1 -> item 1 ?1 ] forecast-options
+        let forecast-info-list map [ ?1 -> item 1 ?1 ] forecast-options
+        ;; filter to keep the list of options constrained to the forecasts visible on the map
+        set forecast-info-list map [ ?1 -> filter [ ??1 -> item 0 item 1 ??1 > min-pxcor and item 0 item 1 ??1 < max-pxcor and item 1 item 1 ??1 > min-pycor and item 1 item 1 ??1 < max-pycor ] ?1 ] forecast-info-list
 
-     ;; new filter to keep the list of options constrained to the forecasts visible on the map
-     set int1 map [ ?1 -> filter [ ??1 -> item 0 item 1 ??1 > min-pxcor and item 0 item 1 ??1 < max-pxcor and item 1 item 1 ??1 > min-pycor and item 1 item 1 ??1 < max-pycor ] ?1 ] int1
+       ;; short list of days included in the agent's forecast
+       let day-list sort remove-duplicates map [ ?1 -> item 0 ?1 ] map remove-duplicates reduce sentence map [ ?1 -> map [ ??1 -> item 3 ??1 ] ?1 ] forecast-info-list
 
-
-   ;; short list of days included in the agent's forecast
-    let day-list sort remove-duplicates map [ ?1 -> item 0 ?1 ] map remove-duplicates reduce sentence map [ ?1 -> map [ ??1 -> item 3 ??1 ] ?1 ] int1
-
-   ;; makes a list of all possible days/hours included in the forecast grab bag
-    let s-list []
-    foreach day-list [ ?1 ->
-     let t ?1
-     set s-list sentence filter [ ??1 -> item 0 ??1 = t ] map remove-duplicates reduce sentence map [ ??1 -> map [ ???1 -> item 3 ???1 ] ??1 ] int1 s-list
-     set s-list sort-by [ [??1 ??2] -> (item 0 ??1 * 2400 + item 1 ??1) < (item 0 ??2 * 2400 + item 1 ??2) ] remove-duplicates s-list
-     ]
-
-
-   ;; sets up lists for blending forecasts, weighting according to trust factor
-   ;; functionally, for each day/hour all the right forecasts are grouped and weighted
-   ;; the output variable (interp) is a mashup forecast
-    let c-matrix []
-    let d-matrix []
-    let x-matrix []
-    let y-matrix []
-
-    foreach s-list [ ?1 ->
-      let t ?1
-      let c []
-      let d []
-      let x []
-      let y []
-        (foreach int1 forecast-options [ [??1 ??2] ->
-          let TF item 0 ??2
-          foreach ??1 [ ???1 ->
-          if item 3 ???1 = t [ set c lput list TF item 0 ???1 c
-                            set d lput list TF item 2 ???1 d
-                            set x lput list TF item 0 item 1 ???1 x
-                            set y lput list TF item 1 item 1 ???1 y
-         ] ] ])
-        set c-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] c))) ] c c-matrix
-        set d-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] d))) ] d d-matrix
-        set x-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] x))) ] x x-matrix
-        set y-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] y))) ] y y-matrix
+       ;; makes a list of all possible days/hours included in the forecast grab bag
+       let times-list []
+       foreach day-list [ ?1 ->
+        let t ?1
+        set times-list sentence filter [ ??1 -> item 0 ??1 = t ] map remove-duplicates reduce sentence map [ ??1 -> map [ ???1 -> item 3 ???1 ] ??1 ] forecast-info-list times-list
+        set times-list sort-by [ [??1 ??2] -> (item 0 ??1 * 2400 + item 1 ??1) < (item 0 ??2 * 2400 + item 1 ??2) ] remove-duplicates times-list
         ]
 
+       ;; sets up lists for blending forecasts, weighting according to trust factor
+       ;; functionally, for each day/hour all the right forecasts are grouped and weighted
+       ;; the output variable (interpreted-forecast) is a mashup forecast
+       let c-matrix []
+       let d-matrix []
+       let x-matrix []
+       let y-matrix []
 
-     set interpreted-forecast (map [ [?1 ?2 ?3 ?4 ?5] -> (list ?2 list ?4 ?5 ?3 ?1) ] s-list c-matrix d-matrix x-matrix y-matrix)
+       foreach times-list [ ?1 ->
+         let t ?1
+      ; these lists are assigned a given forecast entry i.e [[0.8730112103736182 143] [0.37965026663191104 143] [0.324283350023549 143]]
+      ; each forecast value is recorded into a list and the average is then calculated and added to a matrix with the same letter.
+      ; i.e. [141 143]   d -> d-matrix each entry in a matrix list is the average of that storm value for a specific forecast time
+         let c []
+         let d []
+         let x []
+         let y []
+           (foreach forecast-info-list forecast-options [ [??1 ??2] ->
+             let TF item 0 ??2
+             foreach ??1 [ ???1 ->
+             if item 3 ???1 = t [ set c lput list TF item 0 ???1 c
+                               set d lput list TF item 2 ???1 d
+                               set x lput list TF item 0 item 1 ???1 x
+                               set y lput list TF item 1 item 1 ???1 y
+            ] ] ])
+           set c-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] c))) ] c c-matrix
+           set d-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] d))) ] d d-matrix
+           set x-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] x))) ] x x-matrix
+           set y-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] y))) ] y y-matrix
+
+           ]
+
+        ;; all of the numbers that were averaged and put into seperate lists are now combined into one complete list
+        set interpreted-forecast (map [ [?1 ?2 ?3 ?4 ?5] -> (list ?2 list ?4 ?5 ?3 ?1) ] times-list c-matrix d-matrix x-matrix y-matrix)
   ]
 
-      ;set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 end
 
 
@@ -2575,7 +2576,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 16
