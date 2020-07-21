@@ -331,11 +331,6 @@ to Load-GIS
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
      file-close-all
 
-;   gis:apply-raster elevation elev
-;   gis:apply-raster density-map density
-;   gis:apply-raster counties county
-   ;gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
-
   gis:set-sampling-method elevation "NEAREST_NEIGHBOR"
   gis:set-sampling-method density-map "NEAREST_NEIGHBOR"
   gis:set-sampling-method counties "NEAREST_NEIGHBOR"
@@ -344,7 +339,7 @@ to Load-GIS
       set elev gis:raster-sample elevation coords
       set density gis:raster-sample density-map coords
       set county gis:raster-sample counties coords ]
-  ;gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
+ gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
 
    ask patches [set land? true]
    ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
@@ -1670,25 +1665,24 @@ to Decision-Module
 
 
   ;; Check for evacuation orders
-      let nearby-official min-one-of officials [distance myself] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
+
+      let my-county [county] of patch-here
+      let nearby-official one-of officials with [county-id = county] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
       let official-orders [orders] of nearby-official
       set when-evac-1st-ordered [when-issued] of nearby-official
 
-  ;; ** SMB What is going on with direction here - ask if anyone knows about this in the meeting
-  ;;  JA - What I think is happening: wind-speed is not actually a wind speed. It is the radius of the 34-kt wind. So, wind-speed is set to the radius of the 34-kt wind in a given quadrant.
-  ;; Then, agents check if they are within the radius of the 34-kt wind (meaning they are experiencing tropical storm-force winds).
 
   ;; Check for environmental cues
         ;;let environmental-cues 0
         let direction 0
-        let wind-speed 0
+        let wind-speed-radius 0 ; is set to the radius of the 34-kt wind in a given quadrant.
         if any? hurricanes  [set direction towards-nowrap one-of hurricanes ; reports the heading of the hurricane to an agent
-                             if direction >= 0 and direction < 90 [ set wind-speed item 8 item ticks hurricane-coords-best-track ] ;This line (and the following three lines) finds the quadrant each citizen is in with respect to the hurricane and sets wind-speed equal to the radius of the 34-kt wind in that quadrant.
-                             if direction >= 90 and direction < 180 [ set wind-speed item 9 item ticks hurricane-coords-best-track ]
-                             if direction >= 180 and direction < 270 [ set wind-speed item 6 item ticks hurricane-coords-best-track ]
-                             if direction >= 270 and direction < 360 [ set wind-speed item 7 item ticks hurricane-coords-best-track ]
-
-         if (scale * distance one-of hurricanes) < wind-speed [ set environmental-cues 1] ] ;If agent is within the 34-kt wind radius (experiencing tropical storm-force wind), environmental cues is set to 1.
+                             if direction >= 0 and direction < 90 [ set wind-speed-radius item 8 item ticks hurricane-coords-best-track ] ;This line (and the following three lines) finds the quadrant each citizen is in with respect to the hurricane and sets wind-speed equal to the radius of the 34-kt wind in that quadrant.
+                             if direction >= 90 and direction < 180 [ set wind-speed-radius item 9 item ticks hurricane-coords-best-track ]
+                             if direction >= 180 and direction < 270 [ set wind-speed-radius item 6 item ticks hurricane-coords-best-track ]
+                             if direction >= 270 and direction < 360 [ set wind-speed-radius item 7 item ticks hurricane-coords-best-track ]
+   ;; Then, agents check if they are within the radius of the 34-kt wind (meaning they are experiencing tropical storm-force winds).
+         if (scale * distance one-of hurricanes) < wind-speed-radius [ set environmental-cues 1] ] ;If agent is within the 34-kt wind radius (experiencing tropical storm-force wind), environmental cues is set to 1.
 
 
      ;; Main Pre-Decisional Processes that selects a subset of broadcasters, aggregators, and social network
@@ -1698,11 +1692,9 @@ to Decision-Module
 
   if not empty? interpreted-forecast and not empty? item 1 item 0 interpreted-forecast [ ;Forecast is needed for an agent to continue in the DM.
     ;;identifies the forecast info for the closest point (spatially) the forecasted storm will come to the agent
-    ;; *** SMB not sure about this variable name
-    ;JA: What is the difference between "forecast-options" and "interpreted-forecast"? Seems like the only difference is that "forecast-options" includes the memory of each citizen.
-    ;SB: forecast-options is all of the differnet forecasts from other citizens, broadcasters, etc - interpreted-forecast is the agent's own assessment of those
-    ;X_V format: [intensity [x_location y_location] error_in_forecast [day hour]]
-     let X_V first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
+
+    ;storm-intensity-and-location format: [intensity [x_location y_location] error_in_forecast [day hour]]
+     let storm-intensity-and-location first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
 
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
@@ -1713,43 +1705,43 @@ to Decision-Module
 
     ;; determines how far out (temporally) till the storm reaches closest point
      let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
-     let arriv item 0 item 3 X_V + ((item 1 item 3 X_V / 100) * (1 / 24))
+     let arriv item 0 item 3 storm-intensity-and-location + ((item 1 item 3 storm-intensity-and-location / 100) * (1 / 24))
      let counter (arriv - tc) * 24 ;counter is the time (in hours) before arrival
 
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
-     let X_VALUE counter                     ; x value of the risk function is  time till arrival (in hours)
-     let CENTER random-normal 36 3          ; sets peak utility/risk at 36 before arrival... (random number w/ mean 36 and stdev 3)
-     let SD_SPREAD random-normal 24 12        ; sets the incline/decline rate of the risk function... (random number w/ mean 24 stdev 12)
-     let HEIGHT 0                            ; recalculated below to set the height for the risk function
+     let x-value counter                     ; x value of the risk function is  time till arrival (in hours)
+     let center random-normal 36 3          ; sets peak utility/risk at 36 before arrival... (random number w/ mean 36 and stdev 3)
+     let sd-spread random-normal 24 12        ; sets the incline/decline rate of the risk function... (random number w/ mean 24 stdev 12)
+     let height 0                            ; recalculated below to set the height for the risk function
 
 ;END CONVERSATION WITH SEAN AND REBECCA JULY 17
 
    ;; determines how far out (spatially) between the hurricane and the citizen when the hurricane is closest to the citizen
-     let dist_trk distancexy item 0 item 1 X_V item 1 item 1 X_V
+     let dist-trk distancexy item 0 item 1 storm-intensity-and-location item 1 item 1 storm-intensity-and-location
 
    ;; the size of the error of the storm forecast (cone of uncertainty)
-     let err_bars item 2 X_V
+     let error-bars item 2 storm-intensity-and-location
 
    ;; the intensity of the storm forecast
-     let intensity item 0 X_V
+     let intensity item 0 storm-intensity-and-location
 
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
      ifelse intensity >= 95 [set intensity 0] [set intensity 1] ;JA: Hard-coded intensity. We may want to make this value into a slider bar (or maybe it already is as "wind-threshold"?) -- SB wind-threshold is for the evac orders
 
 
    ;; conditional sets whether the agent is inside or outside of the storm track (cone of uncertainty)
-     if (scale * dist_trk) < err_bars [ set dist_trk 0 ]
+     if (scale * dist-trk) < error-bars [ set dist-trk 0 ]
 
    ;; transforms the distance from the storm track into a value used in the risk function
-     set dist_trk   (((scale * .5 * dist_trk) * (.0011 / err_bars)) + .0011)
+     set dist-trk   (((scale * .5 * dist-trk) * (.0011 / error-bars)) + .0011)
 
    ;; HEIGHT is calculated as a mix of storm intensity, distance from track, recommendations (evac zone)... weighted/calibrated to get reasonable behavior
    ;; given the Gaussian curve below, HEIGHT values look like this (.04 gives a peak at just about 10, 0.2 gives 20, 0.08 gives 5... you see the relationship)
    ;; sets the HEIGHT variable as a function of distance from the storm track + zone + intensity (weighted/calibrated to get reasonable numbers)
-     set HEIGHT sqrt (dist_trk + (.003 * zone) + (.000525 * intensity))
+     set height sqrt (dist-trk + (.003 * zone) + (.000525 * intensity))
 
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
-    let risk ((1 / (HEIGHT * sqrt (2 * pi) )) * (e ^ (-1 * (((X_VALUE - CENTER) ^ 2) / (2 * (SD_SPREAD ^ 2))))))  ;; bell curve
+    let risk ((1 / (height * sqrt (2 * pi) )) * (e ^ (-1 * (((x-value - center) ^ 2) / (2 * (sd-spread ^ 2))))))  ;; bell curve
 
     if self = watching [ set risk-funct risk] ;JA: Not sure what this does (i.e. what is "watching")? Do all citizens do this? -- SB: this is here for debugging - there are a number of statements like this - I've left them in case they are needed up till now
 
@@ -1765,7 +1757,7 @@ to Decision-Module
     ;; adds in evacuation orders
     ;; checks if they even think they're in a relevant evac zone, changes value for this math...
     ifelse zone = 0  [set zone 1] [set zone 0.4] ;zone=0 is for citizens in evacuation zone "A" (coastal citizens)
-    set final-risk final-risk + (trust-authority * 6 * official-orders * zone)   ;;; default is 9, trying 6 and 1.5x for forecasts. **SMB default is 9 - not my comment. JA: Agreed - I don't know what is meant by "default is 9"
+    set final-risk final-risk + (trust-authority * 6 * official-orders * zone)
 
 
     if self = watching [ set risk-orders (trust-authority * 6 * official-orders * zone) ]
@@ -3309,7 +3301,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
