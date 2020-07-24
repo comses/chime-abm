@@ -1701,7 +1701,7 @@ to Decision-Module
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
-     set memory list self-trust interpreted-forecast ;JA: memory does not include the citizen's memory? Seems that a citizen's memory is in "forecast-options" -- SB memory includes only an agent's past and current interperted-forecasts, not the forecasts given to it
+     set memory list self-trust interpreted-forecast ;memory includes a citizen's self trust and the previous forecast. Note that currently, process forecasts is run every time step, so a citizen updates their forecast every time.
 
      if color = blue [set color white] ; changed to signify that the agent is thinking in the visualization
 
@@ -1728,8 +1728,7 @@ to Decision-Module
      let intensity item 0 storm-intensity-and-location
 
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
-     ifelse intensity >= 95 [set intensity 0] [set intensity 1] ;JA: Hard-coded intensity. We may want to make this value into a slider bar (or maybe it already is as "wind-threshold"?) -- SB wind-threshold is for the evac orders
-
+     ifelse intensity >= 95 [set intensity 0] [set intensity 1] ;hard-coded intensity of 95 kts (transition from Category 2 to 3 hurricane). We may want to rethink this - maybe have a function similar to the data in Morss and Hayden (2010) Fig. 5 and Zhang et al. (2007) Fig. 5.
 
    ;; conditional sets whether the agent is inside or outside of the storm track (cone of uncertainty)
      if (scale * dist-trk) < error-bars [ set dist-trk 0 ]
@@ -1745,7 +1744,7 @@ to Decision-Module
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
     let risk ((1 / (height * sqrt (2 * pi) )) * (e ^ (-1 * (((x-value - center) ^ 2) / (2 * (sd-spread ^ 2))))))  ;; bell curve
 
-    if self = watching [ set risk-funct risk] ;JA: Not sure what this does (i.e. what is "watching")? Do all citizens do this? -- SB: this is here for debugging - there are a number of statements like this - I've left them in case they are needed up till now
+    if self = watching [ set risk-funct risk] ;currently, this code is not run. No agent is "watching". This code was originally in place when using the plotting tools in the interface to look at citizen risk functions.
 
    ;; takes the risk assessment and adds a little error either side
     let final-risk random-normal risk .5
@@ -1792,7 +1791,7 @@ to Decision-Module
     if no-vehicle? = true [set final-risk final-risk - (final-risk * no-vehicle-assessment-modification)]
     if no-internet? = true [set final-risk final-risk - (final-risk * no-internet-assessment-modification)]
 
-    set risk-watcher final-risk ;JA: Not used anymore?
+    set risk-watcher final-risk ;not used anymore - origianlly used when plotting risk
 
    ;; conditionals determine the decision outcome based on the risk assessment (records what they did and when they did it, updates colors)
    ;; note "feedback1" variable sets the frequency an agent runs this whole loop, min is 1 tick (every step), max is 12 ticks
@@ -1807,14 +1806,14 @@ to Decision-Module
     if final-risk < risk-property and final-risk > info-up [ set decision-module-frequency round (decision-module-frequency / 2) ;If the final risk is less than the risk to property, but greater than the "info-up" threshold, then have the citizen gather new information more often
                                             if decision-module-frequency = 0 [set decision-module-frequency 1]
                                             ]
-    if final-risk < info-up and final-risk > info-down [ ;JA: Is this needed?
+    if final-risk < info-up and final-risk > info-down [ ;this if-statement does not do anything but is included for completeness.
       ]
     if final-risk < info-down  [set decision-module-frequency round (decision-module-frequency * 2) ;If the final risk is less than the "info-down" threshold, then have the citizen gather new information less often
                        if decision-module-frequency > 32 [set decision-module-frequency 32]
                        ]
 
      if self = watching [
-      set risk-total final-risk ] ;JA: Do we need so many different variables for final-risk (e.g., final-risk, risk-total, risk-estimate, temp-f-risk)?
+      set risk-total final-risk ] ;JA: This about cleaning up all of the different risk variables (e.g., final-risk, risk-total, risk-estimate, temp-f-risk) after creating a module for default output.
 
   ]
 
@@ -1831,22 +1830,23 @@ to Process-Forecasts
        set interpreted-forecast [] ;Final forecast that is a combination of broadcaster, aggregator, and network forecasts
       ; Collect forecast information from the broadcasters, information aggregators, and social connections
        set forecast-options (sentence
-    (list memory) ;JA: Is memory a list containing: [self-trust number, all past forecasts]? For reference, see the line in the Decision-Module: set memory list self-trust interpreted-forecast
+    (list memory) ;JA: Is memory a list containing: [self-trust number, one past forecast]?
+                   ;Citizens obtain every forecast from the broadcasters, aggregators, and other citizens in their network and includes each forecast in forecast-options.
                    map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster-list ;maps [trust in broadcaster,forecast] ;JA: Is a citizen picking the first broadcaster in their list (i.e., non-random choice)?
                    map [ ?1 -> list item 1 ?1 [info] of item 0 ?1 ] aggregator-list
                    map [ ?1 -> list item 1 ?1 [interpreted-forecast] of item 0 ?1 ] my-network-list
                    )
 
-     ;; randomly ignore some previously collected info  -- *SB we should talk a little more about this in the next meeting. JA: I am confused by this. What does len(forecast-options) actually represent? I see the length being 10-20.
+     ;; randomly ignore some previously collected info. The original length of forecast-options ranges from roughly 10-20 forecasts. After this "repeat" step, the number of forecasts decreases, sometimes to only 2-4 forecasts.
+     ;;JA and SB: We may want to rethink which forecasts are kept. Maybe the most trusted forecasts are kept? Or, maybe one trusted forecast from each type of agent is kept.
         repeat random (length forecast-options - 1) [
-        set forecast-options but-first shuffle forecast-options ] ;JA: So this is shuffling the various forecasts and removing the first one? Why?
+        set forecast-options but-first shuffle forecast-options ] ;JA: So this is shuffling the various forecasts and removing a random number of forecasts. We could choose the 4 most trusted forecasts, for example.
 
     ;; sets agent's own interpretation of the storm track (use broadcasters and social network). ;JA: What about aggregators?
     ;; picks one from their own assessment of the most reliable source
-    ;; each forecast entry begins with a number ranging from 0 - 1 and those with the highest number are placed at the 'top' of the list ;JA: What does this number represent? Above, it says memory, but I do not think this is actually the citizen's memory (I think it is actually a citizen's self-trust).
-    set forecast-options sort-by [ [?1 ?2] -> item 0 ?1 > item 0 ?2 ] forecast-options
+    ;; each forecast entry begins with a number ranging from 0 - 1 and those with the highest number are placed at the 'top' of the list
     set forecast-options filter [ ?1 -> item 1 ?1 != [] ] forecast-options ;; removes some empty forecast entries
-    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options ;JA: What is this line doing? Is this line picking one of the forecasts?
+    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options ;JA: What is this line doing? Is this line picking one of the forecasts? Look into this line more.
 
     if not empty? forecast-options and not empty? item 1 item 0 forecast-options [    ;; rest of following code dependent on this conditional
 
@@ -1857,13 +1857,14 @@ to Process-Forecasts
        ;; short list of days included in the agent's forecast
        let day-list sort remove-duplicates map [ ?1 -> item 0 ?1 ] map remove-duplicates reduce sentence map [ ?1 -> map [ ??1 -> item 3 ??1 ] ?1 ] forecast-info-list ;Example: [9 10 11]
 
-       ;; makes a list of all possible days/hours included in the forecast grab bag. Example: [[9 1700] [9 1800] [9 1900] [9 2000] [9 2100] [9 2200] [9 2300]] ;JA: Why is times-list so different (in terms of length) for each agent?
+       ;; makes a list of all possible days/hours included in the forecast grab bag. Example: [[9 1700] [9 1800] [9 1900] [9 2000] [9 2100] [9 2200] [9 2300]] ;JA: Why is times-list so different (in terms of length) for each agent? Looks fine
        let times-list []
        foreach day-list [ ?1 ->
         let t ?1
         set times-list sentence filter [ ??1 -> item 0 ??1 = t ] map remove-duplicates reduce sentence map [ ??1 -> map [ ???1 -> item 3 ???1 ] ??1 ] forecast-info-list times-list
         set times-list sort-by [ [??1 ??2] -> (item 0 ??1 * 2400 + item 1 ??1) < (item 0 ??2 * 2400 + item 1 ??2) ] remove-duplicates times-list
         ]
+
 
        ;; sets up lists for blending forecasts, weighting according to trust factor
        ;; functionally, for each day/hour all the right forecasts are grouped and weighted ;JA: What is meant by "right" forecasts?
@@ -1882,7 +1883,7 @@ to Process-Forecasts
          let d []
          let x []
          let y []
-           (foreach forecast-info-list forecast-options [ [??1 ??2] ->
+           (foreach forecast-info-list forecast-options [ [??1 ??2] -> ;JA: Sean, do you know why forecast-info-list is here? Why is the loop read like this: foreach forecast-option
              let TF item 0 ??2 ;JA: TF would be the trust factor?
              foreach ??1 [ ???1 ->
              if item 3 ???1 = t [ set c lput list TF item 0 ???1 c
@@ -2568,7 +2569,7 @@ wind-threshold
 wind-threshold
 70
 130
-116.0
+117.0
 1
 1
 NIL
