@@ -1665,11 +1665,13 @@ to Decision-Module
 
 
   ;; Check for evacuation orders
-
-      let my-county [county] of patch-here
-      let nearby-official one-of officials with [county-id = county] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
-      let official-orders [orders] of nearby-official
-      set when-evac-1st-ordered [when-issued] of nearby-official
+  ;JA: I am getting an error with the county-id=county. It looks like the county information does not match - tested with Hurricane Michael.
+      ;let my-county [county] of patch-here
+      ;let nearby-official one-of officials with [county-id = county] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
+  ;JA: Reverted back to original code
+       let nearby-official min-one-of officials [distance myself] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
+       let official-orders [orders] of nearby-official
+       set when-evac-1st-ordered [when-issued] of nearby-official
 
 
   ;; Check for environmental cues
@@ -1820,40 +1822,42 @@ end
 
 
 to Process-Forecasts
+  ; INFO: All of the forecast-options are distilled into an interpreted-forecast for each agent
+  ; VARIABLES MODIFIED: interpreted-forecast
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Decision-Module; Go (when citizens are not tasked to run the decision module)
 
-       set forecast-options []
-       set interpreted-forecast []
+       set forecast-options [] ;A list containing broadcaster, aggregator, and network forecasts
+       set interpreted-forecast [] ;Final forecast that is a combination of broadcaster, aggregator, and network forecasts
       ; Collect forecast information from the broadcasters, information aggregators, and social connections
        set forecast-options (sentence
-                   (list memory)
-                   map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster-list
+    (list memory) ;JA: Is memory a list containing: [self-trust number, all past forecasts]? For reference, see the line in the Decision-Module: set memory list self-trust interpreted-forecast
+                   map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster-list ;maps [trust in broadcaster,forecast] ;JA: Is a citizen picking the first broadcaster in their list (i.e., non-random choice)?
                    map [ ?1 -> list item 1 ?1 [info] of item 0 ?1 ] aggregator-list
                    map [ ?1 -> list item 1 ?1 [interpreted-forecast] of item 0 ?1 ] my-network-list
                    )
 
-
-     ;; randomly ignore some previously collected info  -- *SB we shoudl talk a little more about this in the next meeting
+     ;; randomly ignore some previously collected info  -- *SB we should talk a little more about this in the next meeting. JA: I am confused by this. What does len(forecast-options) actually represent? I see the length being 10-20.
         repeat random (length forecast-options - 1) [
-        set forecast-options but-first shuffle forecast-options ]
+        set forecast-options but-first shuffle forecast-options ] ;JA: So this is shuffling the various forecasts and removing the first one? Why?
 
-
-    ;; sets agent's own interpretation of the storm track (use broadcasters and social network).
+    ;; sets agent's own interpretation of the storm track (use broadcasters and social network). ;JA: What about aggregators?
     ;; picks one from their own assessment of the most reliable source
-    ;; each forecast entry begins with a number ranging from 0 - 1 and those with the highest number are placed at the 'top' of the list
+    ;; each forecast entry begins with a number ranging from 0 - 1 and those with the highest number are placed at the 'top' of the list ;JA: What does this number represent? Above, it says memory, but I do not think this is actually the citizen's memory (I think it is actually a citizen's self-trust).
     set forecast-options sort-by [ [?1 ?2] -> item 0 ?1 > item 0 ?2 ] forecast-options
     set forecast-options filter [ ?1 -> item 1 ?1 != [] ] forecast-options ;; removes some empty forecast entries
-    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options
+    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options ;JA: What is this line doing? Is this line picking one of the forecasts?
 
     if not empty? forecast-options and not empty? item 1 item 0 forecast-options [    ;; rest of following code dependent on this conditional
 
-        let forecast-info-list map [ ?1 -> item 1 ?1 ] forecast-options
+        let forecast-info-list map [ ?1 -> item 1 ?1 ] forecast-options ;forecast information from the top source stored in forecast-info-list: [[[intensity [x_location y_location] error_in_forecast [day hour]]...
         ;; filter to keep the list of options constrained to the forecasts visible on the map
         set forecast-info-list map [ ?1 -> filter [ ??1 -> item 0 item 1 ??1 > min-pxcor and item 0 item 1 ??1 < max-pxcor and item 1 item 1 ??1 > min-pycor and item 1 item 1 ??1 < max-pycor ] ?1 ] forecast-info-list
 
        ;; short list of days included in the agent's forecast
-       let day-list sort remove-duplicates map [ ?1 -> item 0 ?1 ] map remove-duplicates reduce sentence map [ ?1 -> map [ ??1 -> item 3 ??1 ] ?1 ] forecast-info-list
+       let day-list sort remove-duplicates map [ ?1 -> item 0 ?1 ] map remove-duplicates reduce sentence map [ ?1 -> map [ ??1 -> item 3 ??1 ] ?1 ] forecast-info-list ;Example: [9 10 11]
 
-       ;; makes a list of all possible days/hours included in the forecast grab bag
+       ;; makes a list of all possible days/hours included in the forecast grab bag. Example: [[9 1700] [9 1800] [9 1900] [9 2000] [9 2100] [9 2200] [9 2300]] ;JA: Why is times-list so different (in terms of length) for each agent?
        let times-list []
        foreach day-list [ ?1 ->
         let t ?1
@@ -1862,12 +1866,12 @@ to Process-Forecasts
         ]
 
        ;; sets up lists for blending forecasts, weighting according to trust factor
-       ;; functionally, for each day/hour all the right forecasts are grouped and weighted
-       ;; the output variable (interpreted-forecast) is a mashup forecast
-       let c-matrix []
-       let d-matrix []
-       let x-matrix []
-       let y-matrix []
+       ;; functionally, for each day/hour all the right forecasts are grouped and weighted ;JA: What is meant by "right" forecasts?
+       ;; the output variable (interpreted-forecast) is a combined forecast
+       let c-matrix [] ;c is the intensity
+       let d-matrix [] ;d is the error in the forecast (cone of uncertainty)
+       let x-matrix [] ;x is the x-coordinate
+       let y-matrix [] ;y is the y-coordinate
 
        foreach times-list [ ?1 ->
          let t ?1
@@ -1879,13 +1883,15 @@ to Process-Forecasts
          let x []
          let y []
            (foreach forecast-info-list forecast-options [ [??1 ??2] ->
-             let TF item 0 ??2
+             let TF item 0 ??2 ;JA: TF would be the trust factor?
              foreach ??1 [ ???1 ->
              if item 3 ???1 = t [ set c lput list TF item 0 ???1 c
                                set d lput list TF item 2 ???1 d
                                set x lput list TF item 0 item 1 ???1 x
                                set y lput list TF item 1 item 1 ???1 y
+
             ] ] ])
+           ;Calculates the average of all of the forecast weights and entries. JA: I am confused how the weights are calculated (I think it's a random number between 0 and 1 set in Social-Network). Example: [[0.7397725791809069 97.5] [0.6835044121727303 97.5] [0.5619436490405891 97.5] [0.3344481151403582 97.5] [0.18088702958811687 97.5] [0.1172060819551558 97.5]]
            set c-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] c))) ] c c-matrix
            set d-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] d))) ] d d-matrix
            set x-matrix lput sum map [ ??1 -> (item 0 ??1 * (item 1 ??1 / (sum map [ ???1 -> item 0 ???1 ] x))) ] x x-matrix
@@ -2576,7 +2582,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
@@ -3302,7 +3308,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
