@@ -317,8 +317,9 @@ to Load-GIS
       set counties gis:load-dataset "REGION/GULF_SE/GIS/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
       set county-seats gis:load-dataset "REGION/GULF_SE/GIS/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
       foreach but-last gis:feature-list-of county-seats [ ?1 ->
-      set county-seat-list lput list gis:property-value ?1 "OBJECTID" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
-      ]]
+      set county-seat-list lput list gis:property-value ?1 "CNTY_FIPS" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
+      ;set county-seat-list lput list gis:property-value ?1 "OBJECTID" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
+    ]]
 
 
      gis:set-world-envelope-ds gis:envelope-of elevation
