@@ -123,8 +123,8 @@ citizen-agents-own [
          when-evac-1st-ordered             ; variable for recording when an evacuation is first ordered
          risk-watcher                      ; used in plotting risk
 
-         risk-life                         ; characteristic sets threshold for determining risk to life
-         risk-property                     ; characteristic sets threshold for determining risk to property
+         risk-life-threshold               ; characteristic sets threshold for determining risk to life
+         risk-property-threshold           ; characteristic sets threshold for determining risk to property
          info-up                           ; characteristic sets threshold for determining to collect more info (changes feedback1 loop)
          info-down                         ; characteristic sets threshold for determining to delay collecting more info (changes feedback1 loop)
          risk-estimate                     ; keeps a list of risk calculations
@@ -998,17 +998,17 @@ to Create-Citizen-Agent-Population
     set memory list self-trust interpreted-forecast ;"memory" includes a citizen's self trust and interpreted forecast
 
   ;; for new decision model, citizens determine risk perception thresolds
-    set risk-life random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
-    set risk-property random-normal (.7 * risk-life) .5 ;"risk-property" depends on "risk-life"
-      if risk-property > risk-life [set risk-property risk-life] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
-    set info-up random-normal (.4 * risk-life) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
-      if info-up > risk-property [set info-up risk-property] ;A citizen should collect information before their "risk-property" threshold is reached.
-    set info-down random-normal (.1 * risk-life) .5
+    set risk-life-threshold random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
+    set risk-property-threshold random-normal (.7 * risk-life-threshold) .5 ;"risk-property" depends on "risk-life"
+      if risk-property-threshold > risk-life-threshold [set risk-property-threshold risk-life-threshold] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
+    set info-up random-normal (.4 * risk-life-threshold) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
+      if info-up > risk-property-threshold [set info-up risk-property-threshold] ;A citizen should collect information before their "risk-property" threshold is reached.
+    set info-down random-normal (.1 * risk-life-threshold) .5
       if info-down > info-up [set info-down info-up - .1] ;The threshold for collecting less information should be lower than collecting more infomation.
 
     ;Zero out risk properties if they are less than zero.
-    if risk-life < 0 [set risk-life 0]
-    if risk-property < 0 [set risk-property 0]
+    if risk-life-threshold < 0 [set risk-life-threshold 0]
+    if risk-property-threshold < 0 [set risk-property-threshold 0]
     if info-up < 0 [set info-up 0]
     if info-down < 0 [set info-down 0]
 
@@ -1170,17 +1170,17 @@ to Create-Citizen-Agents-From-Census-Tracts
       set memory list self-trust interpreted-forecast ;"memory" includes a citizen's self trust and interpreted forecast
 
       ;; for new decision model, citizens determine risk perception thresolds
-      set risk-life random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
-      set risk-property random-normal (.7 * risk-life) .5 ;"risk-property" depends on "risk-life"
-        if risk-property > risk-life [set risk-property risk-life] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
-      set info-up random-normal (.4 * risk-life) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
-        if info-up > risk-property [set info-up risk-property] ;A citizen should collect information before their "risk-property" threshold is reached.
-      set info-down random-normal (.1 * risk-life) .5
+      set risk-life-threshold random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
+      set risk-property-threshold random-normal (.7 * risk-life-threshold) .5 ;"risk-property" depends on "risk-life"
+        if risk-property-threshold > risk-life-threshold [set risk-property-threshold risk-life-threshold] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
+      set info-up random-normal (.4 * risk-life-threshold) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
+        if info-up > risk-property-threshold [set info-up risk-property-threshold] ;A citizen should collect information before their "risk-property" threshold is reached.
+      set info-down random-normal (.1 * risk-life-threshold) .5
         if info-down > info-up [set info-down info-up - .1] ;The threshold for collecting less information should be lower than collecting more infomation.
 
       ;Zero out risk properties if they are less than zero.
-      if risk-life < 0 [set risk-life 0]
-      if risk-property < 0 [set risk-property 0]
+      if risk-life-threshold < 0 [set risk-life-threshold 0]
+      if risk-property-threshold < 0 [set risk-property-threshold 0]
       if info-up < 0 [set info-up 0]
       if info-down < 0 [set info-down 0]
 
@@ -1239,17 +1239,17 @@ to Create-More-Cit-Ags-Based-On-Census
       set memory list self-trust interpreted-forecast
 
       ;; for new decision model
-      set risk-life random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
-      set risk-property random-normal (.7 * risk-life) .5 ;"risk-property" depends on "risk-life"
-        if risk-property > risk-life [set risk-property risk-life] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
-      set info-up random-normal (.4 * risk-life) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
-        if info-up > risk-property [set info-up risk-property] ;A citizen should collect information before their "risk-property" threshold is reached.
-      set info-down random-normal (.1 * risk-life) .5
+      set risk-life-threshold random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
+      set risk-property-threshold random-normal (.7 * risk-life-threshold) .5 ;"risk-property" depends on "risk-life"
+        if risk-property-threshold > risk-life-threshold [set risk-property-threshold risk-life-threshold] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
+      set info-up random-normal (.4 * risk-life-threshold) .5 ;"info-up" depends on "risk-life". If "risk-life" is greater, a citizen would collect information later.
+        if info-up > risk-property-threshold [set info-up risk-property-threshold] ;A citizen should collect information before their "risk-property" threshold is reached.
+      set info-down random-normal (.1 * risk-life-threshold) .5
         if info-down > info-up [set info-down info-up - .1] ;The threshold for collecting less information should be lower than collecting more infomation.
 
       ;Zero out risk properties if they are less than zero.
-      if risk-life < 0 [set risk-life 0]
-      if risk-property < 0 [set risk-property 0]
+      if risk-life-threshold < 0 [set risk-life-threshold 0]
+      if risk-property-threshold < 0 [set risk-property-threshold 0]
       if info-up < 0 [set info-up 0]
       if info-down < 0 [set info-down 0]
 
@@ -1471,8 +1471,8 @@ to-report Publish-New-Mental-Model
   ; PROCEDURES CALLED: None
   ; CALLED BY: Go
 
-  let long-list []
-  let t_Forc [current-forecast] of one-of forecasters
+  let hourly-forecast-list []
+  let a-unique-forecast [current-forecast] of one-of forecasters
 
   ;current-storm: [intensity,xcoord,ycoord,day,hour,34-kt wind (4 items),64-kt wind (4 items)]
     let current-storm (list
@@ -1483,12 +1483,12 @@ to-report Publish-New-Mental-Model
       (list item 5 item ticks hurricane-coords-best-track item 6 item ticks hurricane-coords-best-track item 7 item ticks hurricane-coords-best-track item 8 item ticks hurricane-coords-best-track)
       (list item 9 item ticks hurricane-coords-best-track item 10 item ticks hurricane-coords-best-track item 11 item ticks hurricane-coords-best-track item 12 item ticks hurricane-coords-best-track))
 
-    set t_Forc fput current-storm t_Forc ;t_Forc is a list that adds the current best track information to the beginning of the list. Past forecast information follows in the list.
+    set a-unique-forecast fput current-storm a-unique-forecast ;a-unique-forecast is a list that adds the current best track information to the beginning of the list. Past forecast information follows in the list.
 
  ; Get a list that contains the best track and forecast data
   let i 0
-  while [i < length t_Forc - 1] [
-    let first-two list item i t_Forc item (i + 1) t_Forc ;first-two is: [best_track,first forecast]. Example: [[30 [-30.969701491846855 -209.3336000013434] 26 [7 600] [0 0 0 0] []] [45 [-14.551791043921563 -195.33360000120334] 43 [7 1800] [0 0 0 0] []]]
+  while [i < length a-unique-forecast - 1] [
+    let first-two list item i a-unique-forecast item (i + 1) a-unique-forecast ;first-two is: [best_track,first forecast]. Example: [[30 [-30.969701491846855 -209.3336000013434] 26 [7 600] [0 0 0 0] []] [45 [-14.551791043921563 -195.33360000120334] 43 [7 1800] [0 0 0 0] []]]
     let interpolated []
 
     ;Get the time of the forecast and best track data
@@ -1527,20 +1527,20 @@ to-report Publish-New-Mental-Model
 
         ]
 
-      set long-list sentence long-list interpolated ;long-list is the interpolated forecast data to hourly data: [intensity,[x_coord,y_coord],track error,[day,hour]]]. Example: [[98.125 [-20.52194029771251 -73.33359999998336] 84.875 [9 1600]]...
+      set hourly-forecast-list sentence hourly-forecast-list interpolated ;long-list is the interpolated forecast data to hourly data: [intensity,[x_coord,y_coord],track error,[day,hour]]]. Example: [[98.125 [-20.52194029771251 -73.33359999998336] 84.875 [9 1600]]...
   ]
     set i i + 1
     ]
 
   ;Only forecast data values that have x_coord and y_coord on the Netlogo grid are included, and duplicate times are removed.
-  set long-list filter [ ?1 -> item 0 item 1 ?1 > min-pxcor and item 0 item 1 ?1 < max-pxcor and item 1 item 1 ?1 > min-pycor and item 1 item 1 ?1 < max-pycor ] long-list
-  set long-list remove-duplicates long-list
+  set hourly-forecast-list filter [ ?1 -> item 0 item 1 ?1 > min-pxcor and item 0 item 1 ?1 < max-pxcor and item 1 item 1 ?1 > min-pycor and item 1 item 1 ?1 < max-pycor ] hourly-forecast-list
+  set hourly-forecast-list remove-duplicates hourly-forecast-list
 
 
   ;; Displaying the forecast cone of uncertainty
      let color-code 65
      ask drawers with [size = .05 or size = .02 or size = .03] [die]
-     foreach long-list [ ?1 ->
+     foreach hourly-forecast-list [ ?1 ->
          create-drawers 1 [
                  setxy item 0 item 1 ?1 item 1 item 1 ?1
                  set size .05
@@ -1553,18 +1553,17 @@ to-report Publish-New-Mental-Model
     ]
          ]
     let draw-forc turtle-set drawers with [size = .05]
-      set i 0
-      set i 1 ;JA: Why set to 1 here after setting to zero the line before?
+      set i 1
     ;For each forecast time (every hour), draw a line to create a "cone of uncertainty"
-    while [i < length long-list] [
-                        let head atan (item 0 item 1 item (i) long-list - item 0 item 1 item (i - 1) long-list) ;To find the forecast track direction: Find the angle between the x_coord and y_cood differences between two forecast times
-                                      (item 1 item 1 item (i) long-list - item 1 item 1 item (i - 1) long-list)
+    while [i < length hourly-forecast-list] [
+                        let head atan (item 0 item 1 item (i) hourly-forecast-list - item 0 item 1 item (i - 1) hourly-forecast-list) ;To find the forecast track direction: Find the angle between the x_coord and y_cood differences between two forecast times
+                                      (item 1 item 1 item (i) hourly-forecast-list - item 1 item 1 item (i - 1) hourly-forecast-list)
 
                          set head (90 - head) mod 360 ;JA: Not sure what this is doing
 
                         ;points-list is a list of points for the cone of uncertainty lines (how long the lines should be in the x- and y-directions)
-                        let points-list list (item 0 item 1 item i long-list - (((item 2 item i long-list) / scale) * (cos (head - 90)) ))
-                                             (item 1 item 1 item i long-list - (((item 2 item i long-list) / scale) * (sin (head - 90)) ))
+                        let points-list list (item 0 item 1 item i hourly-forecast-list - (((item 2 item i hourly-forecast-list) / scale) * (cos (head - 90)) ))
+                                             (item 1 item 1 item i hourly-forecast-list - (((item 2 item i hourly-forecast-list) / scale) * (sin (head - 90)) ))
 
                         ;Draw the line if within the Netlogo domain. Two lines are drawn, each from the position of the forecast storm and moving outward to create a "cone" with the center being the center of the forecast storm.
                         ;Line 1
@@ -1573,23 +1572,22 @@ to-report Publish-New-Mental-Model
                         create-drawers 1 [set size .02
                                           set color red
                                           setxy item 0 points-list item 1 points-list
-                                          create-link-to one-of drawers with [xcor = item 0 item 1 item i long-list and ycor = item 1 item 1 item i long-list] [set color [color] of end2] ] ]
+                                          create-link-to one-of drawers with [xcor = item 0 item 1 item i hourly-forecast-list and ycor = item 1 item 1 item i hourly-forecast-list] [set color [color] of end2] ] ]
 
                         ;Line 2
-                        set points-list list (item 0 item 1 item i long-list - (((item 2 item i long-list) / scale) * (cos (head + 90)) ))
-                                             (item 1 item 1 item i long-list - (((item 2 item i long-list) / scale) * (sin (head + 90)) ))
+                        set points-list list (item 0 item 1 item i hourly-forecast-list - (((item 2 item i hourly-forecast-list) / scale) * (cos (head + 90)) ))
+                                             (item 1 item 1 item i hourly-forecast-list - (((item 2 item i hourly-forecast-list) / scale) * (sin (head + 90)) ))
 
                         if item 0 points-list > min-pxcor and item 0 points-list < max-pxcor and
                            item 1 points-list > min-pycor and item 1 points-list < max-pycor [
                         create-drawers 1 [set size .03 ;Why is this size 0.03 while the other (above) is 0.02?
                                           set color red
                                           setxy item 0 points-list item 1 points-list
-                                          create-link-to one-of drawers with [xcor = item 0 item 1 item i long-list and ycor = item 1 item 1 item i long-list] [set color [color] of end2] ] ]
+                                          create-link-to one-of drawers with [xcor = item 0 item 1 item i hourly-forecast-list and ycor = item 1 item 1 item i hourly-forecast-list] [set color [color] of end2] ] ]
 
                            set i i + 1 ]
-  print (list long-list)
 
-  report (list long-list) ;Note that long-list only contains forecasts within the Netlogo domain
+  report (list hourly-forecast-list) ;Note that long-list only contains forecasts within the Netlogo domain
 
 end
 
@@ -1675,13 +1673,12 @@ to Decision-Module
 
 
   ;; Check for evacuation orders
-  ;JA: I am getting an error with the county-id=county. It looks like the county information does not match - tested with Hurricane Michael.
-      ;let my-county [county] of patch-here
-      ;let nearby-official one-of officials with [county-id = county] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
-  ;JA: Reverted back to original code
-       let nearby-official min-one-of officials [distance myself] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
-       let official-orders [orders] of nearby-official
-       set when-evac-1st-ordered [when-issued] of nearby-official
+
+      let my-county [county] of patch-here
+      let nearby-official one-of officials with [county-id = county] ;Chooses official that is closest to the agent. JA: May want to change this so citizen is talking to offical in the same county? SB** Agreed
+      if nearby-official = nobody [ set nearby-official min-one-of officials [distance myself]] ;Chooses official that is closest to the agent.
+      let official-orders [orders] of nearby-official
+      set when-evac-1st-ordered [when-issued] of nearby-official
 
 
   ;; Check for environmental cues
@@ -1711,8 +1708,9 @@ to Decision-Module
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
-     set memory list self-trust interpreted-forecast ;memory includes a citizen's self trust and the previous forecast. Note that currently, process forecasts is run every time step, so a citizen updates their forecast every time.
+     ;; memory includes a citizen's self trust and the previous forecast. Note that currently, process forecasts is run every time step, so a citizen updates their forecast every time they take a decision model turn
 
+     set memory list self-trust interpreted-forecast
      if color = blue [set color white] ; changed to signify that the agent is thinking in the visualization
 
     ;; determines how far out (temporally) till the storm reaches closest point
@@ -1738,8 +1736,8 @@ to Decision-Module
      let intensity item 0 storm-intensity-and-location
 
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
-     ifelse intensity >= 95 [set intensity 0] [set intensity 1] ;hard-coded intensity of 95 kts (transition from Category 2 to 3 hurricane). We may want to rethink this - maybe have a function similar to the data in Morss and Hayden (2010) Fig. 5 and Zhang et al. (2007) Fig. 5.
-
+   ;; intensity of 95 kts (transition from Category 2 to 3 hurricane). We may want to rethink this - maybe have a function similar to the data in Morss and Hayden (2010) Fig. 5 and Zhang et al. (2007) Fig. 5. *SB
+     ifelse intensity >= 95 [set intensity 0] [set intensity 1]
    ;; conditional sets whether the agent is inside or outside of the storm track (cone of uncertainty)
      if (scale * dist-trk) < error-bars [ set dist-trk 0 ]
 
@@ -1757,33 +1755,33 @@ to Decision-Module
     if self = watching [ set risk-funct risk] ;currently, this code is not run. No agent is "watching". This code was originally in place when using the plotting tools in the interface to look at citizen risk functions.
 
    ;; takes the risk assessment and adds a little error either side
-    let final-risk random-normal risk .5
+    let final-risk-assesment random-normal risk .5
 
-    if self = watching [ set risk-error (final-risk - risk) ] ;Calculate the error in a citizen's risk
+    if self = watching [ set risk-error (final-risk-assesment - risk) ] ;Calculate the error in a citizen's risk
 
-    set final-risk 1.1 * final-risk
+    set final-risk-assesment 1.1 * final-risk-assesment
 
-    let temp-f-risk final-risk ;"temp-f-risk" is a temporary variable that has the final risk before adding in risk from the evacuation zone, official orders, and environmental cues
+    let temp-f-risk final-risk-assesment ;"temp-f-risk" is a temporary variable that has the final risk before adding in risk from the evacuation zone, official orders, and environmental cues
 
     ;; adds in evacuation orders
     ;; checks if they even think they're in a relevant evac zone, changes value for this math...
     ifelse zone = 0  [set zone 1] [set zone 0.4] ;zone=0 is for citizens in evacuation zone "A" (coastal citizens)
-    set final-risk final-risk + (trust-authority * 6 * official-orders * zone)
+    set final-risk-assesment final-risk-assesment + (trust-authority * 6 * official-orders * zone)
 
 
     if self = watching [ set risk-orders (trust-authority * 6 * official-orders * zone) ]
 
    ;; adds in environmental cues
-    set final-risk final-risk + (3 * environmental-cues)
+    set final-risk-assesment final-risk-assesment + (3 * environmental-cues)
 
 
     if self = watching [ set risk-env (3 * environmental-cues) ]
 
     ;; risk-packet is a list for storing information about the [final risk, environemntal cues risk, and official orders risk] used for risk assesments. Not used in the decision process.
     ;JA: Why does the risk packet not have risk from forecasts (i.e. c1 below)?
-    set risk-packet (list precision final-risk 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
+    set risk-packet (list precision final-risk-assesment 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
     ;; records the final risk assesment through time for the agent. Not used in the decision process.
-    set risk-estimate lput final-risk risk-estimate ;JA: Sean, do you know what is the point of risk-estimate? I think it may be a list, for each citizen, the final risk for each time they run the decision module. Note that this final risk does not include the weights (forc-w, evac-w, envc-w)
+    set risk-estimate lput final-risk-assesment risk-estimate ;JA: Sean, do you know what is the point of risk-estimate? I think it may be a list, for each citizen, the final risk for each time they run the decision module. Note that this final risk does not include the weights (forc-w, evac-w, envc-w)
      ;; SB -- this is the risk assessment from each time step. I guess that JW wanted to record that risk instead of the final one?
     ;Calculate the final risk for each individual risk elements (forecast, evacuation orders, environmental cues) using the weights set in the interface by the user.
     let c1 (temp-f-risk) * forc-w
@@ -1791,39 +1789,39 @@ to Decision-Module
     let c3 ((3 * environmental-cues)) * envc-w
 
     ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
-    set final-risk sum (list c1 c2 c3)
+    set final-risk-assesment sum (list c1 c2 c3)
 
     ;; Modify the final risk value based on census information. The impact is set in the interface by the user.
-    if kids-under-18? = true [set final-risk final-risk + (final-risk * under-18-assessment-increase)]
-    if adults-over-65? = true [set final-risk final-risk - (final-risk * over-65-assessment-decrease)]
-    if limited-english? = true [set final-risk final-risk - (final-risk * limited-english-assessment-decrease)]
-    if food-stamps? = true [set final-risk final-risk - (final-risk * foodstamps-assessment-decrease)]
-    if no-vehicle? = true [set final-risk final-risk - (final-risk * no-vehicle-assessment-modification)]
-    if no-internet? = true [set final-risk final-risk - (final-risk * no-internet-assessment-modification)]
+    if kids-under-18? = true [set final-risk-assesment final-risk-assesment + (final-risk-assesment * under-18-assessment-increase)]
+    if adults-over-65? = true [set final-risk-assesment final-risk-assesment - (final-risk-assesment * over-65-assessment-decrease)]
+    if limited-english? = true [set final-risk-assesment final-risk-assesment - (final-risk-assesment * limited-english-assessment-decrease)]
+    if food-stamps? = true [set final-risk-assesment final-risk-assesment - (final-risk-assesment * foodstamps-assessment-decrease)]
+    if no-vehicle? = true [set final-risk-assesment final-risk-assesment - (final-risk-assesment * no-vehicle-assessment-modification)]
+    if no-internet? = true [set final-risk-assesment final-risk-assesment - (final-risk-assesment * no-internet-assessment-modification)]
 
-    set risk-watcher final-risk ;not used anymore - origianlly used when plotting risk
+    set risk-watcher final-risk-assesment ;not used anymore - origianlly used when plotting risk
 
    ;; conditionals determine the decision outcome based on the risk assessment (records what they did and when they did it, updates colors)
    ;; note "feedback1" variable sets the frequency an agent runs this whole loop, min is 1 tick (every step), max is 12 ticks
    ;; note that most agents' risk-life threshold is somewhere near 10
-    if final-risk > risk-life [set color orange ;evacuate if the final risk is greater than the risk to life
+    if final-risk-assesment > risk-life-threshold [set color orange ;evacuate if the final risk is greater than the risk to life
                          set completed fput (list "evacuate" clock counter) completed
                          ]
-    if final-risk < risk-life and final-risk > risk-property [set color green ;if the final risk is less than the risk to life, but greater than risk to property, then have the citizen gather new information more often and have the citizen document that they are taking an action
+    if final-risk-assesment < risk-life-threshold and final-risk-assesment > risk-property-threshold [set color green ;if the final risk is less than the risk to life, but greater than risk to property, then have the citizen gather new information more often and have the citizen document that they are taking an action
                          set decision-module-frequency round (decision-module-frequency / 2)
                          if decision-module-frequency = 0 [set decision-module-frequency 1]
                          set completed fput (list "other_PA" clock counter) completed ]
-    if final-risk < risk-property and final-risk > info-up [ set decision-module-frequency round (decision-module-frequency / 2) ;If the final risk is less than the risk to property, but greater than the "info-up" threshold, then have the citizen gather new information more often
+    if final-risk-assesment < risk-property-threshold and final-risk-assesment > info-up [ set decision-module-frequency round (decision-module-frequency / 2) ;If the final risk is less than the risk to property, but greater than the "info-up" threshold, then have the citizen gather new information more often
                                             if decision-module-frequency = 0 [set decision-module-frequency 1]
                                             ]
-    if final-risk < info-up and final-risk > info-down [ ;this if-statement does not do anything but is included for completeness.
+    if final-risk-assesment < info-up and final-risk-assesment > info-down [ ;this if-statement does not do anything but is included for completeness.
       ]
-    if final-risk < info-down  [set decision-module-frequency round (decision-module-frequency * 2) ;If the final risk is less than the "info-down" threshold, then have the citizen gather new information less often
+    if final-risk-assesment < info-down  [set decision-module-frequency round (decision-module-frequency * 2) ;If the final risk is less than the "info-down" threshold, then have the citizen gather new information less often
                        if decision-module-frequency > 32 [set decision-module-frequency 32]
                        ]
 
      if self = watching [
-      set risk-total final-risk ] ;JA: This about cleaning up all of the different risk variables (e.g., final-risk, risk-total, risk-estimate, temp-f-risk) after creating a module for default output.
+      set risk-total final-risk-assesment ] ;JA: This about cleaning up all of the different risk variables (e.g., final-risk-assesment, risk-total, risk-estimate, temp-f-risk) after creating a module for default output.
 
   ]
 
@@ -1840,9 +1838,9 @@ to Process-Forecasts
        set interpreted-forecast [] ;Final forecast that is a combination of broadcaster, aggregator, and network forecasts
       ; Collect forecast information from the broadcasters, information aggregators, and social connections
        set forecast-options (sentence
-    (list memory) ;JA: Is memory a list containing: [self-trust number, one past forecast]?
+    (list memory) ; memory ia list containing: [self-trust number, one past forecast]
                    ;Citizens obtain every forecast from the broadcasters, aggregators, and other citizens in their network and includes each forecast in forecast-options.
-                   map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster-list ;maps [trust in broadcaster,forecast] ;JA: Is a citizen picking the first broadcaster in their list (i.e., non-random choice)?
+                   map [ ?1 -> list item 1 ?1 [broadcast] of item 0 ?1 ] broadcaster-list ;maps [trust in broadcaster,forecast]
                    map [ ?1 -> list item 1 ?1 [info] of item 0 ?1 ] aggregator-list
                    map [ ?1 -> list item 1 ?1 [interpreted-forecast] of item 0 ?1 ] my-network-list
                    )
@@ -1856,7 +1854,7 @@ to Process-Forecasts
     ;; picks one from their own assessment of the most reliable source
     ;; each forecast entry begins with a number ranging from 0 - 1 and those with the highest number are placed at the 'top' of the list
     set forecast-options filter [ ?1 -> item 1 ?1 != [] ] forecast-options ;; removes some empty forecast entries
-    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options ;JA: What is this line doing? Is this line picking one of the forecasts? Look into this line more.
+    set forecast-options map [ ?1 -> list item 0 ?1 item 0 item 1 ?1 ] forecast-options ;Restructure the data. No information is gained or lost here
 
     if not empty? forecast-options and not empty? item 1 item 0 forecast-options [    ;; rest of following code dependent on this conditional
 
@@ -3319,7 +3317,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
