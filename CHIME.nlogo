@@ -837,7 +837,7 @@ to Generate-Storm
    let day item 5 item 0 re-scaled
    let hour item 6 item 0 re-scaled
    let i 1
-   set hurricane-coords-best-track  [] ; the list that will contain the newly interpolated storm location information
+   set hurricane-coords-best-track  [] ; the list that will contain the newly interpolated storm location information: [x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
 
    ;; the following is basically brute-force interpoloation. The code marches through the array of storm info
    ;; and takes the difference from one best track time to the next, then calculates the interpolated points
@@ -901,7 +901,7 @@ to Generate-Storm
   ; Now all of the coordinates are rounded to two decimal places
   ; EX: [[-32.462238805294746 -215.33360000140334 25 7 0 0 0 0 0 0 0 0 0] .....
   ; ->  [[-32.46 -215.33 25 7 0 0 0 0 0 0 0 0 0] .....
-   set hurricane-coords-best-track  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords-best-track
+  set hurricane-coords-best-track  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords-best-track ;hurricane-coords-best-track: [x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
 
 
   ;; Now drawer agents are used to create a storm track path across the screen. Then links are made between the agents.
@@ -1466,15 +1466,15 @@ end
 
 
 to-report Publish-New-Mental-Model
-  ; INFO: Main method for the various agents to publish a "mental model" of where they think the hurricane will go and how severe it will be
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
-  ; CALLED BY:
+  ; INFO: Main method for the forecaster to publish a "mental model" of where they think the hurricane will go and how intense it will be.
+  ; VARIABLES MODIFIED: long-list (forecast data interpolated to hourly data)
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Go
 
   let long-list []
   let t_Forc [current-forecast] of one-of forecasters
 
-
+  ;current-storm: [intensity,xcoord,ycoord,day,hour,34-kt wind (4 items),64-kt wind (4 items)]
     let current-storm (list
       item 2 item ticks hurricane-coords-best-track
       list item 0 item ticks hurricane-coords-best-track item 1 item ticks hurricane-coords-best-track
@@ -1483,82 +1483,91 @@ to-report Publish-New-Mental-Model
       (list item 5 item ticks hurricane-coords-best-track item 6 item ticks hurricane-coords-best-track item 7 item ticks hurricane-coords-best-track item 8 item ticks hurricane-coords-best-track)
       (list item 9 item ticks hurricane-coords-best-track item 10 item ticks hurricane-coords-best-track item 11 item ticks hurricane-coords-best-track item 12 item ticks hurricane-coords-best-track))
 
-    set t_Forc fput current-storm t_Forc
+    set t_Forc fput current-storm t_Forc ;t_Forc is a list that adds the current best track information to the beginning of the list. Past forecast information follows in the list.
 
-
- ; Is the cone being modified in here
+ ; Get a list that contains the best track and forecast data
   let i 0
   while [i < length t_Forc - 1] [
-    let first-two list item i t_Forc item (i + 1) t_Forc
+    let first-two list item i t_Forc item (i + 1) t_Forc ;first-two is: [best_track,first forecast]. Example: [[30 [-30.969701491846855 -209.3336000013434] 26 [7 600] [0 0 0 0] []] [45 [-14.551791043921563 -195.33360000120334] 43 [7 1800] [0 0 0 0] []]]
     let interpolated []
-;    show first-two
-    let j 0
-    let lim 0
-      let d1 item 0 item 3 item 0 first-two
-      let d2 item 0 item 3 item 1 first-two
-      let h1 item 1 item 3 item 0 first-two
-      let h2 item 1 item 3 item 1 first-two
 
-     while [d1 < d2] [set h1 h1 + 100
+    ;Get the time of the forecast and best track data
+    let j 0
+    let lim 0 ;lim is the hours the best track data is from the forecast time
+      let d1 item 0 item 3 item 0 first-two ;day of best track
+      let d2 item 0 item 3 item 1 first-two ;day of forecast
+      let h1 item 1 item 3 item 0 first-two ;hour of best track
+      let h2 item 1 item 3 item 1 first-two ;hour of forecast
+
+    ;Get the best track time to match the forecast time to know how many hours to interpolate the forecast data
+     while [d1 < d2] [set h1 h1 + 100 ;while the best track day is less than the forecast day, increase the hour of the best track data by one hour
                       set lim lim + 1
-                      if h1 = 2400 [set d1 d1 + 1 set h1 0] ]
-     while [h1 < h2] [set h1 h1 + 100
+                      if h1 = 2400 [set d1 d1 + 1 set h1 0] ] ;if the hour is past 24, set the day of the best track data to the next day, and set the hour to zero
+     while [h1 < h2] [set h1 h1 + 100 ;while the best track hour is less than the forecast hour, increase the hour of the best track data by one hour
                       set lim lim + 1 ]
 
-    if lim != 0 [
-    let Delt_wind (item 0 item 1 first-two - item 0 item 0 first-two) / lim
-    let Delt_x (item 0 item 1 item 1 first-two - item 0 item 1 item 0 first-two) / lim
-    let Delt_y (item 1 item 1 item 1 first-two - item 1 item 1 item 0 first-two) / lim
-    let Delt_err (item 2 item 1 first-two - item 2 item 0 first-two) / lim
+    ;Calculates the difference between forecast values and best track values (the forecast time of after the best track time, so utimately the forecast values will be interpolated to hourly data, starting at the best track time)
+    if lim != 0 [ ;as long as the best track time is not equal to the foreacst time, run the if statement below
+         let Delt_wind (item 0 item 1 first-two - item 0 item 0 first-two) / lim ;forecast intensity minus the best track intensity divided by the number of hours between the forecast and best track
+         let Delt_x (item 0 item 1 item 1 first-two - item 0 item 1 item 0 first-two) / lim ;forecast x_coord minus the best track x_coord divided by the number of hours between the forecast and best track
+         let Delt_y (item 1 item 1 item 1 first-two - item 1 item 1 item 0 first-two) / lim ;forecast y_coord minus the best track y_coord divided by the number of hours between the forecast and best track
+         let Delt_err (item 2 item 1 first-two - item 2 item 0 first-two) / lim ;forecast forecast error minus the best track forecast error divided by the number of hours between the forecast and best track
 
-    let clk item 3 item 0 first-two
+      let clk item 3 item 0 first-two ;clk is the [day hour] of the best track data
 
-    while [j < (lim )] [
-     ifelse item 1 clk < 2300 [ set clk replace-item 1 clk (item 1 clk + 100) ] [set clk list (item 0 clk + 1) 0]
-     set interpolated lput (list ((j * Delt_wind) + item 0 item 0 first-two)
-                              list ((j * Delt_x) + item 0 item 1 item 0 first-two) ((j * Delt_y) + item 1 item 1 item 0 first-two)
-                              ((j * Delt_err) + item 2 item 0 first-two)
-                              clk)
-                                 interpolated
-     set j j + 1
+      ;This is where the forecast is interpolated from the best track time to the forecast time
+      while [j < (lim )] [
+            ifelse item 1 clk < 2300 [ set clk replace-item 1 clk (item 1 clk + 100) ] [set clk list (item 0 clk + 1) 0]
+            set interpolated lput (list ((j * Delt_wind) + item 0 item 0 first-two)
+                                     list ((j * Delt_x) + item 0 item 1 item 0 first-two) ((j * Delt_y) + item 1 item 1 item 0 first-two)
+                                     ((j * Delt_err) + item 2 item 0 first-two)
+                                     clk)
+                                        interpolated
+            set j j + 1
 
-   ]
-    set long-list sentence long-list interpolated
+        ]
+
+      set long-list sentence long-list interpolated ;long-list is the interpolated forecast data to hourly data: [intensity,[x_coord,y_coord],track error,[day,hour]]]. Example: [[98.125 [-20.52194029771251 -73.33359999998336] 84.875 [9 1600]]...
   ]
     set i i + 1
     ]
 
+  ;Only forecast data values that have x_coord and y_coord on the Netlogo grid are included, and duplicate times are removed.
   set long-list filter [ ?1 -> item 0 item 1 ?1 > min-pxcor and item 0 item 1 ?1 < max-pxcor and item 1 item 1 ?1 > min-pycor and item 1 item 1 ?1 < max-pycor ] long-list
   set long-list remove-duplicates long-list
 
 
-  ;; for display of forecast track:
+  ;; Displaying the forecast cone of uncertainty
      let color-code 65
      ask drawers with [size = .05 or size = .02 or size = .03] [die]
      foreach long-list [ ?1 ->
          create-drawers 1 [
                  setxy item 0 item 1 ?1 item 1 item 1 ?1
                  set size .05
-                 if item 0 ?1 >= 64 and item 0 ?1 < 82 [set color-code 67]
-                 if item 0 ?1 >= 82 and item 0 ?1 < 95 [set color-code 47]
-                 if item 0 ?1 >= 95 and item 0 ?1 < 112 [set color-code 27]
-                 if item 0 ?1 >= 112 [set color-code 17]
+                 if item 0 ?1 >= 64 and item 0 ?1 < 82 [set color-code 67] ;Less than Category 1 hurricane
+                 if item 0 ?1 >= 82 and item 0 ?1 < 95 [set color-code 47] ;Category 1 hurricane
+                 if item 0 ?1 >= 95 and item 0 ?1 < 112 [set color-code 27] ;Category 2 hurricane
+                 if item 0 ?1 >= 112 [set color-code 17] ;Category 3 (or above) hurricane
                  set color color-code
-                 set cone-size item 2 ?1
+                 set cone-size item 2 ?1 ;the size of each line is set to the error in the forecast
     ]
          ]
     let draw-forc turtle-set drawers with [size = .05]
       set i 0
-      set i 1
+      set i 1 ;JA: Why set to 1 here after setting to zero the line before?
+    ;For each forecast time (every hour), draw a line to create a "cone of uncertainty"
     while [i < length long-list] [
-                        let head atan (item 0 item 1 item (i) long-list - item 0 item 1 item (i - 1) long-list)
+                        let head atan (item 0 item 1 item (i) long-list - item 0 item 1 item (i - 1) long-list) ;To find the forecast track direction: Find the angle between the x_coord and y_cood differences between two forecast times
                                       (item 1 item 1 item (i) long-list - item 1 item 1 item (i - 1) long-list)
 
-                         set head (90 - head) mod 360
+                         set head (90 - head) mod 360 ;JA: Not sure what this is doing
 
+                        ;points-list is a list of points for the cone of uncertainty lines (how long the lines should be in the x- and y-directions)
                         let points-list list (item 0 item 1 item i long-list - (((item 2 item i long-list) / scale) * (cos (head - 90)) ))
                                              (item 1 item 1 item i long-list - (((item 2 item i long-list) / scale) * (sin (head - 90)) ))
 
+                        ;Draw the line if within the Netlogo domain. Two lines are drawn, each from the position of the forecast storm and moving outward to create a "cone" with the center being the center of the forecast storm.
+                        ;Line 1
                         if item 0 points-list > min-pxcor and item 0 points-list < max-pxcor and
                            item 1 points-list > min-pycor and item 1 points-list < max-pycor [
                         create-drawers 1 [set size .02
@@ -1566,20 +1575,21 @@ to-report Publish-New-Mental-Model
                                           setxy item 0 points-list item 1 points-list
                                           create-link-to one-of drawers with [xcor = item 0 item 1 item i long-list and ycor = item 1 item 1 item i long-list] [set color [color] of end2] ] ]
 
-
+                        ;Line 2
                         set points-list list (item 0 item 1 item i long-list - (((item 2 item i long-list) / scale) * (cos (head + 90)) ))
                                              (item 1 item 1 item i long-list - (((item 2 item i long-list) / scale) * (sin (head + 90)) ))
 
                         if item 0 points-list > min-pxcor and item 0 points-list < max-pxcor and
                            item 1 points-list > min-pycor and item 1 points-list < max-pycor [
-                        create-drawers 1 [set size .03
+                        create-drawers 1 [set size .03 ;Why is this size 0.03 while the other (above) is 0.02?
                                           set color red
                                           setxy item 0 points-list item 1 points-list
                                           create-link-to one-of drawers with [xcor = item 0 item 1 item i long-list and ycor = item 1 item 1 item i long-list] [set color [color] of end2] ] ]
 
                            set i i + 1 ]
+  print (list long-list)
 
-  report (list long-list)
+  report (list long-list) ;Note that long-list only contains forecasts within the Netlogo domain
 
 end
 
