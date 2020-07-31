@@ -541,6 +541,7 @@ to Load-Forecasts-New
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
 
    let all-advisories csv:from-file storm-file
 
@@ -1441,6 +1442,9 @@ to-report Past-Forecasts
 
    ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
    if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
+   ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
+
+  print length(error-list)
   while [length error-list > length forecast-matrix] [set error-list but-last error-list]
    let severity-list []
    let size-list []
@@ -1450,6 +1454,7 @@ to-report Past-Forecasts
   let current-F but-first new-forecast
 
   while [length error-list > length current-F] [set error-list but-last error-list ]
+
 
    let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current-F
    let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current-F
@@ -2389,7 +2394,7 @@ SLIDER
 #citizen-agents
 0
 5000
-350.0
+1656.0
 1
 1
 NIL
@@ -3318,7 +3323,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
