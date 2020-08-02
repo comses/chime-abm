@@ -1588,7 +1588,7 @@ to-report Publish-New-Mental-Model
 
                            set i i + 1 ]
 
-  report (list hourly-forecast-list) ;Note that long-list only contains forecasts within the Netlogo domain
+  report (list hourly-forecast-list) ;Note that hourly-forecast-list only contains forecasts within the Netlogo domain
 
 end
 
