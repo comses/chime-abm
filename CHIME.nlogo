@@ -224,7 +224,6 @@ to Go
   ;; update the forecast
   ask forecasters [  set current-forecast Past-Forecasts  ]
 
-
   let from-forecaster Publish-New-Mental-Model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
   ;; officials take forecast info from broadcaster and generate an evacuation order code
@@ -541,7 +540,7 @@ to Load-Forecasts-New
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
 
    let all-advisories csv:from-file storm-file
 
@@ -1442,10 +1441,9 @@ to-report Past-Forecasts
 
    ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
    if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
-   ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
+   if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
 
-  print length(error-list)
-  while [length error-list > length forecast-matrix] [set error-list but-last error-list]
+;  while [length error-list > length forecast-matrix] [set error-list but-last error-list]
    let severity-list []
    let size-list []
    let time-list []
@@ -1464,9 +1462,12 @@ to-report Past-Forecasts
    set size-list map [ ?1 -> ?1 ] error-list
 
    let published-forecast []
-   set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity-list forecast-list size-list time-list winds34 winds64)
 
+   set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity-list forecast-list size-list time-list winds34 winds64)
+  print severity-list
+print published-forecast
   report published-forecast
+
 
 end
 
@@ -1629,7 +1630,9 @@ to Coastal-Patches-Alerts
          let intens item 0 working-forecast ;intensity of the hurricane at landfall
          let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
          if (scale * dist_trk) < interp_sz [ set dist_trk 0 ] ;If the patch is within the 64-kt wind radii, set "dist_trk"=0
-         if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1 ] ;If the time before arrival is lower than "earliest", the patch is within the 64-kt wind radius, and the intensity is greater than the wind threshold, set alerts=1
+         if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1
+        print "hit"
+        ] ;If the time before arrival is lower than "earliest", the patch is within the 64-kt wind radius, and the intensity is greater than the wind threshold, set alerts=1
        ] ] ]
 end
 
@@ -1796,6 +1799,7 @@ to Decision-Module
 
     ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
     set final-risk-assesment sum (list c1 c2 c3)
+    print (list c1 c2 c3)
 
     ;; Modify the final risk value based on census information. The impact is set in the interface by the user.
     if kids-under-18? = true [set final-risk-assesment final-risk-assesment + (final-risk-assesment * under-18-assessment-increase)]
@@ -2394,7 +2398,7 @@ SLIDER
 #citizen-agents
 0
 5000
-1656.0
+382.0
 1
 1
 NIL
