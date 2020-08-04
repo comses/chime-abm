@@ -540,7 +540,7 @@ to Load-Forecasts-New
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
 
    let all-advisories csv:from-file storm-file
 
@@ -1441,7 +1441,8 @@ to-report Past-Forecasts
 
    ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
    if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
-   if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
+  if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120]]
+  ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
 
 ;  while [length error-list > length forecast-matrix] [set error-list but-last error-list]
    let severity-list []
@@ -1464,8 +1465,7 @@ to-report Past-Forecasts
    let published-forecast []
 
    set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity-list forecast-list size-list time-list winds34 winds64)
-  print severity-list
-print published-forecast
+
   report published-forecast
 
 
@@ -1630,8 +1630,7 @@ to Coastal-Patches-Alerts
          let intens item 0 working-forecast ;intensity of the hurricane at landfall
          let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
          if (scale * dist_trk) < interp_sz [ set dist_trk 0 ] ;If the patch is within the 64-kt wind radii, set "dist_trk"=0
-         if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1
-        print "hit"
+        if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1
         ] ;If the time before arrival is lower than "earliest", the patch is within the 64-kt wind radius, and the intensity is greater than the wind threshold, set alerts=1
        ] ] ]
 end
@@ -1713,7 +1712,8 @@ to Decision-Module
 
     ;storm-intensity-and-location format: [intensity [x_location y_location] error_in_forecast [day hour]]
      let storm-intensity-and-location first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
-
+print "VARS"
+    print storm-intensity-and-location
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
@@ -1725,15 +1725,16 @@ to Decision-Module
     ;; determines how far out (temporally) till the storm reaches closest point
      let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
      let arriv item 0 item 3 storm-intensity-and-location + ((item 1 item 3 storm-intensity-and-location / 100) * (1 / 24))
+    print tc
+    print arriv
      let counter (arriv - tc) * 24 ;counter is the time (in hours) before arrival
+    print counter
 
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
      let x-value counter                     ; x value of the risk function is  time till arrival (in hours)
      let center random-normal 36 3          ; sets peak utility/risk at 36 before arrival... (random number w/ mean 36 and stdev 3)
      let sd-spread random-normal 24 12        ; sets the incline/decline rate of the risk function... (random number w/ mean 24 stdev 12)
      let height 0                            ; recalculated below to set the height for the risk function
-
-;END CONVERSATION WITH SEAN AND REBECCA JULY 17
 
    ;; determines how far out (spatially) between the hurricane and the citizen when the hurricane is closest to the citizen
      let dist-trk distancexy item 0 item 1 storm-intensity-and-location item 1 item 1 storm-intensity-and-location
@@ -1743,6 +1744,10 @@ to Decision-Module
 
    ;; the intensity of the storm forecast
      let intensity item 0 storm-intensity-and-location
+
+
+    print intensity
+    print error-bars
 
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
    ;; intensity of 95 kts (transition from Category 2 to 3 hurricane). We may want to rethink this - maybe have a function similar to the data in Morss and Hayden (2010) Fig. 5 and Zhang et al. (2007) Fig. 5. *SB
@@ -1757,10 +1762,13 @@ to Decision-Module
    ;; given the Gaussian curve below, HEIGHT values look like this (.04 gives a peak at just about 10, 0.2 gives 20, 0.08 gives 5... you see the relationship)
    ;; sets the HEIGHT variable as a function of distance from the storm track + zone + intensity (weighted/calibrated to get reasonable numbers)
      set height sqrt (dist-trk + (.003 * zone) + (.000525 * intensity))
+    print (list dist-trk zone intensity)
+    print height
+    print x-value
 
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
     let risk ((1 / (height * sqrt (2 * pi) )) * (e ^ (-1 * (((x-value - center) ^ 2) / (2 * (sd-spread ^ 2))))))  ;; bell curve
-
+print risk
     if self = watching [ set risk-funct risk] ;currently, this code is not run. No agent is "watching". This code was originally in place when using the plotting tools in the interface to look at citizen risk functions.
 
    ;; takes the risk assessment and adds a little error either side
@@ -1799,7 +1807,7 @@ to Decision-Module
 
     ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
     set final-risk-assesment sum (list c1 c2 c3)
-    print (list c1 c2 c3)
+   ; print (list c1 c2 c3)
 
     ;; Modify the final risk value based on census information. The impact is set in the interface by the user.
     if kids-under-18? = true [set final-risk-assesment final-risk-assesment + (final-risk-assesment * under-18-assessment-increase)]
@@ -2556,8 +2564,8 @@ SLIDER
 earliest
 earliest
 12
-78
-78.0
+200
+198.0
 3
 1
 NIL
