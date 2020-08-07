@@ -1426,8 +1426,8 @@ to-report Past-Forecasts
   ; the reported generates a list of the six forecasts, which is published every 6 hours and available to the intermediate agents.
   ; if the later forecast(s) are off the edge of the world, they are not shown/reported.
   ; thin black circles show the current forecast on the display
-  ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED:
+  ; VARIABLES MODIFIED: published-forecast [intensity,[x_coord y_coord],size of cone,[day hour],[34-kt wind radii],[64-kt wind radii]]
+  ; PROCEDURES CALLED: None
   ; CALLED BY: Create-Other-Agents; Go
 
 
