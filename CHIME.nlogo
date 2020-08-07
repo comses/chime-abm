@@ -1427,7 +1427,7 @@ to-report Past-Forecasts
   ; if the later forecast(s) are off the edge of the world, they are not shown/reported.
   ; thin black circles show the current forecast on the display
   ; VARIABLES MODIFIED:
-  ; PROCEDURES CALLED
+  ; PROCEDURES CALLED:
   ; CALLED BY: Create-Other-Agents; Go
 
 
@@ -1441,7 +1441,7 @@ to-report Past-Forecasts
 
    ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
    if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
-  if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120]]
+  ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120]]
   ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
 
 ;  while [length error-list > length forecast-matrix] [set error-list but-last error-list]
@@ -1712,8 +1712,7 @@ to Decision-Module
 
     ;storm-intensity-and-location format: [intensity [x_location y_location] error_in_forecast [day hour]]
      let storm-intensity-and-location first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
-print "VARS"
-    print storm-intensity-and-location
+
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
@@ -1725,10 +1724,8 @@ print "VARS"
     ;; determines how far out (temporally) till the storm reaches closest point
      let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
      let arriv item 0 item 3 storm-intensity-and-location + ((item 1 item 3 storm-intensity-and-location / 100) * (1 / 24))
-    print tc
-    print arriv
+
      let counter (arriv - tc) * 24 ;counter is the time (in hours) before arrival
-    print counter
 
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
      let x-value counter                     ; x value of the risk function is  time till arrival (in hours)
@@ -1745,10 +1742,6 @@ print "VARS"
    ;; the intensity of the storm forecast
      let intensity item 0 storm-intensity-and-location
 
-
-    print intensity
-    print error-bars
-
    ;; conditional sets whether the intensity of the storm is worth considering in the risk function
    ;; intensity of 95 kts (transition from Category 2 to 3 hurricane). We may want to rethink this - maybe have a function similar to the data in Morss and Hayden (2010) Fig. 5 and Zhang et al. (2007) Fig. 5. *SB
      ifelse intensity >= 95 [set intensity 0] [set intensity 1]
@@ -1762,13 +1755,10 @@ print "VARS"
    ;; given the Gaussian curve below, HEIGHT values look like this (.04 gives a peak at just about 10, 0.2 gives 20, 0.08 gives 5... you see the relationship)
    ;; sets the HEIGHT variable as a function of distance from the storm track + zone + intensity (weighted/calibrated to get reasonable numbers)
      set height sqrt (dist-trk + (.003 * zone) + (.000525 * intensity))
-    print (list dist-trk zone intensity)
-    print height
-    print x-value
 
    ;; finally, calculates risk (Gaussian curve based on the variables calculated above)
     let risk ((1 / (height * sqrt (2 * pi) )) * (e ^ (-1 * (((x-value - center) ^ 2) / (2 * (sd-spread ^ 2))))))  ;; bell curve
-print risk
+
     if self = watching [ set risk-funct risk] ;currently, this code is not run. No agent is "watching". This code was originally in place when using the plotting tools in the interface to look at citizen risk functions.
 
    ;; takes the risk assessment and adds a little error either side
