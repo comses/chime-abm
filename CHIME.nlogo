@@ -228,7 +228,7 @@ to Go
 
   ;; officials take forecast info from broadcaster and generate an evacuation order code
   Coastal-Patches-Alerts
-  ask officials with [any? land-patches with [county  = [[county] of patch-here] of myself]] [ Issue-Alerts ]
+  ask officials with [any? coastal-patches with [county  = [[county] of patch-here] of myself]] [ Issue-Alerts ]
 
   ;; broadcasters translate and publish forecast
   ask broadcasters [ set broadcast from-forecaster ]
@@ -1666,6 +1666,7 @@ to Issue-Alerts
                  let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane will make landfall
                  let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
                  set when-issued counter ;"when-issued" is set to the number of hours before landfall that an evacuation order was issued
+
                  set orders 1
                ] ] ]
           if orders = 1 [ set color white]
@@ -2404,7 +2405,7 @@ SLIDER
 #citizen-agents
 0
 5000
-573.0
+987.0
 1
 1
 NIL
@@ -2593,7 +2594,7 @@ wind-threshold
 wind-threshold
 70
 130
-117.0
+130.0
 1
 1
 NIL
