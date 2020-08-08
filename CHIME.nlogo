@@ -314,7 +314,6 @@ to Load-GIS
       set density-map gis:load-dataset "REGION/GULF_SE/GIS/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
       set county-seat-list []
       set counties gis:load-dataset "REGION/GULF_SE/GIS/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
-     set counties gis:load-dataset "REGION/GULF_SE/GIS/counties_lowres.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
     set county-seats gis:load-dataset "REGION/GULF_SE/GIS/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
       foreach but-last gis:feature-list-of county-seats [ ?1 ->
       set county-seat-list lput list gis:property-value ?1 "CNTY_FIPS" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
@@ -349,7 +348,14 @@ to Load-GIS
    set ocean-patches patches with [land? = false]
    set coastal-patches ocean-patches with [county > 0]
    set using-hpc? false
-  ask coastal-patches [set pcolor 49 ]
+
+  ask ocean-patches [ if patch-at 1 1 != nobody [ask patch-at 1 1 [ if land? = true [set pcolor green]]]]
+  ask ocean-patches [ if patch-at 1 -1 != nobody [ask patch-at 1 -1 [ if land? = true [set pcolor green]]]]
+  ask ocean-patches [ if patch-at -1 1 != nobody [ask patch-at -1 1 [ if land? = true [set pcolor green]]]]
+  ask ocean-patches [ if patch-at -1 -1 != nobody [ask patch-at -1 -1 [ if land? = true [set pcolor green]]]]
+  set coastal-patches patches with [ pcolor = green ]
+  ask coastal-patches [set pcolor 0]
+
 
 end
 
