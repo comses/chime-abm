@@ -314,7 +314,8 @@ to Load-GIS
       set density-map gis:load-dataset "REGION/GULF_SE/GIS/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
       set county-seat-list []
       set counties gis:load-dataset "REGION/GULF_SE/GIS/counties_lowres4.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
-      set county-seats gis:load-dataset "REGION/GULF_SE/GIS/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
+     set counties gis:load-dataset "REGION/GULF_SE/GIS/counties_lowres.asc"               ; Raster map - counties (downscaled by a factor of 4 using QGIS)
+    set county-seats gis:load-dataset "REGION/GULF_SE/GIS/county_centroid_clipped.shp"    ; Vector map (points) - location of county centers (not county seats)
       foreach but-last gis:feature-list-of county-seats [ ?1 ->
       set county-seat-list lput list gis:property-value ?1 "CNTY_FIPS" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
       ;set county-seat-list lput list gis:property-value ?1 "OBJECTID" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list ;;;county_seat_list is a list: [county_seat_number [x and y points of county seats in Netlogo world]]
@@ -339,7 +340,7 @@ to Load-GIS
       set elev gis:raster-sample elevation coords
       set density gis:raster-sample density-map coords
       set county gis:raster-sample counties coords ]
- gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
+ ;gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
 
    ask patches [set land? true]
    ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
@@ -348,6 +349,7 @@ to Load-GIS
    set ocean-patches patches with [land? = false]
    set coastal-patches ocean-patches with [county > 0]
    set using-hpc? false
+  ask coastal-patches [set pcolor 49 ]
 
 end
 
@@ -967,7 +969,7 @@ to Create-Citizen-Agent-Population
        set i i + item j tickets
        set j j + 1 ]
     move-to item (j - 1) ranked-patches ]
-   [move-to one-of patches with [density >= 0 ] ;citizen is placed randomly on a patch with a population density greater than zero.
+   [move-to one-of patches with [elev >= 0 ] ;citizen is placed randomly on a patch with a population density greater than zero.
 
    if which-storm? = "MICHAEL" [ ;Josh added this hard-coded information for hurricane Michael to increase the sample size of citizens near the coast in Michael's path.
        let landfall_lat 30.0
@@ -975,10 +977,10 @@ to Create-Citizen-Agent-Population
        let landfall_lon_netlogo_world (landfall_lon - item 0 re0-0)/ item 0 grid-cell-size
        let landfall_lat_netlogo_world (landfall_lat - item 1 re0-0)/ item 1 grid-cell-size
        let distance-citizens 40
-       move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+       move-to one-of patches with [(elev >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
        let coast-distance [distance myself] of min-one-of coastal-patches  [distance myself]
         while[coast-distance >= 6] [ ;Keep moving citizens until they are, at most, 6 grid points from the coast.
-        move-to one-of patches with [(density >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
+        move-to one-of patches with [(elev >= 0) and (pycor < landfall_lat_netlogo_world + distance-citizens) and (pycor >  landfall_lat_netlogo_world - distance-citizens) and (pxcor < landfall_lon_netlogo_world + distance-citizens) and (pxcor >  landfall_lon_netlogo_world - distance-citizens)]
         set coast-distance [distance myself] of min-one-of coastal-patches  [distance myself]
    ]]
 
@@ -2396,7 +2398,7 @@ SLIDER
 #citizen-agents
 0
 5000
-382.0
+573.0
 1
 1
 NIL
