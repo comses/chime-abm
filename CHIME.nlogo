@@ -1423,6 +1423,7 @@ to Move-Hurricane
 
 end
 
+
 to-report Past-Forecasts
   ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
   ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm
@@ -1440,38 +1441,38 @@ to-report Past-Forecasts
 
 
    let forecast-list []
-   ask forcstxs [die]
-   let s-f 0
-   let s-f_real (357 / scale )
+   ask forcstxs [die] ; get rid of the previous forecastxs which visualizes forecast cone/circles
    let error-list [] ;  cone of uncertainty
-  ;SB add in interpolation for hourly 0-12 is 0-26 (nautical miles)  - maybe not actual nautical miles
-  ;The values for the error-list are associated with the cone of uncertainty in the model. error_list has 7 numbers, representing 12h, 24h, 36h, 48h, 72h, 96h, and 120h forecasts.
+  ;SB add in interpolation for hourly 0-12 is 0-26 (nautical miles)?
 
-   ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
+  ; The error-list has 7 numbers, representing 12h, 24h, 36h, 48h, 72h, 96h, and 120h forecasts.
+  ; The values for the error-list are associated with the cone of uncertainty in the model.
+  ; The error-list can vary for each storm because the time and number of forecasts has changed through time
+
+  ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
    if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
   ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120]]
   ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
 
-;  while [length error-list > length forecast-matrix] [set error-list but-last error-list]
    let severity-list []
    let size-list []
    let time-list []
-   let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix ;Makes sure the advisory data begins at or before the best track time
+   ;Makes sure the advisory data begins at or before the best track time
+   let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
+   set new-forecast but-first new-forecast
 
-  let current-F but-first new-forecast
+   ; Make sure that the length of error-list matches the length of the current-f list
+   while [length error-list > length new-forecast] [set error-list but-last error-list ]
 
-  while [length error-list > length current-F] [set error-list but-last error-list ]
-
-
-   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] current-F
-   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] current-F
-   set time-list map [ ?1 -> list item 0 ?1 item 1 ?1 ] current-F
-   set forecast-list map [ ?1 -> list item 3 ?1 item 2 ?1 ] current-F
-   set severity-list map [ ?1 -> item 4 ?1 ] current-F
+   ; Split each weather condition from new-forecast and add to a list that contains only that weather condition
+   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] new-forecast
+   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] new-forecast
+   set time-list map [ ?1 -> list item 0 ?1 item 1 ?1 ] new-forecast
+   set forecast-list map [ ?1 -> list item 3 ?1 item 2 ?1 ] new-forecast
+   set severity-list map [ ?1 -> item 4 ?1 ] new-forecast
    set size-list map [ ?1 -> ?1 ] error-list
 
-   let published-forecast []
-
+   let published-forecast [] ;Combine the sub lists created above to create a complete and current forecast
    set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity-list forecast-list size-list time-list winds34 winds64)
 
   report published-forecast
@@ -2608,7 +2609,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 16
@@ -3334,7 +3335,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
