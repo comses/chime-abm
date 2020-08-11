@@ -735,6 +735,9 @@ to Load-Forecasts-New
   ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
   ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
 
+
+  set entries-for-all-days Calendar-Check entries-for-all-days
+
   set forecast-matrix  entries-for-all-days
 
 
@@ -774,6 +777,27 @@ to-report Calculate-Advisory-Time [time hours-away]
 
   report advisory-time
 
+end
+
+to-report Calendar-Check [forecast-entries]
+  let clean-forecast[]
+  let previous-date item 0 forecast-entries
+  set previous-date item 0 previous-date
+  set previous-date item 0 previous-date
+  foreach forecast-entries [ unique-entry ->
+    let first-entry item 0 unique-entry
+    let date item 0 first-entry
+    if date < previous-date [
+      set date previous-date + 1
+      set first-entry replace-item 0 first-entry date
+      set unique-entry replace-item 0 unique-entry first-entry
+    ]
+    set previous-date date
+    set clean-forecast lput unique-entry clean-forecast
+  ]
+
+  ;report forecast-entries
+  report clean-forecast
 end
 
 
@@ -1452,7 +1476,7 @@ to-report Past-Forecasts
   ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
    if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
   ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120]]
-  ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
+  ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 The values for the error-list are associated with the cone of uncertainty in the model.120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
 
    let severity-list []
    let size-list []
