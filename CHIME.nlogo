@@ -1510,10 +1510,7 @@ to-report Past-Forecasts
    while [length error-list > length new-forecast] [set error-list but-last error-list ]
 
    set size-list map [ ?1 -> ?1 ] error-list
-  print "hit"
-  print length(new-forecast)
-  print length(error-list)
-  print length(intensity-list)
+
    let published-forecast [] ;Combine the sub lists created above to create a complete and current forecast
    set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] intensity-list location-list size-list time-list winds34 winds64)
 
@@ -1976,7 +1973,7 @@ end
 
 ;MODEL OUTPUT
 to-report save-view-images
-  let filename (word behaviorspace-run-number "_" ticks ".png")
+  let filename (word "output/netlogo_interface_" ticks "_" behaviorspace-run-number ".png")
   export-view filename
   report filename
 end
@@ -1986,7 +1983,7 @@ to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
 
   let namefile ticks
   ;file-open word namefile "_risk_data.csv"
-  file-open (word behaviorspace-run-number "_" word namefile "_risk_data.csv")
+  file-open (word "output/risk_data_timestep_" ticks "_" behaviorspace-run-number ".csv")
 
   ;set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
   ;  [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
@@ -1995,7 +1992,7 @@ to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
   file-type text-out
   file-print ""
    ask citizen-agents [
-  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","risk-total","risk-funct","risk-error","risk-orders","risk-env","risk-surge","percentage","c1","c2","c3",")
+  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","risk-total","risk-funct","risk-error","risk-orders","risk-env","risk-surge","percentage",")
   file-type text-out
   file-print ""
   ]
@@ -2006,7 +2003,7 @@ end
 to-report get-percentage
 let rec-matrix []
 
- foreach sort cit-ags [ ?1 ->
+ foreach sort citizen-agents [ ?1 ->
    ask ?1 [
    let temp-list []
    set temp-list lput ifelse-value (not empty? completed and item 0 item 0 completed = "evacuate") [1] [0] temp-list
@@ -2016,7 +2013,7 @@ let rec-matrix []
 
   ; filter to only shown hurricane coordinates
    let w-l filter [?x -> item 0 ?x > min-pxcor and item 0 ?x < max-pxcor and
-                           item 1 ?x > min-pycor and item 1 ?x < max-pycor] hurr-coords
+                           item 1 ?x > min-pycor and item 1 ?x < max-pycor] hurricane-coords-best-track
    set w-l map [?x -> (list item 0 ?x item 1 ?x item 2 ?x item 3 ?x item 4 ?x
           ifelse-value (towardsxy item 0 ?x item 1 ?x <= 360) [item 6 ?x] [
           ifelse-value (towardsxy item 0 ?x item 1 ?x <= 270) [item 5 ?x] [
@@ -3131,7 +3128,7 @@ SWITCH
 572
 output?
 output?
-1
+0
 1
 -1000
 
