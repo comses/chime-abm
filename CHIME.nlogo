@@ -260,7 +260,16 @@ to Go
   ask citizen-agents with [color = white] [set color blue]
 
   if ticks != 135 [ set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track  ]
-
+  if which-storm? = "MICHAEL" and output? [
+      print save-data-timestep
+      print save-view-images
+      if ticks = 95 [ ;time step 95 is when Michael makes landfall
+          set output-filename "test"
+          print save-global-evac-statistics
+          ;set evac-filename "test_indiv"
+          set evac-filename word behaviorspace-run-number "_test_indiv"
+          print save-individual-cit-ag-evac-records  ]
+  ]
 
   tick   ;; advances the model one time step
 
@@ -1965,6 +1974,111 @@ to Process-Forecasts
 end
 
 
+;MODEL OUTPUT
+to-report save-view-images
+  let filename (word behaviorspace-run-number "_" ticks ".png")
+  export-view filename
+  report filename
+end
+
+to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
+  let percentage get-percentage
+
+  let namefile ticks
+  ;file-open word namefile "_risk_data.csv"
+  file-open (word behaviorspace-run-number "_" word namefile "_risk_data.csv")
+
+  ;set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
+  ;  [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
+;;  print data-dump
+  let text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,risktotal,riskfunct,riskerror,riskorders,riskenv,risksurge,percentevacuated,forecastw,evacw,envcw,")
+  file-type text-out
+  file-print ""
+   ask citizen-agents [
+  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","risk-total","risk-funct","risk-error","risk-orders","risk-env","risk-surge","percentage","c1","c2","c3",")
+  file-type text-out
+  file-print ""
+  ]
+  file-close
+  report "bogus"
+end
+
+to-report get-percentage
+let rec-matrix []
+
+ foreach sort cit-ags [ ?1 ->
+   ask ?1 [
+   let temp-list []
+   set temp-list lput ifelse-value (not empty? completed and item 0 item 0 completed = "evacuate") [1] [0] temp-list
+     ; starts with evacuated or not
+   set temp-list lput ifelse-value ([distance-nowrap myself] of min-one-of patches with [not (elev >= 0 or elev <= 0)] [distance-nowrap myself] <= 1.5) [1] [0] temp-list
+
+
+  ; filter to only shown hurricane coordinates
+   let w-l filter [?x -> item 0 ?x > min-pxcor and item 0 ?x < max-pxcor and
+                           item 1 ?x > min-pycor and item 1 ?x < max-pycor] hurr-coords
+   set w-l map [?x -> (list item 0 ?x item 1 ?x item 2 ?x item 3 ?x item 4 ?x
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 360) [item 6 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 270) [item 5 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 180) [item 8 ?x] [item 7 ?x] ]]
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 360) [item 10 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 270) [item 9 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 180) [item 12 ?x] [item 11 ?x] ]]
+       )] w-l
+
+   set w-l map [?x ->
+     (list ifelse-value (scale * distancexy item 0 ?x item 1 ?x > item 5 ?x) [0] [1]
+           ifelse-value (scale * distancexy item 0 ?x item 1 ?x > item 6 ?x) [0] [1]
+       )] w-l
+
+   let s-l []
+   if member? [1 0] w-l [set s-l lput 1 s-l]
+   if member? [1 1] w-l [set s-l lput 1 s-l]
+   if s-l = [1] [set s-l [1 0]]
+   if s-l = [] [set s-l [0 0]]
+   set temp-list sentence temp-list s-l
+   set temp-list lput ifelse-value (not empty? completed and item 0 item 0 completed = "evacuate") [round item 2 item 0 completed] [-9] temp-list
+
+   set rec-matrix lput temp-list rec-matrix
+    ] ]
+
+  let coastal/64 length filter [?x -> but-last ?x = [1 1 1 1] ] rec-matrix
+  let coastal/34 length filter [?x -> but-last ?x = [1 1 1 0] ] rec-matrix
+  let coastal/out length filter [?x -> but-last ?x = [1 1 0 0] ] rec-matrix
+  let inland/64 length filter [?x -> but-last ?x = [1 0 1 1] ] rec-matrix
+  let inland/34 length filter [?x -> but-last ?x = [1 0 1 0] ] rec-matrix
+  let inland/out length filter [?x -> but-last ?x = [1 0 0 0] ] rec-matrix
+
+  let per-coastal/64 precision (length filter [x? -> but-last x? = [1 1 1 1] ] rec-matrix / ifelse-value ((length filter [x? -> but-last x? = [1 1 1 1] ] rec-matrix + length filter [x? -> but-last x? = [0 1 1 1] ] rec-matrix) != 0) [(length filter [x? -> but-last x? = [1 1 1 1] ] rec-matrix + length filter [x? -> but-last x? = [0 1 1 1] ] rec-matrix)] [.00000001]) 2
+  ;let per-coastal/34 precision (length filter [x? -> but-last x? = [1 1 1 0] ] rec-matrix / ifelse-value ((length filter [x? -> but-last x? = [1 1 1 0] ] rec-matrix + length filter [x? -> but-last x? = [0 1 1 0] ] rec-matrix) != 0) [(length filter [x? -> but-last x? = [1 1 1 0] ] rec-matrix + length filter [x? -> but-last x? = [0 1 1 0] ] rec-matrix)] [.00000001]) 2
+  ;let per-coastal/out precision (length filter [x? -> but-last x? = [1 1 0 0] ] rec-matrix / ifelse-value ((length filter [x? -> but-last x? = [1 1 0 0] ] rec-matrix + length filter [x? -> but-last x? = [0 1 0 0] ] rec-matrix) != 0) [(length filter [x? -> but-last x? = [1 1 0 0] ] rec-matrix + length filter [x? -> but-last x? = [0 1 0 0] ] rec-matrix)] [.00000001]) 2
+  ;let per-inland/64 precision (length filter [x? -> but-last x? = [1 0 1 1] ] rec-matrix / ifelse-value ((length filter [x? -> but-last x? = [1 0 1 1] ] rec-matrix + length filter [x? -> but-last x? = [0 0 1 1] ] rec-matrix) != 0) [(length filter [x? -> but-last x? = [1 0 1 1] ] rec-matrix + length filter [x? -> but-last x? = [0 0 1 1] ] rec-matrix)] [.00000001]) 2
+  ;let per-inland/34 precision (length filter [x? -> but-last x? = [1 0 1 0] ] rec-matrix / ifelse-value ((length filter [x? -> but-last x? = [1 0 1 0] ] rec-matrix + length filter [x? -> but-last x? = [0 0 1 0] ] rec-matrix) != 0) [(length filter [x? -> but-last x? = [1 0 1 0] ] rec-matrix + length filter [x? -> but-last x? = [0 0 1 0] ] rec-matrix)] [.00000001]) 2
+  ;let per-inland/out precision (length filter [x? -> but-last x? = [1 0 0 0] ] rec-matrix / ifelse-value ((length filter [x? -> but-last x? = [1 0 0 0] ] rec-matrix + length filter [x? -> but-last x? = [0 0 0 0] ] rec-matrix) != 0) [(length filter [x? -> but-last x? = [1 0 0 0] ] rec-matrix + length filter [x? -> but-last x? = [0 0 0 0] ] rec-matrix)] [.00000001]) 2
+
+  let tot-coastal/64 (length filter [x? -> but-last x? = [1 1 1 1] ] rec-matrix + length filter [x? -> but-last x? = [0 1 1 1] ] rec-matrix)
+  ;let tot-coastal/34 (length filter [x? -> but-last x? = [1 1 1 0] ] rec-matrix + length filter [x? -> but-last x? = [0 1 1 0] ] rec-matrix)
+  ;let tot-coastal/out (length filter [x? -> but-last x? = [1 1 0 0] ] rec-matrix + length filter [x? -> but-last x? = [0 1 0 0] ] rec-matrix)
+  ;let tot-inland/64 (length filter [x? -> but-last x? = [1 0 1 1] ] rec-matrix + length filter [x? -> but-last x? = [0 0 1 1] ] rec-matrix)
+  ;let tot-inland/34 (length filter [x? -> but-last x? = [1 0 1 0] ] rec-matrix + length filter [x? -> but-last x? = [0 0 1 0] ] rec-matrix)
+  ;let tot-inland/out (length filter [x? -> but-last x? = [1 0 0 0] ] rec-matrix + length filter [x? -> but-last x? = [0 0 0 0] ] rec-matrix)
+
+  let output-list (list per-coastal/64)
+
+  let output-list-a (list per-coastal/64)
+
+  let allpct sum (list coastal/64) /
+             sum (list tot-coastal/64)
+
+ ; let op (sentence "" behaviorspace-run-number allpct )
+ ;   set output-filename percentage
+ ;   file-open word output-filename ".txt"
+ ;   file-type op
+ ;   file-print ""
+ ; file-close
+
+  report allpct
+end
 
 to-report Save-Individual-Cit-Ag-Evac-Records
   ; INFO: Used at the conclusion of the simulation. Records simulation information for each agent which creates a large data file.
