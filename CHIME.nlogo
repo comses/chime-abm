@@ -1447,11 +1447,11 @@ to Move-Hurricane
 
 end
 
-
+;JA: Should we name this: publish-forecast
 to-report Past-Forecasts
   ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
-  ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm
-  ; a location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
+  ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm.
+  ; A location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
   ; meaning that 2/3 of the STORMS fall within the 226 n mi error, while 1/3 have a larger error.
   ; a random heading and distance for that error is selected
   ; the heading stays the same for the closer forecasts, but distance is adjusted per the NHC 2009-2013 data.
@@ -1464,43 +1464,51 @@ to-report Past-Forecasts
   ; CALLED BY: Create-Other-Agents; Go
 
 
-   let forecast-list []
+   let location-list[]
    ask forcstxs [die] ; get rid of the previous forecastxs which visualizes forecast cone/circles
-   let error-list [] ;  cone of uncertainty
-  ;SB add in interpolation for hourly 0-12 is 0-26 (nautical miles)?
 
+   let intensity-list []
+   let size-list []
+   let time-list []
+   ;Makes sure the advisory data (new-forecast) begins at or before the best track time
+  ;forecast-matrix format: [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
+   let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
+   set new-forecast but-first new-forecast
+
+   ; Split each weather condition from new-forecast and add to a list that contains only that weather condition
+   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] new-forecast ;[radiusNE,radiusSE,radiusSW,radiusNW]
+   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] new-forecast ;[radiusNE,radiusSE,radiusSW,radiusNW]
+   set time-list map [ ?1 -> list item 0 ?1 item 1 ?1 ] new-forecast ;[[day1 hour1] [day2 hours2]....
+   set location-list map [ ?1 -> list item 3 ?1 item 2 ?1 ] new-forecast ;[[xcoord1 ycoord1] [xcoord2 ycoord2]
+   set intensity-list map [ ?1 -> item 4 ?1 ] new-forecast
+
+  let error-list [] ;  cone of uncertainty
+  ;SB add in interpolation for hourly 0-12 is 0-26 (nautical miles)?
   ; The error-list has 7 numbers, representing 12h, 24h, 36h, 48h, 72h, 96h, and 120h forecasts.
   ; The values for the error-list are associated with the cone of uncertainty in the model.
   ; The error-list can vary for each storm because the time and number of forecasts has changed through time
+  ;The values for the error-list are associated with the cone of uncertainty in the model.
 
-  ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
-   if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]]
-  ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120]]
-  ;if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 The values for the error-list are associated with the cone of uncertainty in the model.120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
+  ;Depending on the input advisory file size, set the cone of uncertainty values. For NHC data, data will be given every 12h, 24h, 36h, 48h, 72h, 96h, and 120h (7 times). For a perfect forecast that is created by the user (hourly), the size for each forecast will be 120.
+  ifelse length(intensity-list) < 117 [ ;117 is the value that works for Michael's input (the length of the hourly perfect forecast files is 118)
+      ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
+      if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]] ]
 
-   let severity-list []
-   let size-list []
-   let time-list []
-   ;Makes sure the advisory data begins at or before the best track time
-   let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
-   set new-forecast but-first new-forecast
+  [if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
+  ]
 
    ; Make sure that the length of error-list matches the length of the current-f list
    while [length error-list > length new-forecast] [set error-list but-last error-list ]
 
-   ; Split each weather condition from new-forecast and add to a list that contains only that weather condition
-   let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] new-forecast
-   let winds64 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 6 ?1 ] new-forecast
-   set time-list map [ ?1 -> list item 0 ?1 item 1 ?1 ] new-forecast
-   set forecast-list map [ ?1 -> list item 3 ?1 item 2 ?1 ] new-forecast
-   set severity-list map [ ?1 -> item 4 ?1 ] new-forecast
    set size-list map [ ?1 -> ?1 ] error-list
-
+  print "hit"
+  print length(new-forecast)
+  print length(error-list)
+  print length(intensity-list)
    let published-forecast [] ;Combine the sub lists created above to create a complete and current forecast
-   set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] severity-list forecast-list size-list time-list winds34 winds64)
+   set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] intensity-list location-list size-list time-list winds34 winds64)
 
-  report published-forecast
-
+  report published-forecast ;[[intensity [xcoord ycoord] cone_size [day hour] [34-kt wind radii (4 values)] [64-kt wind radii (4 values)]]
 
 end
 
@@ -2467,10 +2475,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-17
-527
-187
-562
+15
+497
+185
+532
 Show Network Connections
 Show-Links
 NIL
@@ -2484,10 +2492,10 @@ NIL
 1
 
 BUTTON
-18
-446
-185
-479
+16
+416
+183
+449
 Run Simulation
 go
 T
@@ -2501,10 +2509,10 @@ NIL
 1
 
 BUTTON
-18
-491
-187
-524
+16
+461
+185
+494
 go-once
 go
 NIL
@@ -2633,7 +2641,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 16
@@ -2748,10 +2756,10 @@ kids-under-18-factor
 -1000
 
 BUTTON
-18
-406
-187
-439
+16
+376
+185
+409
 Setup Simulation
 setup
 NIL
@@ -2995,12 +3003,23 @@ NIL
 CHOOSER
 16
 582
-190
+186
 627
 where-to-place-legend?
 where-to-place-legend?
 "upper-right" "upper-left" "lower-right" "lower-left"
 0
+
+SWITCH
+16
+539
+186
+572
+output?
+output?
+1
+1
+-1000
 
 @#$#@#$#@
 1. "setup" initializes the simulation.
@@ -3359,7 +3378,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
