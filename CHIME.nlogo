@@ -228,6 +228,8 @@ to Go
 
   let from-forecaster Publish-New-Mental-Model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
+  print from-forecaster
+
   ;; officials take forecast info from broadcaster and generate an evacuation order code
   Coastal-Patches-Alerts
   ask officials with [any? coastal-patches with [county  = [[county] of patch-here] of myself]] [ Issue-Alerts ]
@@ -262,21 +264,21 @@ to Go
   ask citizen-agents with [color = white] [set color blue]
 
   if ticks != 135 [ set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track  ]
-  if which-storm? = "MICHAEL" and output? [
-      print save-data-timestep
-      print save-view-images
-      if ticks = 95 [ ;time step 95 is when Michael makes landfall
-          set output-filename "test"
-          print save-global-evac-statistics
-          ;set evac-filename "test_indiv"
-          set evac-filename word behaviorspace-run-number "_test_indiv"
-          print save-individual-cit-ag-evac-records  ]
-  ]
+
+  ; Save data that records every timestep
+  if save-agent-data-each-step [let x save-data-timestep] ;behaviorspace requires a reporter but the value reported is not real
+  if save-images-each-step [ save-view-images ]
+
+; Stop the Model and record output that only saves at the end of the model
+  if hurricane-has-passed? = true [
+    set output-filename "test"
+    if save-global-evacuation-statistics [let x save-global-evac-statistics]
+    set evac-filename word behaviorspace-run-number "_test_indiv"
+    if save-citizen-data-at-end-of-simulation [let x save-individual-cit-ag-evac-records ]
+   stop
+   ]
 
   tick   ;; advances the model one time step
-
-  if hurricane-has-passed? = true [ stop ]
-
 
 end
 
@@ -357,18 +359,20 @@ to Load-GIS
 
    set land-patches patches with [land? = true]
    set ocean-patches patches with [land? = false]
-   set coastal-patches ocean-patches with [county > 0]
+;   set coastal-patches ocean-patches with [county > 0] ; *SB are coastal patches land or water
    set using-hpc? false
 
-  ask ocean-patches [ if patch-at 1 1 != nobody [ask patch-at 1 1 [ if land? = true [set pcolor green]]]]
-  ask ocean-patches [ if patch-at 1 -1 != nobody [ask patch-at 1 -1 [ if land? = true [set pcolor green]]]]
-  ask ocean-patches [ if patch-at -1 1 != nobody [ask patch-at -1 1 [ if land? = true [set pcolor green]]]]
-  ask ocean-patches [ if patch-at -1 -1 != nobody [ask patch-at -1 -1 [ if land? = true [set pcolor green]]]]
-  set coastal-patches patches with [ pcolor = green ]
-  ask coastal-patches [set pcolor 0]
+;  ask ocean-patches [ if patch-at 1 1 != nobody [ask patch-at 1 1 [ if land? = true [set pcolor green]]]]
+;  ask ocean-patches [ if patch-at 1 -1 != nobody [ask patch-at 1 -1 [ if land? = true [set pcolor green]]]]
+;  ask ocean-patches [ if patch-at -1 1 != nobody [ask patch-at -1 1 [ if land? = true [set pcolor green]]]]
+;  ask ocean-patches [ if patch-at -1 -1 != nobody [ask patch-at -1 -1 [ if land? = true [set pcolor green]]]]
+;  set coastal-patches patches with [ pcolor = green ]
+;  ;ask coastal-patches [set pcolor 0]
 
+  set coastal-patches land-patches with [any? neighbors with [land? = false]]
 
 end
+
 
 to Load-Hurricane
   ; INFO: Loads hurricane best track data from a text or csv file. Defines a list called "best-track-data" that stores the best track data (sublists exist for each time of best track data).
@@ -1985,10 +1989,9 @@ end
 
 
 ;MODEL OUTPUT
-to-report save-view-images
+to save-view-images
   let filename (word "output/netlogo_interface_" ticks "_" behaviorspace-run-number ".png")
   export-view filename
-  report filename
 end
 
 to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
@@ -2554,10 +2557,10 @@ ticks
 30.0
 
 SLIDER
-12
-10
-184
-43
+14
+322
+186
+355
 #citizen-agents
 #citizen-agents
 0
@@ -2569,10 +2572,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-12
-48
-184
-81
+14
+360
+186
+393
 #broadcasters
 #broadcasters
 0
@@ -2584,10 +2587,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-13
-86
-185
-119
+15
+398
+187
+431
 #net-aggregators
 #net-aggregators
 0
@@ -2600,9 +2603,9 @@ HORIZONTAL
 
 BUTTON
 15
-497
+138
 185
-532
+173
 Show Network Connections
 Show-Links
 NIL
@@ -2617,9 +2620,9 @@ NIL
 
 BUTTON
 16
-416
+57
 183
-449
+90
 Run Simulation
 go
 T
@@ -2634,9 +2637,9 @@ NIL
 
 BUTTON
 16
-461
+102
 185
-494
+135
 go-once
 go
 NIL
@@ -2713,10 +2716,10 @@ PENS
 "pen-5" 1.0 0 -13791810 true "" "plot risk-surge"
 
 SLIDER
-14
-161
-186
-194
+16
+473
+188
+506
 earliest
 earliest
 12
@@ -2728,10 +2731,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-14
-201
-186
-234
+16
+513
+188
+546
 latest
 latest
 0
@@ -2743,10 +2746,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-14
-242
-186
-275
+16
+554
+188
+587
 wind-threshold
 wind-threshold
 70
@@ -2758,20 +2761,20 @@ NIL
 HORIZONTAL
 
 CHOOSER
-13
-285
-185
-330
+17
+232
+189
+277
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
 7
 
 SWITCH
-16
-124
-186
-157
+18
+436
+188
+469
 distribute_population
 distribute_population
 1
@@ -2779,10 +2782,10 @@ distribute_population
 -1000
 
 SLIDER
-14
-680
-138
-713
+15
+630
+185
+663
 forc-weight
 forc-weight
 0
@@ -2794,10 +2797,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-15
-645
-137
-678
+14
+593
+188
+626
 evac-weight
 evac-weight
 0
@@ -2809,10 +2812,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-14
-716
-139
-749
+15
+666
+185
+699
 envc-weight
 envc-weight
 0
@@ -2824,10 +2827,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-14
-758
-186
-791
+15
+702
+187
+735
 network-distance
 network-distance
 0
@@ -2839,10 +2842,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-13
-792
-185
-825
+14
+736
+186
+769
 network-size
 network-size
 1
@@ -2854,10 +2857,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-9
-833
-298
-866
+611
+717
+863
+750
 citizen-to-census-population-ratio
 citizen-to-census-population-ratio
 0
@@ -2869,10 +2872,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-525
-741
-722
-774
+411
+814
+608
+847
 kids-under-18-factor
 kids-under-18-factor
 0
@@ -2881,9 +2884,9 @@ kids-under-18-factor
 
 BUTTON
 16
-376
+17
 185
-409
+50
 Setup Simulation
 setup
 NIL
@@ -2897,10 +2900,10 @@ NIL
 1
 
 SWITCH
-526
-778
-722
-811
+412
+851
+608
+884
 adults-over-65-factor
 adults-over-65-factor
 1
@@ -2908,10 +2911,10 @@ adults-over-65-factor
 -1000
 
 SLIDER
-731
-739
-978
-772
+617
+812
+864
+845
 under-18-assessment-increase
 under-18-assessment-increase
 0.1
@@ -2923,10 +2926,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-730
-778
-976
-811
+616
+851
+862
+884
 over-65-assessment-decrease
 over-65-assessment-decrease
 0.1
@@ -2938,10 +2941,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-10
-867
-220
-900
+412
+753
+622
+786
 census-tract-min-pop
 census-tract-min-pop
 0
@@ -2953,10 +2956,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-10
-902
-220
-935
+628
+752
+838
+785
 census-tract-max-pop
 census-tract-max-pop
 0
@@ -2968,10 +2971,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-553
-679
-722
-712
+17
+283
+186
+316
 use-census-data
 use-census-data
 1
@@ -2979,20 +2982,20 @@ use-census-data
 -1000
 
 TEXTBOX
-554
-719
-704
-737
+440
+792
+590
+810
 Census Factors In Use
 11
 0.0
 1
 
 SWITCH
-527
-815
-722
-848
+413
+888
+608
+921
 limited-english-factor
 limited-english-factor
 1
@@ -3000,62 +3003,62 @@ limited-english-factor
 -1000
 
 SLIDER
-730
-817
-977
-850
-limited-english-assessment-decrease
-limited-english-assessment-decrease
-0
-1
-1.0
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-730
-853
-978
-886
-foodstamps-assessment-decrease
-foodstamps-assessment-decrease
-0
-1
-1.0
-0.1
-1
-NIL
-HORIZONTAL
-
-SWITCH
-526
-852
-720
-885
-use-food-stamps-factor
-use-food-stamps-factor
-1
-1
--1000
-
-SWITCH
-526
-889
-720
-922
-no-vehicle-factor
-no-vehicle-factor
-1
-1
--1000
-
-SLIDER
-729
+616
 890
-978
+863
 923
+limited-english-assessment-decrease
+limited-english-assessment-decrease
+0
+1
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+616
+926
+864
+959
+foodstamps-assessment-decrease
+foodstamps-assessment-decrease
+0
+1
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+412
+925
+606
+958
+use-food-stamps-factor
+use-food-stamps-factor
+1
+1
+-1000
+
+SWITCH
+412
+962
+606
+995
+no-vehicle-factor
+no-vehicle-factor
+1
+1
+-1000
+
+SLIDER
+615
+963
+864
+996
 no-vehicle-assessment-modification
 no-vehicle-assessment-modification
 0
@@ -3067,10 +3070,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-728
-928
-978
-961
+614
+1001
+864
+1034
 no-internet-assessment-modification
 no-internet-assessment-modification
 0
@@ -3082,10 +3085,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-526
-927
-720
-960
+412
+1000
+606
+1033
 no-internet-factor
 no-internet-factor
 1
@@ -3093,10 +3096,10 @@ no-internet-factor
 -1000
 
 SLIDER
-727
-679
-922
-712
+412
+715
+607
+748
 test-factor-proportion
 test-factor-proportion
 0
@@ -3126,21 +3129,74 @@ NIL
 
 CHOOSER
 16
-582
+181
 186
-627
+226
 where-to-place-legend?
 where-to-place-legend?
 "upper-right" "upper-left" "lower-right" "lower-left"
 0
 
 SWITCH
+15
+821
+280
+854
+save-agent-data-each-step
+save-agent-data-each-step
+1
+1
+-1000
+
+TEXTBOX
+412
+692
+878
+1046
+Census Controls and Parameters
+14
+0.0
+1
+
+TEXTBOX
+20
+793
+235
+811
+Model Output Controls
+14
+0.0
+1
+
+SWITCH
 16
-539
-186
-572
-output?
-output?
+853
+280
+886
+save-images-each-step
+save-images-each-step
+1
+1
+-1000
+
+SWITCH
+15
+886
+280
+919
+save-global-evacuation-statistics
+save-global-evacuation-statistics
+1
+1
+-1000
+
+SWITCH
+14
+921
+281
+954
+save-citizen-data-at-end-of-simulation
+save-citizen-data-at-end-of-simulation
 1
 1
 -1000
