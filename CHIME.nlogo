@@ -61,6 +61,7 @@ globals [
          land-patches             ; patchset of land patches
          ocean-patches            ; patchset of ocean patches
          coastal-patches          ; patchset of ocean patches that are located along coastal areas and have a county number
+         hurricane-has-passed?
 
 
          ; These variables need to be checked SMB*
@@ -187,6 +188,7 @@ to Setup
   Generate-Storm  ;; generates the hurricane
 
   set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track    ;; defines the clock
+  set hurricane-has-passed? false
 
   ;; Setup Agents Based on if the Census Information is Being Used
 
@@ -273,7 +275,7 @@ to Go
 
   tick   ;; advances the model one time step
 
-  if ticks = 135 [ stop ]
+  if hurricane-has-passed? = true [ stop ]
 
 
 end
@@ -418,6 +420,7 @@ to Load-Hurricane
   set best-track-data map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file.
       "-" item 6 ?1 item 7 ?1 item 0 ?1  item 1 ?1 item 8 ?1 item 9 ?1 item 10 ?1 item 11 ?1 item 16 ?1
       item 17 ?1 item 18 ?1 item 19 ?1) ] all-parsed  ;"best-track-data" is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
+
 
 end
 
@@ -1432,8 +1435,11 @@ to Move-Hurricane
                 set label-color red
                 set label item 2 item ticks hurricane-coords-best-track ] ]
 
-        ;; if the hurricane passes off the map, delete it
-           if any? hurricanes and not any? patches with [pxcor = hx and pycor = hy] [ ask hurricanes [die] ]
+        ;; if the hurricane passes off the map, delete and stop the simulation
+           if any? hurricanes and not any? patches with [pxcor = hx and pycor = hy]
+          [ ask hurricanes [die]
+           set hurricane-has-passed? true ]
+
 
         ;; while the hurricane is within the map, set coordinates and other characteristics based on the hurricane-coords-best-track array
            if any? hurricanes [
@@ -1771,8 +1777,15 @@ to Decision-Module
     ;; determines how far out (temporally) till the storm reaches closest point
      let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
      let arriv item 0 item 3 storm-intensity-and-location + ((item 1 item 3 storm-intensity-and-location / 100) * (1 / 24))
-
      let counter (arriv - tc) * 24 ;counter is the time (in hours) before arrival
+
+;    print "---"
+;
+;    show tc
+;    show arriv
+;    show counter
+;
+;    print "---"
 
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
      let x-value counter                     ; x value of the risk function is  time till arrival (in hours)
@@ -1838,9 +1851,9 @@ to Decision-Module
     set risk-estimate lput final-risk-assesment risk-estimate ;JA: Sean, do you know what is the point of risk-estimate? I think it may be a list, for each citizen, the final risk for each time they run the decision module. Note that this final risk does not include the weights (forc-w, evac-w, envc-w)
      ;; SB -- this is the risk assessment from each time step. I guess that JW wanted to record that risk instead of the final one?
     ;Calculate the final risk for each individual risk elements (forecast, evacuation orders, environmental cues) using the weights set in the interface by the user.
-    let c1 (temp-f-risk) * forc-w
-    let c2 ((trust-authority * 6 * official-orders * zone)) * evac-w
-    let c3 ((3 * environmental-cues)) * envc-w
+    let c1 (temp-f-risk) * forc-weight
+    let c2 ((trust-authority * 6 * official-orders * zone)) * evac-weight
+    let c3 ((3 * environmental-cues)) * envc-weight
 
     ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
     set final-risk-assesment sum (list c1 c2 c3)
@@ -2089,7 +2102,7 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number","evac-zone","completed","when-evac-1st-ordered","behaviorspace-run-number","which-storm?","distribute_population","earliest","wind-threshold","forc-w","evac-w","envc-w","network-distance","network-size","tract-information",")
+  set text-out (sentence ","who","xcor","ycor","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number","evac-zone","completed","when-evac-1st-ordered","behaviorspace-run-number","which-storm?","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","tract-information",")
   file-type text-out
   file-print ""
   ]
@@ -2229,7 +2242,7 @@ to-report Save-Global-Evac-Statistics
         ])
 
 
-   let op (sentence "" behaviorspace-run-number which-storm? distribute_population earliest wind-threshold forc-w evac-w envc-w allpct network-distance network-size test-factor-proportion under-18-assessment-increase "|" output-list-a "|" hist-list "|" hist-pcts "|")
+   let op (sentence "" behaviorspace-run-number which-storm? distribute_population earliest wind-threshold forc-weight evac-weight envc-weight allpct network-distance network-size test-factor-proportion under-18-assessment-increase "|" output-list-a "|" hist-list "|" hist-pcts "|")
 
   file-open word output-filename ".txt"
     file-type op
@@ -2767,10 +2780,10 @@ distribute_population
 SLIDER
 14
 680
-107
+138
 713
-forc-w
-forc-w
+forc-weight
+forc-weight
 0
 2
 1.37
@@ -2782,10 +2795,10 @@ HORIZONTAL
 SLIDER
 15
 645
-107
+137
 678
-evac-w
-evac-w
+evac-weight
+evac-weight
 0
 4
 0.62
@@ -2797,10 +2810,10 @@ HORIZONTAL
 SLIDER
 14
 716
-107
+139
 749
-envc-w
-envc-w
+envc-weight
+envc-weight
 0
 6
 1.0
@@ -3488,7 +3501,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
