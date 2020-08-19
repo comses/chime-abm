@@ -211,6 +211,9 @@ to Setup
    set risk-env 0
    set risk-surge 0
 
+
+  ask one-of citizen-agents [ set color pink]
+
 end
 
 
@@ -227,9 +230,6 @@ to Go
   ask forecasters [  set current-forecast Past-Forecasts  ]
 
   let from-forecaster Publish-New-Mental-Model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
-
-  ;print from-forecaster
-  ;print clock
 
   ;; officials take forecast info from broadcaster and generate an evacuation order code
   Coastal-Patches-Alerts
@@ -1493,11 +1493,17 @@ to-report Past-Forecasts
    ;Makes sure the advisory data (new-forecast) begins at or before the best track time
   ;forecast-matrix format: [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
 
-  ; SB* Here is a problem
+  ; SB* Here is a small problem                      time is less than clock                                     time is equal and next entry is less than the next clock entry
    let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
-  print clock
-  print new-forecast
-   set new-forecast but-first new-forecast
+
+  ; First search for a time entry that matches, if there's nothing then use the previous method
+  let identical-forecast filter [ ?1 -> item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 = item 1 clock ] forecast-matrix
+;print "----"
+;  print identical-forecast
+;  print clock
+;  print new-forecast
+;print "----"
+   set new-forecast but-first new-forecast ; take the date off the list
 
    ; Split each weather condition from new-forecast and add to a list that contains only that weather condition
    let winds34 map [ ?1 -> ifelse-value (?1 = "") [[]] [?1] ] map [ ?1 -> item 5 ?1 ] new-forecast ;[radiusNE,radiusSE,radiusSW,radiusNW]
@@ -1775,7 +1781,10 @@ to Decision-Module
 
     ;storm-intensity-and-location format: [intensity [x_location y_location] error_in_forecast [day hour]]
      let storm-intensity-and-location first sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] interpreted-forecast
-
+;if color = pink[
+;    print "---"
+;    print storm-intensity-and-location
+;    ]
      set interpreted-forecast list interpreted-forecast ["no surge forecast"]
 
      ;; sets memory variable for use in subsequent loops, and links that to the agent's self trust parameter
@@ -1788,7 +1797,9 @@ to Decision-Module
      let tc item 0 clock + ((item 1 clock / 100) * (1 / 24))
      let arriv item 0 item 3 storm-intensity-and-location + ((item 1 item 3 storm-intensity-and-location / 100) * (1 / 24))
      let counter (arriv - tc) * 24 ;counter is the time (in hours) before arrival
+let me who
 
+;if color = pink[
 ;    print "---"
 ;
 ;    show tc
@@ -1796,7 +1807,7 @@ to Decision-Module
 ;    show counter
 ;
 ;    print "---"
-
+;    ]
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
      let x-value counter                     ; x value of the risk function is  time till arrival (in hours)
      let center random-normal 36 3          ; sets peak utility/risk at 36 before arrival... (random number w/ mean 36 and stdev 3)
@@ -1867,7 +1878,7 @@ to Decision-Module
 
     ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
     set final-risk-assesment sum (list c1 c2 c3)
-   ; print (list c1 c2 c3)
+
 
     ;; Modify the final risk value based on census information. The impact is set in the interface by the user.
     if kids-under-18? = true [set final-risk-assesment final-risk-assesment + (final-risk-assesment * under-18-assessment-increase)]
