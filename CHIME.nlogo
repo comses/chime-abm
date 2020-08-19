@@ -228,7 +228,8 @@ to Go
 
   let from-forecaster Publish-New-Mental-Model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
-  print from-forecaster
+  ;print from-forecaster
+  ;print clock
 
   ;; officials take forecast info from broadcaster and generate an evacuation order code
   Coastal-Patches-Alerts
@@ -563,8 +564,8 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
 
    let all-advisories csv:from-file storm-file
 
@@ -1491,7 +1492,11 @@ to-report Past-Forecasts
    let time-list []
    ;Makes sure the advisory data (new-forecast) begins at or before the best track time
   ;forecast-matrix format: [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
+
+  ; SB* Here is a problem
    let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
+  print clock
+  print new-forecast
    set new-forecast but-first new-forecast
 
    ; Split each weather condition from new-forecast and add to a list that contains only that weather condition
