@@ -22,7 +22,7 @@
 
 ;Go: This procedure moves the hurricane in the Netlogo interface, forecasters publish new forecasts, broadcasters and aggregators update their forecast, citizens receive the updated forecast and produces a mental model of the storm, officials potentially issue evacuation orders, and citizens evaluate their risk to potentially make protective decisions.
     ;1. Move-Hurricane: Moves the hurricane symbol in the Netlogo interface.
-    ;2. Past-Forecasts: Forecaster publishes the most recent forecast from forecast-matrix. A new forecast is published every 6 hours.
+    ;2. Publish-Forecast: Forecaster publishes the most recent forecast from forecast-matrix. A new forecast is published every 6 hours.
     ;3. Publish-New-Mental-Model: Each citizen has a mental model of where they think the hurricane will go and how severe it will be.
     ;4. Coastal-Patches-Alerts: Coastal patches diagnose if their patch is within an intensity threshold and distance threshold to issue an alert. If so, the patch communicates with the official to issue an alert.
     ;5. Issue-Alerts: The official issues an evacuation order after coastal-patches-alerts issues an alert.
@@ -224,7 +224,7 @@ to Go
   ifelse using-hpc? [][Move-Hurricane]    ;; calls procedure to move the hurricane one time step - only show the visualization if using a local computer copy
 
   ;; update the forecast
-  ask forecasters [  set current-forecast Past-Forecasts  ]
+  ask forecasters [  set current-forecast Publish-Forecast  ]
 
   let from-forecaster Publish-New-Mental-Model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
@@ -264,6 +264,18 @@ to Go
   ask citizen-agents with [color = white] [set color blue]
 
   if ticks != 135 [ set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track  ]
+  if which-storm? = "MICHAEL" and output? [
+      let x save-data-timestep
+      let y save-view-images
+      if ticks = 95 [ ;time step 95 is when Michael makes landfall
+          set output-filename "test"
+          print save-global-evac-statistics
+          ;set evac-filename "test_indiv"
+          set evac-filename word behaviorspace-run-number "_test_indiv"
+          print save-individual-cit-ag-evac-records  ]
+  ]
+
+  tick   ;; advances the model one time step
 
   ; Save data that records every timestep
   if save-agent-data-each-step [let x save-data-timestep] ;behaviorspace requires a reporter but the value reported is not real
@@ -1116,7 +1128,7 @@ to  Create-Other-Agents
        set j j + 1
      ]
     move-to item (j - 1) ranked-patches
-    set current-forecast Past-Forecasts ;Past-Forecasts is the advisory data
+    set current-forecast Publish-Forecast ;Publish-Forecast is the advisory data
     ]
 
 
@@ -1466,8 +1478,7 @@ to Move-Hurricane
 
 end
 
-;JA: Should we name this: publish-forecast
-to-report Past-Forecasts
+to-report Publish-Forecast
   ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
   ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm.
   ; A location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
