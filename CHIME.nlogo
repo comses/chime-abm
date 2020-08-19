@@ -564,7 +564,7 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
 
    let all-advisories csv:from-file storm-file
@@ -756,7 +756,6 @@ to Load-Forecasts-New
   set entries-for-all-days Calendar-Check entries-for-all-days
 
   set forecast-matrix  entries-for-all-days
-
 
 end
 
@@ -1495,7 +1494,8 @@ to-report Past-Forecasts
 
   ; SB* Here is a problem
    let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
-print "hit"
+
+  print "hit"
   print forecast-matrix
   print clock
   print new-forecast
