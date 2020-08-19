@@ -1495,6 +1495,8 @@ to-report Past-Forecasts
 
   ; SB* Here is a problem
    let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
+print "hit"
+  print forecast-matrix
   print clock
   print new-forecast
    set new-forecast but-first new-forecast
@@ -3563,7 +3565,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
