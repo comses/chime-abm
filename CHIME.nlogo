@@ -144,6 +144,10 @@ citizen-agents-own [
          no-vehicle?                       ; records if the census tract does not have a vehicle
          no-internet?                      ; records if the census tract has access to interent
 
+         risk-forecast                     ;forecast risk (weight is included)
+         risk-official-orders              ;evacuation order risk (weight is included)
+         risk-environmental-cues           ;environmental cue risk (weight is included)
+         final-risk-assesment              ;total risk ( risk-forecast  + risk-official-orders  + risk-environmental-cues )
      ]
 
 officials-own [
@@ -274,11 +278,10 @@ to Go
   if hurricane-has-passed? = true [
     set output-filename "test"
     if save-global-evacuation-statistics [let x save-global-evac-statistics]
-    set evac-filename word behaviorspace-run-number "_test_indiv"
+    set evac-filename word "output/inidividual-evac-statistics_" behaviorspace-run-number
     if save-citizen-data-at-end-of-simulation [let x save-individual-cit-ag-evac-records ]
    stop
    ]
-
   tick   ;; advances the model one time step
 
 end
@@ -565,11 +568,10 @@ to Load-Forecasts-New
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
 
    let all-advisories csv:from-file storm-file
-  print "hit"
-print all-advisories
+
   ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
 
    let advisories-parsed []; the first list used to hold information from the first parsing of all-advisories
@@ -1831,7 +1833,7 @@ to Decision-Module
     if self = watching [ set risk-funct risk] ;currently, this code is not run. No agent is "watching". This code was originally in place when using the plotting tools in the interface to look at citizen risk functions.
 
    ;; takes the risk assessment and adds a little error either side
-    let final-risk-assesment random-normal risk .5
+    set final-risk-assesment random-normal risk .5
 
     if self = watching [ set risk-error (final-risk-assesment - risk) ] ;Calculate the error in a citizen's risk
 
@@ -1854,19 +1856,18 @@ to Decision-Module
     if self = watching [ set risk-env (3 * environmental-cues) ]
 
     ;; risk-packet is a list for storing information about the [final risk, environemntal cues risk, and official orders risk] used for risk assesments. Not used in the decision process.
-    ;JA: Why does the risk packet not have risk from forecasts (i.e. c1 below)?
+    ;JA: Why does the risk packet not have risk from forecasts (i.e. risk-forecast below)?
     set risk-packet (list precision final-risk-assesment 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
     ;; records the final risk assesment through time for the agent. Not used in the decision process.
     set risk-estimate lput final-risk-assesment risk-estimate ;JA: Sean, do you know what is the point of risk-estimate? I think it may be a list, for each citizen, the final risk for each time they run the decision module. Note that this final risk does not include the weights (forc-w, evac-w, envc-w)
      ;; SB -- this is the risk assessment from each time step. I guess that JW wanted to record that risk instead of the final one?
     ;Calculate the final risk for each individual risk elements (forecast, evacuation orders, environmental cues) using the weights set in the interface by the user.
-    let c1 (temp-f-risk) * forc-weight
-    let c2 ((trust-authority * 6 * official-orders * zone)) * evac-weight
-    let c3 ((3 * environmental-cues)) * envc-weight
+    set risk-forecast (temp-f-risk) * forc-weight
+    set risk-official-orders ((trust-authority * 6 * official-orders * zone)) * evac-weight
+    set risk-environmental-cues ((3 * environmental-cues)) * envc-weight
 
     ;; Add the various environmental and social risk assessments into one value that represents an agent's perception of risk for this moment
-    set final-risk-assesment sum (list c1 c2 c3)
-   ; print (list c1 c2 c3)
+    set final-risk-assesment sum (list risk-forecast risk-official-orders risk-environmental-cues)
 
     ;; Modify the final risk value based on census information. The impact is set in the interface by the user.
     if kids-under-18? = true [set final-risk-assesment final-risk-assesment + (final-risk-assesment * under-18-assessment-increase)]
@@ -1876,7 +1877,7 @@ to Decision-Module
     if no-vehicle? = true [set final-risk-assesment final-risk-assesment - (final-risk-assesment * no-vehicle-assessment-modification)]
     if no-internet? = true [set final-risk-assesment final-risk-assesment - (final-risk-assesment * no-internet-assessment-modification)]
 
-    set risk-watcher final-risk-assesment ;not used anymore - origianlly used when plotting risk
+    ;set risk-watcher final-risk-assesment ;not used anymore - origianlly used when plotting risk
 
    ;; conditionals determine the decision outcome based on the risk assessment (records what they did and when they did it, updates colors)
    ;; note "feedback1" variable sets the frequency an agent runs this whole loop, min is 1 tick (every step), max is 12 ticks
@@ -2008,11 +2009,11 @@ to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
   ;set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
   ;  [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
 ;;  print data-dump
-  let text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,risktotal,riskfunct,riskerror,riskorders,riskenv,risksurge,percentevacuated,forecastw,evacw,envcw,")
+  let text-out (sentence ",agent,decisionmodulefrequency,riskforecast,riskorders,riskenv,finalriskassessment,risksurge,percentevacuatedcoastal64,")
   file-type text-out
   file-print ""
    ask citizen-agents [
-  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","risk-total","risk-funct","risk-error","risk-orders","risk-env","risk-surge","percentage",")
+  set text-out (sentence ","who","decision-module-frequency","risk-forecast","risk-official-orders","risk-environmental-cues","final-risk-assesment","risk-surge","percentage",")
   file-type text-out
   file-print ""
   ]
@@ -2104,13 +2105,14 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   ; CALLED BY: Behavior Space
 
   let filename evac-filename
-  file-open word filename ".csv"
-  let text-out (sentence ",agent,xcor,ycor,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,evac.zone,completed.actions,when.evac.1st.ordered,bs.run.number,which.storm,distribute.population,earliest,wind.threshold,forc.w,evac.w,envc.w,network.distance,network.size,tract.information,")
+  file-open (word filename ".csv")
+
+  let text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,decisionmodulefrequency,evac.zone,completed.actions,when.evac.1st.ordered,which.storm,distribute.population,earliest,wind.threshold,forc.w,evac.w,envc.w,network.distance,network.size,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
   file-type text-out
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number","evac-zone","completed","when-evac-1st-ordered","behaviorspace-run-number","which-storm?","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","tract-information",")
+  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","decision-module-frequency","evac-zone","completed","when-evac-1st-ordered","which-storm?","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
   file-type text-out
   file-print ""
   ]
@@ -2127,9 +2129,6 @@ to-report Save-Global-Evac-Statistics
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED
   ; CALLED BY: Behavior Space
-
-
- ifelse ticks > 115 [
 
  let rec-matrix []
 
@@ -2250,15 +2249,23 @@ to-report Save-Global-Evac-Statistics
         ])
 
 
-   let op (sentence "" behaviorspace-run-number which-storm? distribute_population earliest wind-threshold forc-weight evac-weight envc-weight allpct network-distance network-size test-factor-proportion under-18-assessment-increase "|" output-list-a "|" hist-list "|" hist-pcts "|")
+;   ;let op (sentence "" behaviorspace-run-number which-storm? distribute_population earliest wind-threshold forc-weight evac-weight envc-weight allpct network-distance network-size test-factor-proportion under-18-assessment-increase "|" output-list-a "|" hist-list "|" hist-pcts "|")
+; let op (sentence "" which-storm? distribute_population earliest wind-threshold forc-weight evac-weight envc-weight allpct network-distance network-size test-factor-proportion under-18-assessment-increase "|" output-list-a "|" hist-list "|" hist-pcts "|")
+;    file-open (word "output/global-evac-statistics_" behaviorspace-run-number  ".csv")
+;;  file-open word output-filename ".txt"
+;    file-type op
+;    file-print ""
+;  file-close
 
-  file-open word output-filename ".txt"
-    file-type op
-    file-print ""
+  file-open (word "output/global-evac-statistics_" behaviorspace-run-number  ".csv")
+  let text-out (sentence ",which-storm?,distribute_population,earliest,wind-threshold,forc-weight,evac-weight,envc-weight,allpct,network-distance,network-size,test-factor-proportion,under-18-assessment-increase,output-list-a, hist-list,hist-pcts,")
+  file-type text-out
+  file-print ""
+  set text-out (sentence ","which-storm?","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","allpct","network-distance","network-size","test-factor-proportion","under-18-assessment-increase","output-list-a","hist-list","hist-pcts",")
+  file-type text-out
+  file-print ""
   file-close
-
-
-  report output-list ] [ report "N/A"]
+  report "bogus"
 
 end
 
@@ -2569,7 +2576,7 @@ SLIDER
 #citizen-agents
 0
 5000
-987.0
+64.0
 1
 1
 NIL
@@ -2743,7 +2750,7 @@ latest
 latest
 0
 12
-3.0
+0.0
 3
 1
 NIL
@@ -2758,7 +2765,7 @@ wind-threshold
 wind-threshold
 70
 130
-130.0
+119.0
 1
 1
 NIL
@@ -2809,7 +2816,7 @@ evac-weight
 evac-weight
 0
 4
-0.62
+0.53
 .01
 1
 NIL
@@ -3148,7 +3155,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-1
+0
 1
 -1000
 
@@ -3179,7 +3186,7 @@ SWITCH
 886
 save-images-each-step
 save-images-each-step
-1
+0
 1
 -1000
 
@@ -3190,7 +3197,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-1
+0
 1
 -1000
 
@@ -3201,7 +3208,7 @@ SWITCH
 954
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
-1
+0
 1
 -1000
 
