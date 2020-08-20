@@ -1496,10 +1496,6 @@ to-report Past-Forecasts
   ; SB* Here is a problem
    let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
 
-  print "hit"
-  print forecast-matrix
-  print clock
-  print new-forecast
    set new-forecast but-first new-forecast
 
    ; Split each weather condition from new-forecast and add to a list that contains only that weather condition
@@ -1528,8 +1524,7 @@ to-report Past-Forecasts
    while [length error-list > length new-forecast] [set error-list but-last error-list ]
 
    set size-list map [ ?1 -> ?1 ] error-list
-  print length intensity-list
-print length error-list
+
    let published-forecast [] ;Combine the sub lists created above to create a complete and current forecast
    set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] intensity-list location-list size-list time-list winds34 winds64)
 
