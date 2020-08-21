@@ -2258,10 +2258,10 @@ to-report Save-Global-Evac-Statistics
 ;  file-close
 
   file-open (word "output/global-evac-statistics_" behaviorspace-run-number  ".csv")
-  let text-out (sentence ",which-storm?,distribute_population,earliest,wind-threshold,forc-weight,evac-weight,envc-weight,allpct,network-distance,network-size,test-factor-proportion,under-18-assessment-increase,output-list-a, hist-list,hist-pcts,")
+  let text-out (sentence ",which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,wind-threshold,forc-weight,evac-weight,envc-weight,allpct,network-distance,network-size,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,output-list-a, hist-list,hist-pcts,")
   file-type text-out
   file-print ""
-  set text-out (sentence ","which-storm?","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","allpct","network-distance","network-size","test-factor-proportion","under-18-assessment-increase","output-list-a","hist-list","hist-pcts",")
+  set text-out (sentence ","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","allpct","network-distance","network-size","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification","output-list-a","hist-list","hist-pcts",")
   file-type text-out
   file-print ""
   file-close
