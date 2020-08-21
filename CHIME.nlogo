@@ -2107,12 +2107,12 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   let filename evac-filename
   file-open (word filename ".csv")
 
-  let text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,decisionmodulefrequency,evac.zone,completed.actions,when.evac.1st.ordered,which.storm,distribute.population,earliest,wind.threshold,forc.w,evac.w,envc.w,network.distance,network.size,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
+  let text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,decisionmodulefrequency,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
   file-type text-out
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","decision-module-frequency","evac-zone","completed","when-evac-1st-ordered","which-storm?","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
+  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","decision-module-frequency","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
   file-type text-out
   file-print ""
   ]
@@ -2258,10 +2258,10 @@ to-report Save-Global-Evac-Statistics
 ;  file-close
 
   file-open (word "output/global-evac-statistics_" behaviorspace-run-number  ".csv")
-  let text-out (sentence ",which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,wind-threshold,forc-weight,evac-weight,envc-weight,allpct,network-distance,network-size,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,output-list-a, hist-list,hist-pcts,")
+  let text-out (sentence ",which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,percent_all_evacuated,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,output-list-a, hist-list,hist-pcts,")
   file-type text-out
   file-print ""
-  set text-out (sentence ","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","wind-threshold","forc-weight","evac-weight","envc-weight","allpct","network-distance","network-size","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification","output-list-a","hist-list","hist-pcts",")
+  set text-out (sentence ","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","allpct","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification","output-list-a","hist-list","hist-pcts",")
   file-type text-out
   file-print ""
   file-close
