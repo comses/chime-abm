@@ -2885,10 +2885,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-611
-717
-863
-750
+411
+718
+838
+751
 citizen-to-census-population-ratio
 citizen-to-census-population-ratio
 0
@@ -2901,9 +2901,9 @@ HORIZONTAL
 
 SWITCH
 411
-814
+817
 608
-847
+850
 kids-under-18-factor
 kids-under-18-factor
 0
@@ -2929,9 +2929,9 @@ NIL
 
 SWITCH
 412
-851
+854
 608
-884
+887
 adults-over-65-factor
 adults-over-65-factor
 1
@@ -2940,9 +2940,9 @@ adults-over-65-factor
 
 SLIDER
 617
-812
+815
 864
-845
+848
 under-18-assessment-increase
 under-18-assessment-increase
 0.1
@@ -2955,9 +2955,9 @@ HORIZONTAL
 
 SLIDER
 616
-851
+854
 862
-884
+887
 over-65-assessment-decrease
 over-65-assessment-decrease
 0.1
@@ -3010,10 +3010,10 @@ use-census-data
 -1000
 
 TEXTBOX
-440
-792
-590
-810
+414
+797
+564
+815
 Census Factors In Use
 11
 0.0
@@ -3021,9 +3021,9 @@ Census Factors In Use
 
 SWITCH
 413
-888
+891
 608
-921
+924
 limited-english-factor
 limited-english-factor
 1
@@ -3032,9 +3032,9 @@ limited-english-factor
 
 SLIDER
 616
-890
+893
 863
-923
+926
 limited-english-assessment-decrease
 limited-english-assessment-decrease
 0
@@ -3047,9 +3047,9 @@ HORIZONTAL
 
 SLIDER
 616
-926
+929
 864
-959
+962
 foodstamps-assessment-decrease
 foodstamps-assessment-decrease
 0
@@ -3062,9 +3062,9 @@ HORIZONTAL
 
 SWITCH
 412
-925
+928
 606
-958
+961
 use-food-stamps-factor
 use-food-stamps-factor
 1
@@ -3073,9 +3073,9 @@ use-food-stamps-factor
 
 SWITCH
 412
-962
+965
 606
-995
+998
 no-vehicle-factor
 no-vehicle-factor
 1
@@ -3084,9 +3084,9 @@ no-vehicle-factor
 
 SLIDER
 615
-963
+966
 864
-996
+999
 no-vehicle-assessment-modification
 no-vehicle-assessment-modification
 0
@@ -3099,9 +3099,9 @@ HORIZONTAL
 
 SLIDER
 614
-1001
+1004
 864
-1034
+1037
 no-internet-assessment-modification
 no-internet-assessment-modification
 0
@@ -3114,29 +3114,14 @@ HORIZONTAL
 
 SWITCH
 412
-1000
+1003
 606
-1033
+1036
 no-internet-factor
 no-internet-factor
 1
 1
 -1000
-
-SLIDER
-412
-715
-607
-748
-test-factor-proportion
-test-factor-proportion
-0
-1
-0.3
-0.05
-1
-NIL
-HORIZONTAL
 
 BUTTON
 1182
@@ -3177,10 +3162,10 @@ save-agent-data-each-step
 -1000
 
 TEXTBOX
-412
-692
-878
-1046
+413
+691
+817
+709
 Census Controls and Parameters
 14
 0.0
@@ -3586,7 +3571,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
