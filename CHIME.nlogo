@@ -1221,7 +1221,7 @@ to Create-Citizen-Agents-From-Census-Tracts
       set interpreted-forecast []
       set memory list self-trust interpreted-forecast ;"memory" includes a citizen's self trust and interpreted forecast
 
-      ;; for new decision model, citizens determine risk perception thresolds
+      ;; for the decision model, citizens determine risk perception thresolds
       set risk-life-threshold random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
       set risk-property-threshold random-normal (.7 * risk-life-threshold) .5 ;"risk-property" depends on "risk-life"
         if risk-property-threshold > risk-life-threshold [set risk-property-threshold risk-life-threshold] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
@@ -2868,10 +2868,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-611
-717
+412
+715
 863
-750
+748
 citizen-to-census-population-ratio
 citizen-to-census-population-ratio
 0
@@ -2952,10 +2952,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-412
-753
-622
-786
+411
+751
+636
+784
 census-tract-min-pop
 census-tract-min-pop
 0
@@ -2967,10 +2967,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-628
-752
-838
-785
+639
+750
+862
+783
 census-tract-max-pop
 census-tract-max-pop
 0
@@ -3106,21 +3106,6 @@ no-internet-factor
 1
 -1000
 
-SLIDER
-412
-715
-607
-748
-test-factor-proportion
-test-factor-proportion
-0
-1
-0.3
-0.05
-1
-NIL
-HORIZONTAL
-
 BUTTON
 1182
 786
@@ -3160,10 +3145,10 @@ save-agent-data-each-step
 -1000
 
 TEXTBOX
-412
-692
-878
-1046
+428
+687
+894
+705
 Census Controls and Parameters
 14
 0.0
@@ -3569,7 +3554,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
