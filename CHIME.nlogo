@@ -1221,7 +1221,7 @@ to Create-Citizen-Agents-From-Census-Tracts
       set interpreted-forecast []
       set memory list self-trust interpreted-forecast ;"memory" includes a citizen's self trust and interpreted forecast
 
-      ;; for the decision model, citizens determine risk perception thresolds
+      ;; for new decision model, citizens determine risk perception thresolds
       set risk-life-threshold random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
       set risk-property-threshold random-normal (.7 * risk-life-threshold) .5 ;"risk-property" depends on "risk-life"
         if risk-property-threshold > risk-life-threshold [set risk-property-threshold risk-life-threshold] ;"risk-property" cannot be greater than "risk-life". A citizen should not have a higher risk threshold for property compared to their life.
@@ -2009,7 +2009,16 @@ to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
   ;set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
   ;  [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
 ;;  print data-dump
-  let text-out (sentence ",agent,decisionmodulefrequency,riskforecast,riskorders,riskenv,finalriskassessment,risksurge,percentevacuatedcoastal64,")
+
+  let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,")
+  file-type text-out
+  file-print ""
+  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification",")
+  file-type text-out
+  file-print ""
+  file-print ""
+
+  set text-out (sentence ",agent,decisionmodulefrequency,riskforecast,riskorders,riskenv,finalriskassessment,risksurge,percentevacuatedcoastal64,")
   file-type text-out
   file-print ""
    ask citizen-agents [
@@ -2107,7 +2116,15 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   let filename evac-filename
   file-open (word filename ".csv")
 
-  let text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,decisionmodulefrequency,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
+  let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,")
+  file-type text-out
+  file-print ""
+  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification",")
+  file-type text-out
+  file-print ""
+  file-print ""
+
+  set text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,decisionmodulefrequency,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
   file-type text-out
   file-print ""
 
@@ -2868,10 +2885,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-412
-715
+611
+717
 863
-748
+750
 citizen-to-census-population-ratio
 citizen-to-census-population-ratio
 0
@@ -2952,10 +2969,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-411
-751
-636
-784
+412
+753
+622
+786
 census-tract-min-pop
 census-tract-min-pop
 0
@@ -2967,10 +2984,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-639
-750
-862
-783
+628
+752
+838
+785
 census-tract-max-pop
 census-tract-max-pop
 0
@@ -3106,6 +3123,21 @@ no-internet-factor
 1
 -1000
 
+SLIDER
+412
+715
+607
+748
+test-factor-proportion
+test-factor-proportion
+0
+1
+0.3
+0.05
+1
+NIL
+HORIZONTAL
+
 BUTTON
 1182
 786
@@ -3145,10 +3177,10 @@ save-agent-data-each-step
 -1000
 
 TEXTBOX
-428
-687
-894
-705
+412
+692
+878
+1046
 Census Controls and Parameters
 14
 0.0
@@ -3554,7 +3586,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
