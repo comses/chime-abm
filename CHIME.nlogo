@@ -192,6 +192,7 @@ to Setup
   Generate-Storm  ;; generates the hurricane
 
   set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track    ;; defines the clock
+
   set hurricane-has-passed? false
 
   ;; Setup Agents Based on if the Census Information is Being Used
@@ -228,7 +229,7 @@ to Go
   ifelse using-hpc? [][Move-Hurricane]    ;; calls procedure to move the hurricane one time step - only show the visualization if using a local computer copy
 
   ;; update the forecast
-  ask forecasters [  set current-forecast Past-Forecasts  ]
+  ask forecasters [  set current-forecast Publish-Forecasts  ]
 
   let from-forecaster Publish-New-Mental-Model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
@@ -569,8 +570,8 @@ to Load-Forecasts-New
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
-
-   let all-advisories csv:from-file storm-file
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
+    let all-advisories csv:from-file storm-file
 
   ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
 
@@ -756,7 +757,7 @@ to Load-Forecasts-New
   ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
 
 
-  set entries-for-all-days Calendar-Check entries-for-all-days
+;  set entries-for-all-days Calendar-Check-Forecast entries-for-all-days
 
   set forecast-matrix  entries-for-all-days
 
@@ -798,7 +799,7 @@ to-report Calculate-Advisory-Time [time hours-away]
 
 end
 
-to-report Calendar-Check [forecast-entries]
+to-report Calendar-Check-Forecast [forecast-entries] ; used to prevent issues that may occur when a forecast covers two different months
   let clean-forecast[]
   let previous-date item 0 forecast-entries
   set previous-date item 0 previous-date
@@ -818,6 +819,24 @@ to-report Calendar-Check [forecast-entries]
   ;report forecast-entries
   report clean-forecast
 end
+
+to-report Calendar-Check-Storm-Track [storm-track] ; used to prevent issues that may occur when a forecast covers two different months
+  let clean-storm-track[]
+  let previous-date item 0 storm-track   ;[x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
+  set previous-date item 3 previous-date
+
+  foreach storm-track [ unique-entry ->
+    let date item 3 unique-entry
+    if date < previous-date [
+      set date previous-date + 1
+      set unique-entry replace-item 3 unique-entry date
+    ]
+    set previous-date date
+    set clean-storm-track lput unique-entry clean-storm-track
+  ]
+  report clean-storm-track
+end
+
 
 
 to-report Calculate-Coordinates [long lat]
@@ -955,7 +974,9 @@ to Generate-Storm
   ; ->  [[-32.46 -215.33 25 7 0 0 0 0 0 0 0 0 0] .....
   set hurricane-coords-best-track  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords-best-track ;hurricane-coords-best-track: [x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
 
-
+print hurricane-coords-best-track
+  set hurricane-coords-best-track Calendar-Check-Storm-Track hurricane-coords-best-track
+print hurricane-coords-best-track
   ;; Now drawer agents are used to create a storm track path across the screen. Then links are made between the agents.
   ;; This results in a gray line that shows the storm path across the screen.
   ;; These agents are not used in the evacuation simulation.
@@ -1119,7 +1140,7 @@ to  Create-Other-Agents
        set j j + 1
      ]
     move-to item (j - 1) ranked-patches
-    set current-forecast Past-Forecasts ;Past-Forecasts is the advisory data
+    set current-forecast Publish-Forecasts ;Past-Forecasts is the advisory data
     ]
 
 
@@ -1469,8 +1490,8 @@ to Move-Hurricane
 
 end
 
-;JA: Should we name this: publish-forecast
-to-report Past-Forecasts
+
+to-report Publish-Forecasts
   ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
   ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm.
   ; A location for 120 hrs is selected using a stripped down version of the NHC data for 2009-2013,
@@ -1495,7 +1516,7 @@ to-report Past-Forecasts
    ;Makes sure the advisory data (new-forecast) begins at or before the best track time
   ;forecast-matrix format: [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
 
-  ; SB* Here is a problem
+  ; SB* Here is where the forecast is matched to the current time
    let new-forecast last filter [ ?1 -> item 0 item 0 ?1 < item 0 clock or (item 0 item 0 ?1 = item 0 clock and item 1 item 0 ?1 < item 1 clock) ] forecast-matrix
 
    set new-forecast but-first new-forecast
@@ -2941,7 +2962,7 @@ adults-over-65-factor
 SLIDER
 617
 815
-864
+840
 848
 under-18-assessment-increase
 under-18-assessment-increase
@@ -2956,7 +2977,7 @@ HORIZONTAL
 SLIDER
 616
 854
-862
+841
 887
 over-65-assessment-decrease
 over-65-assessment-decrease
@@ -3033,7 +3054,7 @@ limited-english-factor
 SLIDER
 616
 893
-863
+840
 926
 limited-english-assessment-decrease
 limited-english-assessment-decrease
@@ -3048,7 +3069,7 @@ HORIZONTAL
 SLIDER
 616
 929
-864
+841
 962
 foodstamps-assessment-decrease
 foodstamps-assessment-decrease
@@ -3085,7 +3106,7 @@ no-vehicle-factor
 SLIDER
 615
 966
-864
+842
 999
 no-vehicle-assessment-modification
 no-vehicle-assessment-modification
@@ -3100,7 +3121,7 @@ HORIZONTAL
 SLIDER
 614
 1004
-864
+841
 1037
 no-internet-assessment-modification
 no-internet-assessment-modification
@@ -3157,7 +3178,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-0
+1
 1
 -1000
 
@@ -3188,7 +3209,7 @@ SWITCH
 886
 save-images-each-step
 save-images-each-step
-0
+1
 1
 -1000
 
@@ -3199,7 +3220,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-0
+1
 1
 -1000
 
@@ -3210,7 +3231,7 @@ SWITCH
 954
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
-0
+1
 1
 -1000
 
