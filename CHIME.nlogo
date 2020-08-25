@@ -233,9 +233,6 @@ to Go
 
   let from-forecaster Publish-New-Mental-Model  ;; temporary variable to hold the interpreted version of the forecast (publish-new-mental-model is a reporter defined below)
 
-  ;print from-forecaster
-  ;print clock
-
   ;; officials take forecast info from broadcaster and generate an evacuation order code
   Coastal-Patches-Alerts
   ask officials with [any? coastal-patches with [county  = [[county] of patch-here] of myself]] [ Issue-Alerts ]
@@ -396,7 +393,8 @@ to Load-Hurricane
     if which-storm? = "CHARLEY_BAD" [ set storm-file "STORMS/CHARLEY_BAD/CHARLEY.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA.txt" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut.txt" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut_fake.txt" ]
 
   file-open storm-file  ; imports the best track data
 
@@ -568,9 +566,9 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
     let all-advisories csv:from-file storm-file
 
   ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
@@ -757,7 +755,7 @@ to Load-Forecasts-New
   ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
 
 
-;  set entries-for-all-days Calendar-Check-Forecast entries-for-all-days
+  set entries-for-all-days Calendar-Check-Forecast entries-for-all-days
 
   set forecast-matrix  entries-for-all-days
 
@@ -799,7 +797,10 @@ to-report Calculate-Advisory-Time [time hours-away]
 
 end
 
-to-report Calendar-Check-Forecast [forecast-entries] ; used to prevent issues that may occur when a forecast covers two different months
+to-report Calendar-Check-Forecast [forecast-entries]
+  ; used to prevent issues that may occur when a forecast covers two different months
+  ; if the next date in the list is less than the previous date, the date is changed to one more than the original
+  ; so 29, 30, 1, 2  -> 29, 30, 31, 32
   let clean-forecast[]
   let previous-date item 0 forecast-entries
   set previous-date item 0 previous-date
@@ -820,7 +821,10 @@ to-report Calendar-Check-Forecast [forecast-entries] ; used to prevent issues th
   report clean-forecast
 end
 
-to-report Calendar-Check-Storm-Track [storm-track] ; used to prevent issues that may occur when a forecast covers two different months
+to-report Calendar-Check-Storm-Track [storm-track]
+  ; used to prevent issues that may occur when a forecast covers two different months
+  ; if the next date in the list is less than the previous date, the date is changed to one more than the original
+  ; so 29, 30, 1, 2  -> 29, 30, 31, 32
   let clean-storm-track[]
   let previous-date item 0 storm-track   ;[x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
   set previous-date item 3 previous-date
@@ -974,9 +978,8 @@ to Generate-Storm
   ; ->  [[-32.46 -215.33 25 7 0 0 0 0 0 0 0 0 0] .....
   set hurricane-coords-best-track  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords-best-track ;hurricane-coords-best-track: [x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
 
-print hurricane-coords-best-track
   set hurricane-coords-best-track Calendar-Check-Storm-Track hurricane-coords-best-track
-print hurricane-coords-best-track
+
   ;; Now drawer agents are used to create a storm track path across the screen. Then links are made between the agents.
   ;; This results in a gray line that shows the storm path across the screen.
   ;; These agents are not used in the evacuation simulation.
@@ -1811,14 +1814,6 @@ to Decision-Module
      let arriv item 0 item 3 storm-intensity-and-location + ((item 1 item 3 storm-intensity-and-location / 100) * (1 / 24))
      let counter (arriv - tc) * 24 ;counter is the time (in hours) before arrival
 
-;    print "---"
-;
-;    show tc
-;    show arriv
-;    show counter
-;
-;    print "---"
-
     ;; define variables that set the "utility curve" used to assess risk (and related decisions)
      let x-value counter                     ; x value of the risk function is  time till arrival (in hours)
      let center random-normal 36 3          ; sets peak utility/risk at 36 before arrival... (random number w/ mean 36 and stdev 3)
@@ -2562,6 +2557,7 @@ to Setup-HPC
 
   set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track    ;; defines the clock
 
+   set hurricane-has-passed? false
   ;; Setup Agents Based on if the Census Information is Being Used
 
 
