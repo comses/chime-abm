@@ -393,8 +393,8 @@ to Load-Hurricane
     if which-storm? = "CHARLEY_BAD" [ set storm-file "STORMS/CHARLEY_BAD/CHARLEY.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA.txt" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN.txt" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut_fake.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut.txt" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut_fake.txt" ]
 
   file-open storm-file  ; imports the best track data
 
@@ -427,6 +427,8 @@ to Load-Hurricane
   set best-track-data map [ ?1 -> (list item 3 ?1 but-last item 4 ?1 replace-item 1 but-last item 5 ?1 ;Re-orders the data in "all-parsed". "replace-item" adds a negative sign to lon, and "but-last" removes the "N" and "W" from the lat-lon coordinates in the best track file.
       "-" item 6 ?1 item 7 ?1 item 0 ?1  item 1 ?1 item 8 ?1 item 9 ?1 item 10 ?1 item 11 ?1 item 16 ?1
       item 17 ?1 item 18 ?1 item 19 ?1) ] all-parsed  ;"best-track-data" is a list of best track data with a sublist for each time. Each sublist is: [status of system,lat,lon,intensity,pressure,date,hour,radii (4 quadrants) of 34-kt winds, radii (4 quadrants) of 64-kt winds]
+
+  set best-track-data Calendar-Check-Storm-Track best-track-data
 
 
 end
@@ -510,12 +512,12 @@ to Load-Forecasts
   let dia64 map [ ??1 -> remove "" ??1 ] filter [ ??1 -> item 0 ??1 = "64" ] all_parsed
   let dia34 map [ ??1 -> remove "" ??1 ] filter [ ??1 -> item 0 ??1 = "34" ] all_parsed
 
- let dia34-list []
- if not empty? dia34 [
- set dia34-list map [ ??1 -> map [ ???1 -> read-from-string ???1 ] but-first map [ ???1 -> but-last but-last ???1 ] remove "" map [ ???1 -> remove "KT" remove "." ???1 ]  ??1 ] dia34
- set dia34-list but-first dia34-list ]
- while [length dia34-list < length forecasts] [
- set dia34-list (sentence dia34-list "") ]
+  let dia34-list []
+  if not empty? dia34 [
+  set dia34-list map [ ??1 -> map [ ???1 -> read-from-string ???1 ] but-first map [ ???1 -> but-last but-last ???1 ] remove "" map [ ???1 -> remove "KT" remove "." ???1 ]  ??1 ] dia34
+  set dia34-list but-first dia34-list ]
+  while [length dia34-list < length forecasts] [
+  set dia34-list (sentence dia34-list "") ]
 
 
 
@@ -566,9 +568,9 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
     let all-advisories csv:from-file storm-file
 
   ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
@@ -823,22 +825,25 @@ end
 
 to-report Calendar-Check-Storm-Track [storm-track]
   ; used to prevent issues that may occur when a forecast covers two different months
-  ; if the next date in the list is less than the previous date, the date is changed to one more than the original
-  ; so 29, 30, 1, 2  -> 29, 30, 31, 32
-  let clean-storm-track[]
-  let previous-date item 0 storm-track   ;[x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
-  set previous-date item 3 previous-date
 
-  foreach storm-track [ unique-entry ->
-    let date item 3 unique-entry
-    if date < previous-date [
-      set date previous-date + 1
-      set unique-entry replace-item 3 unique-entry date
-    ]
-    set previous-date date
+  let month-list [ 0 0 31 60 91 121 152 182 213 244 274 305 335]; number of days to add to the date based on the month
+  let clean-storm-track []
+
+  foreach storm-track [unique-entry ->
+    let date item 5 unique-entry
+    let month read-from-string (substring date 4 6)
+    let day read-from-string (substring date 6 8)
+    set day day + item month month-list
+    set date substring date 0 6
+    set date word date day
+    set unique-entry replace-item 5 unique-entry date
     set clean-storm-track lput unique-entry clean-storm-track
+
   ]
-  report clean-storm-track
+
+  print clean-storm-track
+  report storm-track
+
 end
 
 
@@ -978,7 +983,6 @@ to Generate-Storm
   ; ->  [[-32.46 -215.33 25 7 0 0 0 0 0 0 0 0 0] .....
   set hurricane-coords-best-track  map [ ?1 -> map [ ??1 -> precision  ??1 2 ] ?1 ] hurricane-coords-best-track ;hurricane-coords-best-track: [x_coord,y_coord,intensity,day,hour,34-kt wind (4 items),64-kt wind(4 items)]
 
-  set hurricane-coords-best-track Calendar-Check-Storm-Track hurricane-coords-best-track
 
   ;; Now drawer agents are used to create a storm track path across the screen. Then links are made between the agents.
   ;; This results in a gray line that shows the storm path across the screen.
