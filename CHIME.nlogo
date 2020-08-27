@@ -24,6 +24,7 @@
     ;1. Move-Hurricane: Moves the hurricane symbol in the Netlogo interface.
     ;2. Past-Forecasts: Forecaster publishes the most recent forecast from forecast-matrix. A new forecast is published every 6 hours.
     ;3. Publish-New-Mental-Model: Each citizen has a mental model of where they think the hurricane will go and how severe it will be.
+         ;1. Interpolate-Cone: Interpolates the cone of uncertainty (given at 0,12,24,36,48,72,96,120 h) to hourly cone data.
     ;4. Coastal-Patches-Alerts: Coastal patches diagnose if their patch is within an intensity threshold and distance threshold to issue an alert. If so, the patch communicates with the official to issue an alert.
     ;5. Issue-Alerts: The official issues an evacuation order after coastal-patches-alerts issues an alert.
     ;6. Decision-Module: The main Protective Action Decision-Making process called by citizen agents. Citizens check environmental cues, collect and process information, assess risk, assess alternative protective actions, and decide whether to act.
@@ -568,8 +569,8 @@ to Load-Forecasts-New
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
     let all-advisories csv:from-file storm-file
 
@@ -1498,6 +1499,35 @@ to Move-Hurricane
 end
 
 
+
+
+to-report Interpolate-Cone [#xval]
+  ; INFO: Interpolates the cone of uncertainty (given at 0,12,24,36,48,72,96,120 h) to hourly cone data. Note that this function should be used in a loop to get cone information for every hour (instead of only for one hour).
+  ; VARIABLES MODIFIED: Reports an interpolated value of the cone of uncertainty to error-list.
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Publish-forecast
+
+  let xList [0 12 24 36 48 72 96 120]
+  let ylist [0 26 43 56 74 103 151 198]
+
+  if not (length xList = length ylist)
+  [ report "ERROR: mismatched points"
+  ]
+
+  if #xval <= first xList [ report first yList ]
+  if #xval >= last xList [ report last yList ]
+  ; iterate through x values to find first that is larger than input x
+  let ii 0
+  while [item ii xlist <= #xval] [ set ii ii + 1 ]
+  ; get the xy values bracketing the input x
+  let xlow item (ii - 1) xlist
+  let xhigh item ii xlist
+  let ylow item (ii - 1) ylist
+  let yhigh item ii ylist
+  ; interpolate
+  report ylow + ( (#xval - xlow) / (xhigh - xlow) ) * ( yhigh - ylow )
+end
+
 to-report Publish-Forecasts
   ; INFO: Method for the forecaster to publish a forecast modeled on the 5-day cone product from the NHC
   ; forecast location and severity of the storm is set for 12 24 36 48 72 96 120 hrs from current location of the storm.
@@ -1547,8 +1577,26 @@ to-report Publish-Forecasts
       ifelse which-storm? = "IRMA" [ set error-list [26 43 56 74 103 151 198]] [set error-list [44 77 111 143 208 266 357]]
       if which-storm? = "MICHAEL" [ set error-list [26 43 56 74 103 151 198 198 198]] ]
 
-  [if which-storm? = "MICHAEL" [ set error-list [120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120 120]]
-  ]
+  [if which-storm? = "MICHAEL" [
+     let ii 1
+     while [ ii <= 119 ][ ;Get cone of uncertainty value for every hour in a 120-h forecast
+        let interpolated-value (interpolate-cone ii)
+        set error-list lput interpolated-value error-list
+        set ii (ii + 1) ]
+  ]]
+
+;  if which-storm? = "MICHAEL" [
+;    let ii 1
+;     while [ ii <= 119 ][
+;        let number (calc-piecewise ii)
+;        set error-list lput number error-list
+;        set ii (ii + 1) ]
+;    ]
+
+
+;  print testing
+;  print length testing
+;  print length error-list
 
    ; Make sure that the length of error-list matches the length of the current-f list
    while [length error-list > length new-forecast] [set error-list but-last error-list ]
@@ -2614,7 +2662,7 @@ SLIDER
 #citizen-agents
 0
 5000
-64.0
+892.0
 1
 1
 NIL
@@ -3592,7 +3640,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
