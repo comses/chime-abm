@@ -835,7 +835,9 @@ to-report Calendar-Check-Forecast [forecast-entries]
 end
 
 to-report Calendar-Check-Storm-Track [storm-track]
-  ; used to prevent issues that may occur when a forecast covers two different months
+    ; used to prevent issues that may occur when a forecast covers two different months
+  ; if the next date in the list is less than the previous date, the date is changed to one more than the original
+  ; so 29, 30, 1, 2  -> 29, 30, 31, 32
 
   let original-value 0
   let previous-date 0
