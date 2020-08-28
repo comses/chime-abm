@@ -805,16 +805,26 @@ to-report Calendar-Check-Forecast [forecast-entries]
   ; if the next date in the list is less than the previous date, the date is changed to one more than the original
   ; so 29, 30, 1, 2  -> 29, 30, 31, 32
   let clean-forecast[]
-  let previous-date item 0 forecast-entries
-  set previous-date item 0 previous-date
-  set previous-date item 0 previous-date
+  ;determine the first date in the forecast
+
+  let original-value 0
+  let previous-date 0
   foreach forecast-entries [ unique-entry ->
     let first-entry item 0 unique-entry
     let date item 0 first-entry
     if date < previous-date [
-      set date previous-date + 1
-      set first-entry replace-item 0 first-entry date
-      set unique-entry replace-item 0 unique-entry first-entry
+      ifelse date = original-value[
+        set original-value date
+        set date previous-date
+        set first-entry replace-item 0 first-entry date
+        set unique-entry replace-item 0 unique-entry first-entry
+      ][
+        set original-value date
+        set date previous-date + 1
+        set first-entry replace-item 0 first-entry date
+        set unique-entry replace-item 0 unique-entry first-entry
+
+      ]
     ]
     set previous-date date
     set clean-forecast lput unique-entry clean-forecast
@@ -827,23 +837,33 @@ end
 to-report Calendar-Check-Storm-Track [storm-track]
   ; used to prevent issues that may occur when a forecast covers two different months
 
-  let month-list [ 0 0 31 60 91 121 152 182 213 244 274 305 335]; number of days to add to the date based on the month
+  let original-value 0
+  let previous-date 0
   let clean-storm-track []
 
   foreach storm-track [unique-entry ->
-    let date item 5 unique-entry
-    let month read-from-string (substring date 4 6)
-    let day read-from-string (substring date 6 8)
-    set day day + item month month-list
-    set date substring date 0 6
-    set date word date day
-    set unique-entry replace-item 5 unique-entry date
-    set clean-storm-track lput unique-entry clean-storm-track
+    let full-date item 5 unique-entry
+    let date read-from-string (substring full-date 6 8)
 
+    if date < previous-date [
+      ifelse date = original-value[
+        set original-value date
+        set date previous-date
+
+      ][
+        set original-value date
+        set date previous-date + 1
+
+      ]
+        set full-date substring full-date 0 6
+        set full-date word full-date date
+        set unique-entry replace-item 5 unique-entry full-date
+    ]
+    set clean-storm-track lput unique-entry clean-storm-track
+    set previous-date date
   ]
 
-  print clean-storm-track
-  report storm-track
+  report clean-storm-track
 
 end
 
@@ -2074,9 +2094,6 @@ to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
   ;file-open word namefile "_risk_data.csv"
   file-open (word "output/risk_data_timestep_" ticks "_" behaviorspace-run-number ".csv")
 
-  ;set data-dump map [ ?1 -> (sentence ?1 [xcor] of ?1 [ycor] of ?1 [self-trust] of ?1
-  ;  [trust-authority?] of ?1 [risk-life] of ?1 [risk-property] of ?1 [info-up] of ?1 [info-down] of ?1) ] sort cit-ags
-;;  print data-dump
 
   let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,")
   file-type text-out
@@ -3226,7 +3243,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-0
+1
 1
 -1000
 
@@ -3257,7 +3274,7 @@ SWITCH
 886
 save-images-each-step
 save-images-each-step
-0
+1
 1
 -1000
 
@@ -3268,7 +3285,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-0
+1
 1
 -1000
 
@@ -3279,7 +3296,7 @@ SWITCH
 954
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
-0
+1
 1
 -1000
 
@@ -3640,7 +3657,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
