@@ -325,7 +325,8 @@ to Load-GIS
      ]]
 
       if which-region? = "GULF_AND_SE" [
-      set elevation gis:load-dataset "REGION/GULF_SE/GIS/elevation_reduced_by2.asc"         ; Raster map - SRTM elevation data (downscaled by a factor of 2 using QGIS)
+      ;set elevation gis:load-dataset "REGION/GULF_SE/GIS/elevation_reduced_by2.asc"         ; Raster map - SRTM elevation data (downscaled by a factor of 2 using QGIS)
+      set elevation gis:load-dataset "REGION/GULF_SE/GIS/se_elevation.asc"         ; Raster map - SRTM elevation data
       gis:set-world-envelope-ds gis:envelope-of elevation
       set density-map gis:load-dataset "REGION/GULF_SE/GIS/pop_density.asc"                     ; Raster map - Population density (calculated by census tract (downscaled by a factor of 3 using QGIS)
       set county-seat-list []
