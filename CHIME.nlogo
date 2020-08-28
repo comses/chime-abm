@@ -365,12 +365,7 @@ to Load-GIS
 ;   set coastal-patches ocean-patches with [county > 0] ; *SB are coastal patches land or water
    set using-hpc? false
 
-;  ask ocean-patches [ if patch-at 1 1 != nobody [ask patch-at 1 1 [ if land? = true [set pcolor green]]]]
-;  ask ocean-patches [ if patch-at 1 -1 != nobody [ask patch-at 1 -1 [ if land? = true [set pcolor green]]]]
-;  ask ocean-patches [ if patch-at -1 1 != nobody [ask patch-at -1 1 [ if land? = true [set pcolor green]]]]
-;  ask ocean-patches [ if patch-at -1 -1 != nobody [ask patch-at -1 -1 [ if land? = true [set pcolor green]]]]
-;  set coastal-patches patches with [ pcolor = green ]
-;  ;ask coastal-patches [set pcolor 0]
+
 
   set coastal-patches land-patches with [any? neighbors with [land? = false]]
 
@@ -2428,7 +2423,6 @@ to Load-GIS-HPC
         set county-seat-list lput list gis:property-value ?1 "CAT" (gis:location-of (first (first (gis:vertex-lists-of ?1)))) county-seat-list
        ]
   ]
-
      gis:set-world-envelope-ds gis:envelope-of elevation
 
      let world gis:world-envelope
@@ -2437,21 +2431,28 @@ to Load-GIS-HPC
 
      set grid-cell-size list degree-x degree-y  ;; holds x and y grid cell size in degrees
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
-     ;;show re0-0  ;; identifies the 0,0 center of the map (degrees)
+     file-close-all
 
-       gis:apply-raster elevation elev
-       gis:apply-raster density-map density
-       gis:apply-raster counties county
-      ; gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
-       ask patches [set land? true]
-       ;ask patches with [not (dens >= 0 or dens <= 0)] [set pcolor 102 set land? false]
-       ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
+  gis:set-sampling-method elevation "NEAREST_NEIGHBOR"
+  gis:set-sampling-method density-map "NEAREST_NEIGHBOR"
+  gis:set-sampling-method counties "NEAREST_NEIGHBOR"
+  ask patches [
+      let coords ( list [ pxcor ] of self [ pycor ] of self )
+      set elev gis:raster-sample elevation coords
+      set density gis:raster-sample density-map coords
+      set county gis:raster-sample counties coords ]
+ ;gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
 
-       set land-patches patches with [land? = true]
-       set ocean-patches patches with [land? = false]
-       set coastal-patches ocean-patches with [county > 0]
-       file-close-all
-       set using-hpc? true
+   ask patches [set land? true]
+   ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
+
+   set land-patches patches with [land? = true]
+   set ocean-patches patches with [land? = false]
+;   set coastal-patches ocean-patches with [county > 0] ; *SB are coastal patches land or water
+   set using-hpc? true
+
+
+  set coastal-patches land-patches with [any? neighbors with [land? = false]]
 
   print "using HPC"
   ;random-seed 99
@@ -2606,15 +2607,12 @@ to Setup-HPC
   ; PROCEDURES CALLED
   ; CALLED BY:
 
-
-
   __clear-all-and-reset-ticks
 
   set using-hpc? true
 
   ;;Load Geographic Data Used in the Simulation
   Load-GIS-HPC
-
 
   Load-Hurricane-HPC
 
