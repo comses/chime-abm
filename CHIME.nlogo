@@ -2662,7 +2662,7 @@ SLIDER
 #citizen-agents
 0
 5000
-892.0
+127.0
 1
 1
 NIL
@@ -3226,7 +3226,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-1
+0
 1
 -1000
 
@@ -3257,7 +3257,7 @@ SWITCH
 886
 save-images-each-step
 save-images-each-step
-1
+0
 1
 -1000
 
@@ -3268,7 +3268,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-1
+0
 1
 -1000
 
@@ -3279,7 +3279,7 @@ SWITCH
 954
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
-1
+0
 1
 -1000
 
