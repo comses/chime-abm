@@ -346,12 +346,8 @@ to Load-GIS
 
      set grid-cell-size list degree-x degree-y  ;; holds x and y grid cell size in degrees
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
-    ; set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
      let avg-grid-size (item 0 grid-cell-size + item 1 grid-cell-size ) / 2
-    set scale ( avg-grid-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
-
-  ;print scale
-  ;print (item 1 grid-cell-size * 60.0405)
+     set scale ( avg-grid-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
 
      file-close-all
 
@@ -562,10 +558,10 @@ to Load-Forecasts-New
    set forecast-matrix [] ; This is the main variable that will be modified in this procedure and records forecasts that will be used throughout the simulation
 
    let storm-file "" ; The storm file is a csv that is read and parsed into the forecast-matrix
-    if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY ADVISORIES.txt" ]
-    if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA ADVISORIES.txt" ]
+    if which-storm? = "HARVEY" [ set storm-file "STORMS/HARVEY/HARVEY_ADVISORIES_NEW.csv" ]
+    if which-storm? = "WILMA" [ set storm-file "STORMS/WILMA/WILMA_ADVISORIES_NEW.csv" ]
     if which-storm? = "WILMA_IDEAL" [set storm-file "STORMS/WILMA_IDEAL/FAKE_WILMA ADVISORIES.txt" ]
-    if which-storm? = "CHARLEY_REAL" [ set storm-file "STORMS/CHARLEY_REAL/CHARLEY ADVISORIES.txt" ]
+    if which-storm? = "CHARLEY_REAL" [ set storm-file "STORMS/CHARLEY_REAL/CHARLEY_ADVISORIES_NEW.csv" ]
     if which-storm? = "CHARLEY_IDEAL" [ set storm-file "STORMS/CHARLEY_IDEAL/CHARLEY_IDEAL ADVISORIES.txt" ]
     if which-storm? = "CHARLEY_BAD" [set storm-file "STORMS/CHARLEY_BAD/BAD_FAKE_CHARLEY ADVISORIES.txt" ]
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA_ADVISORIES.csv" ]
