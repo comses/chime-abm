@@ -188,7 +188,6 @@ to Setup
   ;; *SMB We can change this once we finish redoing the forecasts
   ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts]
 
-  set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
 
   Generate-Storm  ;; generates the hurricane
 
@@ -341,11 +340,19 @@ to Load-GIS
      gis:set-world-envelope-ds gis:envelope-of elevation
 
      let world gis:world-envelope
-     let degree-x abs (item 1 world - item 0 world) / (2 * max-pxcor)   ;; sets grid cell size in degrees
-     let degree-y abs (item 3 world - item 2 world) / (2 * max-pycor)
+     let degree-x abs (item 1 world - item 0 world) / (world-width)   ;; sets grid cell size in degrees
+     let degree-y abs (item 3 world - item 2 world) / (world-height)
+
 
      set grid-cell-size list degree-x degree-y  ;; holds x and y grid cell size in degrees
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
+    ; set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
+     let avg-grid-size (item 0 grid-cell-size + item 1 grid-cell-size ) / 2
+    set scale ( avg-grid-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
+
+  ;print scale
+  ;print (item 1 grid-cell-size * 60.0405)
+
      file-close-all
 
   gis:set-sampling-method elevation "NEAREST_NEIGHBOR"
@@ -365,8 +372,6 @@ to Load-GIS
    set ocean-patches patches with [land? = false]
 ;   set coastal-patches ocean-patches with [county > 0] ; *SB are coastal patches land or water
    set using-hpc? false
-
-
 
   set coastal-patches land-patches with [any? neighbors with [land? = false]]
 
@@ -2883,7 +2888,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 18
@@ -3092,7 +3097,7 @@ SWITCH
 316
 use-census-data
 use-census-data
-1
+0
 1
 -1000
 
