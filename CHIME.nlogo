@@ -2208,12 +2208,12 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   file-print ""
   file-print ""
 
-  set text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,decisionmodulefrequency,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
+  set text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
   file-type text-out
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","decision-module-frequency","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
+  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
   file-type text-out
   file-print ""
   ]
@@ -2884,7 +2884,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 18
@@ -3093,7 +3093,7 @@ SWITCH
 316
 use-census-data
 use-census-data
-0
+1
 1
 -1000
 
@@ -3245,7 +3245,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-1
+0
 1
 -1000
 
@@ -3276,7 +3276,7 @@ SWITCH
 886
 save-images-each-step
 save-images-each-step
-1
+0
 1
 -1000
 
@@ -3287,7 +3287,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-1
+0
 1
 -1000
 
@@ -3298,7 +3298,7 @@ SWITCH
 954
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
-1
+0
 1
 -1000
 
@@ -3659,7 +3659,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
