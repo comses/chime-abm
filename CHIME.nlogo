@@ -337,17 +337,17 @@ to Load-GIS
     ]]
 
 
+
      gis:set-world-envelope-ds gis:envelope-of elevation
 
      let world gis:world-envelope
      let degree-x abs (item 1 world - item 0 world) / (world-width)   ;; sets grid cell size in degrees
      let degree-y abs (item 3 world - item 2 world) / (world-height)
 
-
      set grid-cell-size list degree-x degree-y  ;; holds x and y grid cell size in degrees
      set re0-0 list (((item 0 world - item 1 world) / 2) + item 1 world) (((item 2 world - item 3 world) / 2) + item 3 world)
      let avg-grid-size (item 0 grid-cell-size + item 1 grid-cell-size ) / 2
-     set scale ( avg-grid-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
+     set scale ( avg-grid-size * 60)  ;; This is an approximation. The distance between longitude degrees is based on the location. In florida longitude is around 52 nautical miles while latitude is aronud 60.
 
      file-close-all
 
@@ -3659,7 +3659,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
