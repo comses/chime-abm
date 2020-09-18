@@ -2648,11 +2648,11 @@ end
 GRAPHICS-WINDOW
 229
 18
-1000
-600
+1094
+670
 -1
 -1
-3.8
+4.264
 1
 10
 1
@@ -2767,69 +2767,6 @@ NIL
 NIL
 NIL
 1
-
-PLOT
-1083
-32
-1401
-237
-when they thought...
-NIL
-NIL
-0.0
-120.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 1 -16777216 true "set-histogram-num-bars 20" ";if ticks = 120 [\nset-plot-pen-interval 6\nhistogram [item 2 item 0 completed] of cit-ags with [not empty? completed and item 0 item 0 completed = \"evacuate\"]\n;        ]"
-
-PLOT
-1083
-245
-1399
-464
-watcher
-NIL
-NIL
-0.0
-120.0
--0.5
-15.0
-true
-true
-"clear-plot" ""
-PENS
-"life" 1.0 0 -16777216 true "" "if watching != 0 [plot [risk-life] of watching]"
-"prop" 1.0 0 -11053225 true "" "if watching != 0 [plot [risk-property] of watching]"
-"info +" 1.0 0 -7500403 true "" "if watching != 0 [plot [info-up] of watching]"
-"info -" 1.0 0 -4539718 true "" "if watching != 0 [plot [info-down] of watching]"
-"risk" 1.0 0 -5298144 true "" "if watching != 0 [plot last [risk-estimate] of watching]"
-
-PLOT
-1084
-470
-1399
-670
-risk function addittive
-NIL
-NIL
-0.0
-120.0
--0.5
-15.0
-true
-true
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot risk-total"
-"funct" 1.0 0 -7500403 true "" "plot risk-funct"
-"error" 1.0 0 -2674135 true "" "plot risk-error"
-"orders" 1.0 0 -955883 true "" "plot risk-orders"
-"env" 1.0 0 -6459832 true "" "plot risk-env"
-"pen-5" 1.0 0 -13791810 true "" "plot risk-surge"
 
 SLIDER
 16
@@ -3212,10 +3149,10 @@ no-internet-factor
 -1000
 
 BUTTON
-1182
-786
-1320
-819
+20
+1005
+158
+1038
 PROFILER - Setup
 profiler:start\nrepeat 3 [setup]\nprofiler:stop\nprint profiler:report\nprofiler:reset
 NIL
@@ -3245,7 +3182,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-0
+1
 1
 -1000
 
@@ -3287,7 +3224,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-0
+1
 1
 -1000
 
@@ -10432,6 +10369,113 @@ set evac-filename "exp-irma-20190828-Irma-evac-nointernet"</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-census-data">
       <value value="true"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment_test2020" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute_population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="127"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="198"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;MICHAEL&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1.37"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="0.53"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="6000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="119"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="2"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
