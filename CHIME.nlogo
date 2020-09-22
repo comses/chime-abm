@@ -1774,9 +1774,6 @@ to Coastal-Patches-Alerts
 
        if length working-forecast > 1 [
          set working-forecast sort-by [ [?1 ?2] -> distancexy item 0 item 1 ?1 item 1 item 1 ?1 < distancexy item 0 item 1 ?2 item 1 item 1 ?2 ] working-forecast ;Forecast list changes such that the closest distance of the hurricane center to the patch is listed first
-
-         ;JA: The time of landfall varies between each time step - why?
-         ;SB Not sure I understand this question - could it be an estimated time of landfall which would change because the current forecast changed
          set working-forecast first working-forecast ;"working-forecast" is now the latest time
 
          ;Determine how far out (temporally) until the storm reaches closest point of the patch
@@ -1946,8 +1943,7 @@ to Decision-Module
     ;JA: Why does the risk packet not have risk from forecasts (i.e. risk-forecast below)?
     set risk-packet (list precision final-risk-assesment 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
     ;; records the final risk assesment through time for the agent. Not used in the decision process.
-    set risk-estimate lput final-risk-assesment risk-estimate ;JA: Sean, do you know what is the point of risk-estimate? I think it may be a list, for each citizen, the final risk for each time they run the decision module. Note that this final risk does not include the weights (forc-w, evac-w, envc-w)
-     ;; SB -- this is the risk assessment from each time step. I guess that JW wanted to record that risk instead of the final one?
+    set risk-estimate lput final-risk-assesment risk-estimate
     ;Calculate the final risk for each individual risk elements (forecast, evacuation orders, environmental cues) using the weights set in the interface by the user.
     set risk-forecast (temp-f-risk) * forc-weight
     set risk-official-orders ((trust-authority * 6 * official-orders * zone)) * evac-weight
@@ -2719,9 +2715,9 @@ HORIZONTAL
 
 BUTTON
 15
-138
+183
 185
-173
+218
 Show Network Connections
 Show-Links
 NIL
@@ -2736,9 +2732,9 @@ NIL
 
 BUTTON
 16
-57
+102
 183
-90
+135
 Run Simulation
 go
 T
@@ -2753,9 +2749,9 @@ NIL
 
 BUTTON
 16
-102
+147
 185
-135
+180
 go-once
 go
 NIL
@@ -2814,10 +2810,10 @@ NIL
 HORIZONTAL
 
 CHOOSER
-17
-232
-189
-277
+15
+10
+187
+55
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
@@ -2937,9 +2933,9 @@ kids-under-18-factor
 
 BUTTON
 16
-17
+62
 185
-50
+95
 Setup Simulation
 setup
 NIL
@@ -3167,9 +3163,9 @@ NIL
 
 CHOOSER
 16
-181
-186
 226
+186
+271
 where-to-place-legend?
 where-to-place-legend?
 "upper-right" "upper-left" "lower-right" "lower-left"
