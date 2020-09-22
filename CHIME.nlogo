@@ -276,7 +276,7 @@ to Go
   if hurricane-has-passed? = true [
     set output-filename "test"
     if save-global-evacuation-statistics [let x save-global-evac-statistics]
-    set evac-filename word "output/inidividual-evac-statistics_" behaviorspace-run-number
+    set evac-filename word "output/individual-evac-statistics_" behaviorspace-run-number
     if save-citizen-data-at-end-of-simulation [let x save-individual-cit-ag-evac-records ]
    stop
    ]
@@ -3592,7 +3592,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
