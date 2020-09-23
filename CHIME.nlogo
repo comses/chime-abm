@@ -276,7 +276,7 @@ to Go
   if hurricane-has-passed? = true [
     set output-filename "test"
     if save-global-evacuation-statistics [let x save-global-evac-statistics]
-    set evac-filename word "output/individual-evac-statistics_" behaviorspace-run-number
+    set evac-filename word "output/inidividual-evac-statistics_" behaviorspace-run-number
     if save-citizen-data-at-end-of-simulation [let x save-individual-cit-ag-evac-records ]
    stop
    ]
@@ -1056,7 +1056,7 @@ to Create-Citizen-Agent-Population
     set size 1
 
    ;distribute_population=true means citizens are placed based on population distribution. distribute_population=false means citizens are placed randomly.
-    ifelse distribute_population [
+    ifelse distribute-population [
     ;This is the way population is distributed based on population density. A random values is chosen ("lotto") between 0 and the sum_T. Then, a while loop runs until i is greater than lotto.
     ;A citizen is placed on the patch where i>=lotto. This process naturally separates citizens based on population density, because a more populous patch has a greater chance of the random number (lotto) in it's range, and thus, a citizen on a more populous patch.
     let lotto random-float sum_T
@@ -2093,7 +2093,7 @@ to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
   let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,")
   file-type text-out
   file-print ""
-  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification",")
+  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute-population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification",")
   file-type text-out
   file-print ""
   file-print ""
@@ -2199,7 +2199,7 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,")
   file-type text-out
   file-print ""
-  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification",")
+  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute-population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification",")
   file-type text-out
   file-print ""
   file-print ""
@@ -2358,7 +2358,7 @@ to-report Save-Global-Evac-Statistics
   let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,percent_all_evacuated,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,output-list-a, hist-list,hist-pcts,")
   file-type text-out
   file-print ""
-  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute_population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","allpct","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification","output-list-a","hist-list","hist-pcts",")
+  set text-out (sentence ","behaviorspace-run-number","which-storm?","#citizen-agents","#broadcasters","#net-aggregators","distribute-population","earliest","latest","wind-threshold","forc-weight","evac-weight","envc-weight","allpct","network-distance","network-size","use-census-data","census-tract-min-pop","citizen-to-census-population-ratio","census-tract-max-pop","under-18-assessment-increase","over-65-assessment-decrease","limited-english-assessment-decrease","foodstamps-assessment-decrease","no-vehicle-assessment-modification","no-internet-assessment-modification","output-list-a","hist-list","hist-pcts",")
   file-type text-out
   file-print ""
   file-close
@@ -2820,12 +2820,12 @@ which-storm?
 7
 
 SWITCH
-18
-436
-188
-469
-distribute_population
-distribute_population
+15
+435
+190
+468
+distribute-population
+distribute-population
 1
 1
 -1000
@@ -2962,7 +2962,7 @@ adults-over-65-factor
 SLIDER
 617
 815
-840
+912
 848
 under-18-assessment-increase
 under-18-assessment-increase
@@ -2971,13 +2971,13 @@ under-18-assessment-increase
 0.5
 0.1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
 616
 854
-841
+912
 887
 over-65-assessment-decrease
 over-65-assessment-decrease
@@ -2986,7 +2986,7 @@ over-65-assessment-decrease
 0.4
 0.1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
@@ -3020,10 +3020,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-17
-283
-186
-316
+16
+278
+185
+311
 use-census-data
 use-census-data
 1
@@ -3054,7 +3054,7 @@ limited-english-factor
 SLIDER
 616
 893
-840
+911
 926
 limited-english-assessment-decrease
 limited-english-assessment-decrease
@@ -3063,13 +3063,13 @@ limited-english-assessment-decrease
 1.0
 0.1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
 616
 929
-841
+912
 962
 foodstamps-assessment-decrease
 foodstamps-assessment-decrease
@@ -3078,7 +3078,7 @@ foodstamps-assessment-decrease
 1.0
 0.1
 1
-NIL
+%
 HORIZONTAL
 
 SWITCH
@@ -3104,10 +3104,10 @@ no-vehicle-factor
 -1000
 
 SLIDER
-615
-966
-842
-999
+614
+965
+912
+998
 no-vehicle-assessment-modification
 no-vehicle-assessment-modification
 0
@@ -3115,13 +3115,13 @@ no-vehicle-assessment-modification
 0.5
 0.1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
 614
 1004
-841
+909
 1037
 no-internet-assessment-modification
 no-internet-assessment-modification
@@ -3130,7 +3130,7 @@ no-internet-assessment-modification
 1.0
 0.1
 1
-NIL
+%
 HORIZONTAL
 
 SWITCH
@@ -3592,7 +3592,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
