@@ -2254,12 +2254,12 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   file-print ""
   file-print ""
 
-  set text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
+  set text-out (sentence ",agent,xcor,ycor,latitude,longitude,coastal-inland,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
   file-type text-out
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
+  set text-out (sentence ","who","xcor","ycor","latitude","longitude","coastal-inland-citizen-agent","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
   file-type text-out
   file-print ""
   ]
