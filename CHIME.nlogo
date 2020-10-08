@@ -149,6 +149,9 @@ citizen-agents-own [
          risk-official-orders              ;evacuation order risk (weight is included)
          risk-environmental-cues           ;environmental cue risk (weight is included)
          final-risk-assesment              ;total risk ( risk-forecast  + risk-official-orders  + risk-environmental-cues )
+         coastal-inland-citizen-agent      ;lists if citizen is inland or coastal
+         latitude                          ;latitude of citizen-agent
+         longitude                         ;longitude of citizen-agent
      ]
 
 officials-own [
@@ -2195,6 +2198,53 @@ to-report Save-Individual-Cit-Ag-Evac-Records
 
   let filename evac-filename
   file-open (word filename ".csv")
+  
+  ask citizen-agents[      ;ADDED BY JOSH
+      set longitude (xcor * item 0 grid-cell-size) + item 0 re0-0
+      set latitude (ycor * item 1 grid-cell-size) + item 1 re0-0
+ ]
+ 
+ let rec-matrix []
+
+ foreach sort citizen-agents [ ?1 ->
+   ask ?1 [
+   let temp-list []
+   set temp-list lput ifelse-value (not empty? completed and item 0 item 0 completed = "evacuate") [1] [0] temp-list
+     ; starts with evacuated or not
+   set temp-list lput ifelse-value ([distance-nowrap myself] of min-one-of patches with [not (elev >= 0 or elev <= 0)] [distance-nowrap myself] <= 1.5) [1] [0] temp-list
+
+
+  ; filter to only shown hurricane coordinates
+   let w-l filter [?x -> item 0 ?x > min-pxcor and item 0 ?x < max-pxcor and
+                           item 1 ?x > min-pycor and item 1 ?x < max-pycor] hurricane-coords-best-track
+   set w-l map [?x -> (list item 0 ?x item 1 ?x item 2 ?x item 3 ?x item 4 ?x
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 360) [item 6 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 270) [item 5 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 180) [item 8 ?x] [item 7 ?x] ]]
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 360) [item 10 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 270) [item 9 ?x] [
+          ifelse-value (towardsxy item 0 ?x item 1 ?x <= 180) [item 12 ?x] [item 11 ?x] ]]
+       )] w-l
+
+   set w-l map [?x ->
+     (list ifelse-value (scale * distancexy item 0 ?x item 1 ?x > item 5 ?x) [0] [1]
+           ifelse-value (scale * distancexy item 0 ?x item 1 ?x > item 6 ?x) [0] [1]
+       )] w-l
+
+   let s-l []
+   if member? [1 0] w-l [set s-l lput 1 s-l]
+   if member? [1 1] w-l [set s-l lput 1 s-l]
+   if s-l = [1] [set s-l [1 0]]
+   if s-l = [] [set s-l [0 0]]
+   set temp-list sentence temp-list s-l
+   set temp-list lput ifelse-value (not empty? completed and item 0 item 0 completed = "evacuate") [round item 2 item 0 completed] [-9] temp-list
+
+    if but-last temp-list = [1 1 1 1] or but-last temp-list = [0 1 1 1] [set coastal-inland-citizen-agent "coastal64"]
+    if but-last temp-list = [1 1 1 0] or but-last temp-list = [0 1 1 0] [set coastal-inland-citizen-agent "coastal34"]
+    if but-last temp-list = [1 1 0 0] or but-last temp-list = [0 1 0 0] [set coastal-inland-citizen-agent "coastalout"]
+    if but-last temp-list = [1 0 1 1] or but-last temp-list = [0 0 1 1] [set coastal-inland-citizen-agent "inland64"]
+    if but-last temp-list = [1 0 1 0] or but-last temp-list = [0 0 1 0] [set coastal-inland-citizen-agent "inland34"]
+    if but-last temp-list = [1 0 0 0] or but-last temp-list = [0 0 0 0] [set coastal-inland-citizen-agent "inlandout"]
 
   let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,")
   file-type text-out
@@ -2204,12 +2254,12 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   file-print ""
   file-print ""
 
-  set text-out (sentence ",agent,xcor,ycor,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
+  set text-out (sentence ",agent,xcor,ycor,latitude,longitude,coastal-inland,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
   file-type text-out
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
+  set text-out (sentence ","who","xcor","ycor","latitude","longitude","coastal-inland-citizen-agent","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
   file-type text-out
   file-print ""
   ]
