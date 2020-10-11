@@ -571,6 +571,7 @@ to Load-Forecasts-New
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
     let all-advisories csv:from-file storm-file
 
