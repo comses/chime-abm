@@ -2198,12 +2198,12 @@ to-report Save-Individual-Cit-Ag-Evac-Records
 
   let filename evac-filename
   file-open (word filename ".csv")
-  
+
   ask citizen-agents[      ;ADDED BY JOSH
       set longitude (xcor * item 0 grid-cell-size) + item 0 re0-0
       set latitude (ycor * item 1 grid-cell-size) + item 1 re0-0
  ]
- 
+
  let rec-matrix []
 
  foreach sort citizen-agents [ ?1 ->
@@ -2262,7 +2262,7 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   set text-out (sentence ","who","xcor","ycor","latitude","longitude","coastal-inland-citizen-agent","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
   file-type text-out
   file-print ""
-  ]
+  ]]]
 
   file-close
 
@@ -3228,7 +3228,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-1
+0
 1
 -1000
 
@@ -3259,7 +3259,7 @@ SWITCH
 886
 save-images-each-step
 save-images-each-step
-0
+1
 1
 -1000
 
@@ -3270,7 +3270,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-1
+0
 1
 -1000
 
@@ -3642,7 +3642,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
