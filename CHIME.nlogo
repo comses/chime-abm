@@ -2246,6 +2246,7 @@ to-report Save-Individual-Cit-Ag-Evac-Records
     if but-last temp-list = [1 0 1 1] or but-last temp-list = [0 0 1 1] [set coastal-inland-citizen-agent "inland64"]
     if but-last temp-list = [1 0 1 0] or but-last temp-list = [0 0 1 0] [set coastal-inland-citizen-agent "inland34"]
     if but-last temp-list = [1 0 0 0] or but-last temp-list = [0 0 0 0] [set coastal-inland-citizen-agent "inlandout"]
+  ]]
 
   let text-out (sentence ",behaviorspace-run-number,which-storm?,num-citizens,num-broadcasters,num-aggregators,distribute_population,earliest,latest,wind-threshold,forc-weight,evac-weight,envc-weight,network-distance,network-size,use-census-data,census-tract-min-pop,citizen-to-census-population-ratio,census-tract-max-pop,under-18-assessment-increase,over-65-assessment-decrease,limited-english-assessment-decrease,foodstamps-assessment-decrease,no-vehicle-assessment-modification,no-internet-assessment-modification,")
   file-type text-out
@@ -2263,7 +2264,7 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   set text-out (sentence ","who","xcor","ycor","latitude","longitude","coastal-inland-citizen-agent","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
   file-type text-out
   file-print ""
-  ]]]
+  ]
 
   file-close
 
