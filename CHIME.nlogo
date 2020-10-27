@@ -3284,7 +3284,7 @@ SWITCH
 954
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
-1
+0
 1
 -1000
 
