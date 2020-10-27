@@ -571,6 +571,7 @@ to Load-Forecasts-New
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN ADVISORIES.txt" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast.csv" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_2day_leadtime.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
     let all-advisories csv:from-file storm-file
@@ -3230,7 +3231,7 @@ SWITCH
 854
 save-agent-data-each-step
 save-agent-data-each-step
-0
+1
 1
 -1000
 
@@ -3272,7 +3273,7 @@ SWITCH
 919
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-0
+1
 1
 -1000
 
@@ -3283,7 +3284,7 @@ SWITCH
 954
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
-0
+1
 1
 -1000
 
