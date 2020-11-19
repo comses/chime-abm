@@ -2826,7 +2826,7 @@ earliest
 earliest
 12
 200
-198.0
+54.0
 3
 1
 NIL
@@ -2856,7 +2856,7 @@ wind-threshold
 wind-threshold
 70
 130
-119.0
+116.0
 1
 1
 NIL
@@ -2892,7 +2892,7 @@ forc-weight
 forc-weight
 0
 2
-1.37
+1.0
 .01
 1
 NIL
@@ -2907,7 +2907,7 @@ evac-weight
 evac-weight
 0
 4
-0.53
+1.0
 .01
 1
 NIL
