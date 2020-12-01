@@ -39,7 +39,7 @@
     ;1. Show-Links: Creates lines that show which citizens are in which social network.
 
 
-;; Declare netlogo extensions needed for the model
+; Declare netlogo extensions needed for the model
 extensions [gis profiler csv nw]
 
 
