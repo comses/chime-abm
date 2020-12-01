@@ -43,7 +43,7 @@
 extensions [gis profiler csv nw]
 
 
-;; Declare global variables
+; Declare global variables
 globals [
          clock                    ; keeps track of model time, same as ticks, but in days and hours
          county-seats             ; import dataset from GIS - county seats
