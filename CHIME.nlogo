@@ -359,7 +359,7 @@ to Load-GIS
       set elev gis:raster-sample elevation coords
       set density gis:raster-sample density-map coords
       set county gis:raster-sample counties coords ]
- ;gis:paint elevation 0 ;; the painted raster does not necessarily correspond to the elevation
+  if display-dem? [gis:paint elevation 0 ] ;; the painted raster does not necessarily correspond to the elevation
 
    ask patches [set land? true]
    ask patches with [not (elev >= 0 or elev <= 0)] [set pcolor 102 set land? false]
@@ -2080,8 +2080,12 @@ end
 
 ;MODEL OUTPUT
 to save-view-images
+  if file-exists? "output" [
+
   let filename (word "output/netlogo_interface_" ticks "_" behaviorspace-run-number ".png")
   export-view filename
+
+  ]
 end
 
 to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
@@ -2725,14 +2729,14 @@ ticks
 
 SLIDER
 14
-322
+362
 186
-355
+395
 #citizen-agents
 #citizen-agents
 0
 5000
-127.0
+3025.0
 1
 1
 NIL
@@ -2740,9 +2744,9 @@ HORIZONTAL
 
 SLIDER
 14
-360
+400
 186
-393
+433
 #broadcasters
 #broadcasters
 0
@@ -2755,9 +2759,9 @@ HORIZONTAL
 
 SLIDER
 15
-398
+438
 187
-431
+471
 #net-aggregators
 #net-aggregators
 0
@@ -2821,9 +2825,9 @@ NIL
 
 SLIDER
 16
-473
+513
 188
-506
+546
 earliest
 earliest
 12
@@ -2836,9 +2840,9 @@ HORIZONTAL
 
 SLIDER
 16
-513
+553
 188
-546
+586
 latest
 latest
 0
@@ -2851,9 +2855,9 @@ HORIZONTAL
 
 SLIDER
 16
-554
+594
 188
-587
+627
 wind-threshold
 wind-threshold
 70
@@ -2872,13 +2876,13 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 15
-435
+475
 190
-468
+508
 distribute-population
 distribute-population
 1
@@ -2887,9 +2891,9 @@ distribute-population
 
 SLIDER
 15
-630
+670
 185
-663
+703
 forc-weight
 forc-weight
 0
@@ -2902,9 +2906,9 @@ HORIZONTAL
 
 SLIDER
 14
-593
+633
 188
-626
+666
 evac-weight
 evac-weight
 0
@@ -2917,9 +2921,9 @@ HORIZONTAL
 
 SLIDER
 15
-666
+706
 185
-699
+739
 envc-weight
 envc-weight
 0
@@ -2932,9 +2936,9 @@ HORIZONTAL
 
 SLIDER
 15
-702
+742
 187
-735
+775
 network-distance
 network-distance
 0
@@ -2947,9 +2951,9 @@ HORIZONTAL
 
 SLIDER
 14
-736
+776
 186
-769
+809
 network-size
 network-size
 1
@@ -3075,10 +3079,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-16
-278
-185
-311
+14
+326
+187
+359
 use-census-data
 use-census-data
 1
@@ -3201,9 +3205,9 @@ no-internet-factor
 
 BUTTON
 20
-1005
+1045
 158
-1038
+1078
 PROFILER - Setup
 profiler:start\nrepeat 3 [setup]\nprofiler:stop\nprint profiler:report\nprofiler:reset
 NIL
@@ -3228,9 +3232,9 @@ where-to-place-legend?
 
 SWITCH
 15
-821
+861
 280
-854
+894
 save-agent-data-each-step
 save-agent-data-each-step
 1
@@ -3249,9 +3253,9 @@ Census Controls and Parameters
 
 TEXTBOX
 20
-793
+833
 235
-811
+851
 Model Output Controls
 14
 0.0
@@ -3259,9 +3263,9 @@ Model Output Controls
 
 SWITCH
 16
-853
+893
 280
-886
+926
 save-images-each-step
 save-images-each-step
 1
@@ -3270,9 +3274,9 @@ save-images-each-step
 
 SWITCH
 15
-886
+926
 280
-919
+959
 save-global-evacuation-statistics
 save-global-evacuation-statistics
 1
@@ -3281,14 +3285,45 @@ save-global-evacuation-statistics
 
 SWITCH
 14
-921
+961
 281
-954
+994
 save-citizen-data-at-end-of-simulation
 save-citizen-data-at-end-of-simulation
+1
+1
+-1000
+
+SWITCH
+16
+272
+186
+305
+display-dem?
+display-dem?
 0
 1
 -1000
+
+PLOT
+1106
+20
+1559
+376
+Evacuation
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Evacuated" 1.0 0 -955883 true "" "plot count citizen-agents with [color = orange]"
+"Protective Action" 1.0 0 -14439633 true "" "plot count citizen-agents with [color = green]"
+"No Action" 1.0 0 -13345367 true "" "plot count citizen-agents with [color = blue]"
 
 @#$#@#$#@
 1. "setup" initializes the simulation.
