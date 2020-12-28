@@ -149,9 +149,6 @@ citizen-agents-own [
          risk-official-orders              ;evacuation order risk (weight is included)
          risk-environmental-cues           ;environmental cue risk (weight is included)
          final-risk-assesment              ;total risk ( risk-forecast  + risk-official-orders  + risk-environmental-cues )
-         coastal-inland-citizen-agent      ;lists if citizen is inland or coastal
-         latitude                          ;latitude of citizen-agent
-         longitude                         ;longitude of citizen-agent
      ]
 
 officials-own [
@@ -2198,6 +2195,11 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   ; PROCEDURES CALLED
   ; CALLED BY: Behavior Space
 
+
+      let   coastal-inland-citizen-agent  ""   ;records if citizen is inland or coastal
+      let   latitude    0                      ;latitude of citizen-agent
+      let   longitude   0                      ;longitude of citizen-agent
+
   let filename evac-filename
   file-open (word filename ".csv")
 
@@ -3645,7 +3647,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
