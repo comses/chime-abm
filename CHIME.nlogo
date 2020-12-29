@@ -276,7 +276,8 @@ to Go
   if hurricane-has-passed? = true [
     set output-filename "test"
     if save-global-evacuation-statistics [let x save-global-evac-statistics]
-    set evac-filename word "output/inidividual-evac-statistics_" behaviorspace-run-number
+    ifelse file-exists? "output" [ set evac-filename word "output/inidividual-evac-statistics_" behaviorspace-run-number ]
+    [set evac-filename word "inidividual-evac-statistics_" behaviorspace-run-number]
     if save-citizen-data-at-end-of-simulation [let x save-individual-cit-ag-evac-records ]
    stop
    ]
