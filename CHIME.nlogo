@@ -109,8 +109,8 @@ citizen-agents-own [
          evac-zone                         ; agent's perceived risk zone (based on distance from the coast)
          distance-to-storm-track
 
-         decision-module-frequency         ; sets the frequency that agents run the risk-decision module
-         previous-dm-frequency             ; agent remembers feedback1 in case of evacuation (reverts to original value)
+         decision-module-interval         ; sets the frequency that agents run the risk-decision module
+         previous-dm-interval             ; agent remembers feedback1 in case of evacuation (reverts to original value)
          decision-module-turn              ; helps agents determine when it's their turn to run the risk-decision module
 
          my-network-list                   ; agent's social network (modified preferential attachment, see below)
@@ -245,14 +245,14 @@ to Go
 
   ask citizen-agents[
     ifelse empty? completed or item 0 item 0 completed != "evacuate" [
-      ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
+      ifelse decision-module-turn < decision-module-interval [ set decision-module-turn decision-module-turn + 1 ]
       [
          set decision-module-turn 0 ;; update the counter that decides how often to check info
          Decision-Module ;; runs the decision model code
       ]
     ]
     [;; the citizen agents that have evacuated run this code - they update so that their network connections still get up to date info
-      ifelse decision-module-turn < decision-module-frequency [ set decision-module-turn decision-module-turn + 1 ]
+      ifelse decision-module-turn < decision-module-interval [ set decision-module-turn decision-module-turn + 1 ]
        [ set decision-module-turn 0 ;; update the counter that decides how often to check info
          ;Just-Collect-Info
           Process-Forecasts
@@ -1118,8 +1118,8 @@ to Create-Citizen-Agent-Population
   ;; other citizen variables
     set risk-estimate [0] ;List of risk calculations
     set environmental-cues  0
-    set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
-    set previous-dm-frequency decision-module-frequency
+    set decision-module-interval round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
+    set previous-dm-interval decision-module-interval
     set decision-module-turn random 10 ;Helps agents determine when it's their turn to run the risk-decision module
     set completed []
     set distance-to-storm-track 99
@@ -1290,8 +1290,8 @@ to Create-Citizen-Agents-From-Census-Tracts
       ;; other citizen variables
       set risk-estimate [0] ;List of risk calculations
       set environmental-cues  0
-      set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
-      set previous-dm-frequency decision-module-frequency
+      set decision-module-interval round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
+      set previous-dm-interval decision-module-interval
       set decision-module-turn random 10 ;Helps agents determine when it's their turn to run the risk-decision module
       set completed []
       set distance-to-storm-track 99
@@ -1359,8 +1359,8 @@ to Create-More-Cit-Ags-Based-On-Census
       ;; other citizen variables
       set risk-estimate [0] ;List of risk calculations
       set environmental-cues  0
-      set decision-module-frequency round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
-      set previous-dm-frequency decision-module-frequency
+      set decision-module-interval round random-normal 12 2 ;Sets the frequency that agents run the risk-decision module
+      set previous-dm-interval decision-module-interval
       set decision-module-turn random 10 ;Helps agents determine when it's their turn to run the risk-decision module
       set completed []
       set distance-to-storm-track 99
@@ -1972,16 +1972,16 @@ to Decision-Module
                          set completed fput (list "evacuate" clock counter) completed
                          ]
     if final-risk-assesment < risk-life-threshold and final-risk-assesment > risk-property-threshold [set color green ;if the final risk is less than the risk to life, but greater than risk to property, then have the citizen gather new information more often and have the citizen document that they are taking an action
-                         set decision-module-frequency round (decision-module-frequency / 2)
-                         if decision-module-frequency = 0 [set decision-module-frequency 1]
+                         set decision-module-interval round (decision-module-interval / 2)
+                         if decision-module-interval = 0 [set decision-module-interval 1]
                          set completed fput (list "other_PA" clock counter) completed ]
-    if final-risk-assesment < risk-property-threshold and final-risk-assesment > info-up [ set decision-module-frequency round (decision-module-frequency / 2) ;If the final risk is less than the risk to property, but greater than the "info-up" threshold, then have the citizen gather new information more often
-                                            if decision-module-frequency = 0 [set decision-module-frequency 1]
+    if final-risk-assesment < risk-property-threshold and final-risk-assesment > info-up [ set decision-module-interval round (decision-module-interval / 2) ;If the final risk is less than the risk to property, but greater than the "info-up" threshold, then have the citizen gather new information more often
+                                            if decision-module-interval = 0 [set decision-module-interval 1]
                                             ]
     if final-risk-assesment < info-up and final-risk-assesment > info-down [ ;this if-statement does not do anything but is included for completeness.
       ]
-    if final-risk-assesment < info-down  [set decision-module-frequency round (decision-module-frequency * 2) ;If the final risk is less than the "info-down" threshold, then have the citizen gather new information less often
-                       if decision-module-frequency > 32 [set decision-module-frequency 32]
+    if final-risk-assesment < info-down  [set decision-module-interval round (decision-module-interval * 2) ;If the final risk is less than the "info-down" threshold, then have the citizen gather new information less often
+                       if decision-module-interval > 32 [set decision-module-interval 32]
                        ]
 
      if self = watching [
@@ -2105,11 +2105,11 @@ to-report save-data-timestep   ;SAVE DATA EVERY TIMESTEP
   file-print ""
   file-print ""
 
-  set text-out (sentence ",agent,decisionmodulefrequency,riskforecast,riskorders,riskenv,finalriskassessment,risksurge,percentevacuatedcoastal64,")
+  set text-out (sentence ",agent,decisionmoduleinterval,riskforecast,riskorders,riskenv,finalriskassessment,risksurge,percentevacuatedcoastal64,")
   file-type text-out
   file-print ""
    ask citizen-agents [
-  set text-out (sentence ","who","decision-module-frequency","risk-forecast","risk-official-orders","risk-environmental-cues","final-risk-assesment","risk-surge","percentage",")
+  set text-out (sentence ","who","decision-module-interval","risk-forecast","risk-official-orders","risk-environmental-cues","final-risk-assesment","risk-surge","percentage",")
   file-type text-out
   file-print ""
   ]
