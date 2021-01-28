@@ -32,7 +32,9 @@ bibliography: paper.bib
 
 # Summary
 
+The flow of information during a hazardous weather event plays a critical role in the risk assesment of people endangered by the weather event. When such a weather event occurs, multiple actors such as forecasters, television and radio broadcastors, social media and personal connections make up interconnected components of a dynamics coupled human-natural system. 
 
+incterconnected components hazardous weather prediction, communication and decision making systems 
 
 # Statement of need
 
