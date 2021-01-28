@@ -1,5 +1,5 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'CHIME: Communicating Hazards in the Modern Environment'
 tags:
   - evacuation decisions
   - hurricanes
