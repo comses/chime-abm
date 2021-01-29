@@ -41,34 +41,8 @@ The Communicating Hazard Information in the Modern Environment (CHIME) agent-bas
 The CHIME model and results from its use have been described in previous scientific publications [@Morss et al.,:2017; @Watts et al.,:2019]. The model advances our understanding of modern information flows and decision making in the face of hazardous weather. Additionaly, the CHIME model can be a foundation for further investigation into future hazardous weather events and as a template for models of human risk assessment. 
 
 
-
-
-
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
-
-# Figures
-
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-Figure sizes can be customized by adding an optional second parameter:
-![Caption for example figure.](figure.png){ width=20% }
-
 # Acknowledgements
-
+The work reported here was supported by National Science Foundation award AGS 1331490. The National Center for Atmospheric Research is also sponsored by the National Science Foundation. The authors would also like to acknowledge contributions from collaborators on the larger project, especially Joshua Watts, Heather Lazrus, Olga Wilhelmi, Christopher Davis, Kathryn Fossell, David Ahijevych, Chris Snyder, Leysia Palen, and Kenneth Anderson.
 
 
 # References
