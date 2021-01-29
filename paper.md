@@ -32,13 +32,14 @@ bibliography: paper.bib
 
 # Summary
 
-The flow of information during a hazardous weather event plays a critical role in the risk assesment of people endangered by the weather event. When such a weather event occurs, multiple actors such as forecasters, television and radio broadcastors, social media and personal connections make up interconnected components of a dynamic coupled human-natural system that transmits information. The complex and continually changing nature of hazardous weather forecasts can result in underestimates of risk, overestimates of risk or confusion leading to delayed protective actions `[@Morss et al., :2017; @Watts et al., :2019]`. In order to effectively advise citizens, models which integrate empirical and social and information research, as well as geophysical science must be used to enable controlled experiments of hazardous weather scenarios.  
+The flow of information during a hazardous weather event plays a critical role in the risk assesment of people endangered by the weather event. When such a weather event occurs, multiple actors such as forecasters, television and radio broadcastors, social media and personal connections make up interconnected components of a dynamic coupled human-natural system that transmits information. The complex and continually changing nature of hazardous weather forecasts can result in underestimates of risk, overestimates of risk or confusion leading to delayed protective actions `[@Morss et al.,:2017; @Watts et al.,:2019]`. In order to effectively advise citizens, models which integrate empirical and social and information research, as well as geophysical science must be used to enable controlled experiments of hazardous weather scenarios.  
 
 # Statement of need
 
+The Communicating Hazard Information in the Modern Environment (CHIME) agent-based model is a Netlogo simulation. CHIME acts as a platform to test hypotheses about information flow in the event of a hazardous weather scenario. The model uses real world geographical data to set the boundaries of the simulation and uses historical hurricane forecast information to inform and update citizen agents in the model. The model includes hurricanes Wilma, Charley, Harvey, Michael and Irma and it is possible to extend the model further with the inclusion of additional storms. As the model progresses, forecasters release new 'predictive' weather information and the information is distributed to the agent population. Agents in the simulaiton include public officials, social media, broadcasters and citizens. Each citizen combines information from the aforementioned sources as well as other citizens and based on their geographical location and  interpretation of the impending storm makes decisions to either, evacuate, take a protective action (e.g. boarding up windows) or change the frequency by which they update their interpretation of a storm. 
 
-CHime is XYZ
-Chime allows abc
+
+
 
 
 # Citations
