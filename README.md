@@ -10,6 +10,11 @@ Detailed information concerning the coding of the model can be found in the CHIM
 Detailed information about how to use this model and test if it is working correctly can be found in the document entitled HowToUse.md
 
 
+Work from this model can be found in the following publications:
+
+Morss RE, Demuth JL, Lazrus H, Palen L, Barton CM, Davis CA, Snyder C, Wilhelmi OV, Anderson KM, Ahijevych DA, Anderson J, Bica M, Fossell KR, Henderson J, Kogan M, Stowe K, Watts J (2017) Hazardous Weather Prediction and Communication in the Modern Information Environment. Bulletin of the American Meteorological Society 98:2653–2674 . https://doi.org/10.1175/BAMS-D-16-0058.1
+
+Watts J, Morss RE, Barton CM, Demuth JL (2019) Conceptualizing and implementing an agent-based model of information flow and decision making during hurricane threats. Environmental Modelling & Software 122:104524 . https://doi.org/10.1016/j.envsoft.2019.104524
 
 
 GRIMM V, Berger U, Bastiansen F, Eliassen S, Ginot V, Giske J, Goss-Custard J, Grand T, Heinz S K, Huse G, Huth A, Jepsen J U, Jørgensen C, Mooij W M, Müller B, Pe'er G, Piou C, Railsback S F, Robbins A M, Robbins M M, Rossmanith E, Rüger N, Strand E, Souissi S, Stillman R A, Vabø R, Visser U and DeAngelis D L (2006). A standard protocol for describing individual-based and agent-based models. Ecological Modelling 198 (1-2), 115-126.
