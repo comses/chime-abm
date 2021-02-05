@@ -3311,7 +3311,7 @@ PLOT
 20
 1559
 376
-Evacuation
+Evacuation Statistics
 time (h)
 number of citizens
 0.0
