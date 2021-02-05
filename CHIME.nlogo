@@ -2737,7 +2737,7 @@ SLIDER
 #citizen-agents
 0
 5000
-5000.0
+478.0
 1
 1
 NIL
@@ -2833,7 +2833,7 @@ earliest
 earliest
 12
 200
-54.0
+186.0
 3
 1
 NIL
@@ -2863,7 +2863,7 @@ wind-threshold
 wind-threshold
 70
 130
-116.0
+94.0
 1
 1
 NIL
@@ -2877,7 +2877,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-6
+7
 
 SWITCH
 15
@@ -2886,7 +2886,7 @@ SWITCH
 508
 distribute-population
 distribute-population
-0
+1
 1
 -1000
 
@@ -2899,7 +2899,7 @@ forc-weight
 forc-weight
 0
 2
-0.2
+1.06
 .01
 1
 NIL
@@ -3086,7 +3086,7 @@ SWITCH
 359
 use-census-data
 use-census-data
-1
+0
 1
 -1000
 
@@ -3280,7 +3280,7 @@ SWITCH
 959
 save-global-evacuation-statistics
 save-global-evacuation-statistics
-0
+1
 1
 -1000
 
@@ -3312,8 +3312,8 @@ PLOT
 1559
 376
 Evacuation
-NIL
-NIL
+time (h)
+number of citizens
 0.0
 10.0
 0.0
@@ -3683,7 +3683,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
