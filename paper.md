@@ -1,5 +1,5 @@
 ---
-title: 'CHIME: Communicating Hazards in the Modern Environment'
+title: 'Modeling information flow and decision making during hurricane threats'
 tags:
   - evacuation decisions
   - hurricanes
