@@ -1,5 +1,5 @@
 ---
-title: 'Modeling information flow and decision making during hurricane threats'
+title: 'CHIME ABM: Modeling information flow and decision making during hurricane threats'
 tags:
   - evacuation decisions
   - hurricanes
