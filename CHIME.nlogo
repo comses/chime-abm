@@ -571,6 +571,7 @@ to Load-Forecasts-New
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_2day_leadtime.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
     let all-advisories csv:from-file storm-file
 
@@ -1626,6 +1627,7 @@ to-report Publish-Forecasts
    set size-list map [ ?1 -> ?1 ] error-list
 
    let published-forecast [] ;Combine the sub lists created above to create a complete and current forecast
+  print length intensity-list
    set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] intensity-list location-list size-list time-list winds34 winds64)
 
   report published-forecast ;[[intensity [xcoord ycoord] cone_size [day hour] [34-kt wind radii (4 values)] [64-kt wind radii (4 values)]]
