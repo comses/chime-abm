@@ -1602,7 +1602,7 @@ to-report Publish-Forecasts
 
   [if which-storm? = "MICHAEL" [
      let ii 1
-     while [ ii <= 119 ][ ;Get cone of uncertainty value for every hour in a 120-h forecast
+     while [ ii <= 167 ][ ;Get cone of uncertainty value for every hour in a 120-h forecast
         let interpolated-value (interpolate-cone ii)
         set error-list lput interpolated-value error-list
         set ii (ii + 1) ]
@@ -1627,7 +1627,7 @@ to-report Publish-Forecasts
    set size-list map [ ?1 -> ?1 ] error-list
 
    let published-forecast [] ;Combine the sub lists created above to create a complete and current forecast
-  print length intensity-list
+
    set published-forecast (map [ [?1 ?2 ?3 ?4 ?5 ?6] -> (list ?1 ?2 ?3 ?4 ?5 ?6) ] intensity-list location-list size-list time-list winds34 winds64)
 
   report published-forecast ;[[intensity [xcoord ycoord] cone_size [day hour] [34-kt wind radii (4 values)] [64-kt wind radii (4 values)]]
