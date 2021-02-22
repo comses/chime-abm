@@ -2737,7 +2737,7 @@ SLIDER
 #citizen-agents
 0
 5000
-478.0
+510.0
 1
 1
 NIL
@@ -2833,7 +2833,7 @@ earliest
 earliest
 12
 200
-186.0
+102.0
 3
 1
 NIL
@@ -2848,7 +2848,7 @@ latest
 latest
 0
 12
-0.0
+12.0
 3
 1
 NIL
