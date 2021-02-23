@@ -393,7 +393,9 @@ to Load-Hurricane
     if which-storm? = "IRMA" [ set storm-file "STORMS/IRMA/IRMA.txt" ]
     if which-storm? = "DORIAN" [ set storm-file "STORMS/DORIAN/DORIAN.txt" ]
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut.txt" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/AL142018_best_track_cut_fake.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_linear.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_slow_rapid.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_rapid_slow.txt" ]
 
   file-open storm-file  ; imports the best track data
 
@@ -571,8 +573,13 @@ to Load-Forecasts-New
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_2day_leadtime.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/fake_multiple_months.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_linear.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_linear.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_slow_fast.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_slow_fast.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_fast_slow.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_fast_slow.csv" ]
     let all-advisories csv:from-file storm-file
 
   ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
@@ -2739,7 +2746,7 @@ SLIDER
 #citizen-agents
 0
 5000
-1624.0
+605.0
 1
 1
 NIL
