@@ -1602,7 +1602,7 @@ to-report Publish-Forecasts
 
   [if which-storm? = "MICHAEL" [
      let ii 1
-     while [ ii <= 167 ][ ;Get cone of uncertainty value for every hour in a 120-h forecast
+     while [ ii <= length intensity-list ][ ;Get cone of uncertainty value for every hour in a 120-h forecast
         let interpolated-value (interpolate-cone ii)
         set error-list lput interpolated-value error-list
         set ii (ii + 1) ]
@@ -2739,7 +2739,7 @@ SLIDER
 #citizen-agents
 0
 5000
-510.0
+1624.0
 1
 1
 NIL
