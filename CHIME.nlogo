@@ -396,6 +396,8 @@ to Load-Hurricane
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_linear.txt" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_slow_rapid.txt" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_rapid_slow.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/best_track_cat3.txt" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/best_track_cat4.txt" ]
 
   file-open storm-file  ; imports the best track data
 
@@ -581,6 +583,11 @@ to Load-Forecasts-New
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_slow_fast.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_fast_slow.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_fast_slow.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/nonperfect_forecast_hourly_cat3.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/perfect_forecast_hourly_cat3.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/nonperfect_forecast_hourly_cat4.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/perfect_forecast_hourly_cat4.csv" ]
+
     let all-advisories csv:from-file storm-file
 
   ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
