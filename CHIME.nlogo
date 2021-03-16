@@ -1806,7 +1806,7 @@ to Coastal-Patches-Alerts
          let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
          if (scale * dist_trk) < interp_sz [ set dist_trk 0 ] ;If the patch is within the cone error, set "dist_trk"=0
         if counter < earliest and dist_trk = 0 and intens >= wind-threshold[ set alerts 1
-        ] ;If the time before arrival is lower than "earliest", the patch is within the cone errir, and the intensity is greater than the wind threshold, set alerts=1
+        ] ;If the time before arrival is lower than "earliest", the patch is within the cone error, and the intensity is greater than the wind threshold, set alerts=1
        ] ] ]
 end
 
