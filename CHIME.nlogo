@@ -1800,7 +1800,7 @@ to Coastal-Patches-Alerts
          let tc item 0 clock + ((item 1 clock / 100) * (1 / 24)) ;"tc" is the current time converted from day and hours
          let arriv item 0 item 3 working-forecast + ((item 1 item 3 working-forecast / 100) * (1 / 24)) ;"arriv" is the time the hurricane is closest to the patch
          ;JA: Won't we have problems if the month changes?
-         let counter (arriv - tc) * 24 ;"counter" is the ours until arrival
+         let counter (arriv - tc) * 24 ;"counter" is the ours until arrival time
          let interp_sz item 2 working-forecast ;size of the hurricane at landfall
          let intens item 0 working-forecast ;intensity of the hurricane at landfall
          let dist_trk distancexy item 0 item 1 working-forecast item 1 item 1 working-forecast ;Find the distance between the TC center and the patch point at landfall
