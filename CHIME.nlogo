@@ -1960,7 +1960,6 @@ to Decision-Module
     if self = watching [ set risk-env (3 * environmental-cues) ]
 
     ;; risk-packet is a list for storing information about the [final risk, environemntal cues risk, and official orders risk] used for risk assesments. Not used in the decision process.
-    ;JA: Why does the risk packet not have risk from forecasts (i.e. risk-forecast below)?
     set risk-packet (list precision final-risk-assesment 3 precision (3 * environmental-cues) 3 precision (trust-authority * 6 * official-orders * zone) 3)
     ;; records the final risk assesment through time for the agent. Not used in the decision process.
     set risk-estimate lput final-risk-assesment risk-estimate
@@ -3700,7 +3699,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
