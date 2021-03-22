@@ -18,7 +18,7 @@ authors:
     affiliation: 2
   - name: Michael Barton
     orcid: 
-    affiliation: 2
+    affiliation: 1
 affiliations:
  - name: School of Complex Adaptive Systems, Arizona State University
    index: 1
