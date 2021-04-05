@@ -14,10 +14,10 @@ authors:
     orcid: 0000-0003-4784-5214
     affiliation: 2
   - name: Rebecca Morss
-    orcid: 
+    orcid: 0000-0001-6267-3436 
     affiliation: 2
   - name: Michael Barton
-    orcid: 
+    orcid: 0000-0003-2561-1927
     affiliation: 1
 affiliations:
  - name: School of Complex Adaptive Systems, Arizona State University
