@@ -576,7 +576,7 @@ to Load-Forecasts-New
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_2day_leadtime.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
-    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
+    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_linear.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_linear.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_slow_fast.csv" ]
@@ -2975,7 +2975,7 @@ network-size
 network-size
 1
 10
-2.0
+10.0
 1
 1
 NIL
@@ -3285,7 +3285,7 @@ SWITCH
 926
 save-images-each-step
 save-images-each-step
-1
+0
 1
 -1000
 
