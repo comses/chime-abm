@@ -396,8 +396,8 @@ to Load-Hurricane
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_linear.txt" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_slow_rapid.txt" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/AL142018_best_track_cut_rapid_slow.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/best_track_cat3.txt" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/best_track_cat4.txt" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/best_track_cat3.txt" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/best_track_cat4.txt" ]
 
   file-open storm-file  ; imports the best track data
 
@@ -575,7 +575,7 @@ to Load-Forecasts-New
     if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_2day_leadtime.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_linear.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_linear.csv" ]
@@ -583,9 +583,9 @@ to Load-Forecasts-New
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_slow_fast.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/nonperfect_forecast_hourly_fast_slow.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/idealized_linear_fast_slow/perfect_forecast_hourly_fast_slow.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/nonperfect_forecast_hourly_cat3.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/perfect_forecast_hourly_cat3.csv" ]
-    if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/nonperfect_forecast_hourly_cat4.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/nonperfect_forecast_hourly_cat3.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/perfect_forecast_hourly_cat3.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/nonperfect_forecast_hourly_cat4.csv" ]
     ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/various_categories/perfect_forecast_hourly_cat4.csv" ]
 
     let all-advisories csv:from-file storm-file
@@ -2753,7 +2753,7 @@ SLIDER
 #citizen-agents
 0
 5000
-605.0
+2000.0
 1
 1
 NIL
@@ -2849,7 +2849,7 @@ earliest
 earliest
 12
 200
-102.0
+60.0
 3
 1
 NIL
@@ -2879,7 +2879,7 @@ wind-threshold
 wind-threshold
 70
 130
-94.0
+96.0
 1
 1
 NIL
@@ -2915,7 +2915,7 @@ forc-weight
 forc-weight
 0
 2
-1.06
+1.0
 .01
 1
 NIL
@@ -3136,7 +3136,7 @@ limited-english-assessment-decrease
 limited-english-assessment-decrease
 0
 1
-1.0
+0.1
 0.1
 1
 %
@@ -3699,7 +3699,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
