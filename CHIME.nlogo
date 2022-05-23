@@ -46,6 +46,7 @@ extensions [gis profiler csv nw]
 ; Declare global variables
 globals [
          clock                    ; keeps track of model time, same as ticks, but in days and hours
+         current-date             ; used to track the numerical date and track when a new day occurs for county evacuations
          county-seats             ; import dataset from GIS - county seats
          county-seat-list         ; list of county seats
 
@@ -80,6 +81,7 @@ globals [
          risk-orders              ; for display - to track watching's evacuation orders
          risk-env                 ; for display - to track watching's environmental cues
          risk-surge               ; for display - to track watching's surge risk
+         county-evacuation-list   ; used to record daily evacuation info for counties
          ]
 
 ;; Declare agent breeds
@@ -144,11 +146,15 @@ citizen-agents-own [
          food-stamps?                      ; records if the census tract uses food stamps
          no-vehicle?                       ; records if the census tract does not have a vehicle
          no-internet?                      ; records if the census tract has access to interent
+         county-fips                       ; records the county FIPS number. Multiple census tracts may have the same number.
+
 
          risk-forecast                     ;forecast risk (weight is included)
          risk-official-orders              ;evacuation order risk (weight is included)
          risk-environmental-cues           ;environmental cue risk (weight is included)
          final-risk-assesment              ;total risk ( risk-forecast  + risk-official-orders  + risk-environmental-cues )
+         evacuated?                        ;has the citizen evacuated
+         evac-day                          ;evacuation date
      ]
 
 officials-own [
@@ -172,6 +178,7 @@ drawers-own  [ cone-size ]          ; stores the cone size at the relevant hour 
 to Setup
   __clear-all-and-reset-ticks
 
+
   ;;Load Geographic Data Used in the Simulation
   Load-GIS
 
@@ -192,8 +199,9 @@ to Setup
   Generate-Storm  ;; generates the hurricane
 
   set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track    ;; defines the clock
-
+  set county-evacuation-list []
   set hurricane-has-passed? false
+
 
   ;; Setup Agents Based on if the Census Information is Being Used
 
@@ -215,6 +223,7 @@ to Setup
    set risk-orders 0
    set risk-env 0
    set risk-surge 0
+   set current-date item 0 clock
 
 end
 
@@ -225,8 +234,12 @@ to Go
   ; PROCEDURES CALLED:
   ; CALLED BY:
 
+;show ticks
+
   ;;The hurricane moves to its historical location based on the time.
-  ifelse using-hpc? [][Move-Hurricane]    ;; calls procedure to move the hurricane one time step - only show the visualization if using a local computer copy
+  ;ifelse using-hpc? [][Move-Hurricane]    ;; calls procedure to move the hurricane one time step - only show the visualization if using a local computer copy
+
+  Move-Hurricane
 
   ;; update the forecast
   ask forecasters [  set current-forecast Publish-Forecasts  ]
@@ -272,8 +285,14 @@ to Go
   if save-agent-data-each-step [let x save-data-timestep] ;behaviorspace requires a reporter but the value reported is not real
   if save-images-each-step [ save-view-images ]
 
+
+  if save-county-evacuation-data and current-date != item 0 clock [record-county-evac-data current-date]
+  set current-date item 0 clock
+
+
 ; Stop the Model and record output that only saves at the end of the model
-  if hurricane-has-passed? = true [
+  if hurricane-has-passed? = true or ticks = 132[
+    if save-county-evacuation-data [record-county-evac-data current-date save-county-evac-data-csv]
     set output-filename "test"
     if save-global-evacuation-statistics [let x save-global-evac-statistics]
     ifelse file-exists? "output" [ set evac-filename word "output/inidividual-evac-statistics_" behaviorspace-run-number ]
@@ -282,6 +301,7 @@ to Go
    stop
    ]
   tick   ;; advances the model one time step
+
 
 end
 
@@ -443,7 +463,6 @@ to Load-Forecasts
   ; VARIABLES MODIFIED:
   ; PROCEDURES CALLED:
   ; CALLED BY:
-
 
    set forecast-matrix []
 
@@ -1246,7 +1265,10 @@ to Create-Citizen-Agents-From-Census-Tracts
   ; PROCEDURES CALLED: Create-More-Cit-Ags-Based-On-Census; Check-For-Swimmers; Add-Census-Factor
   ; CALLED BY: Setup
 
-  let tractfile "flcensusdata/fltractpoint5.shp" ;This data works for only the Florida domain
+  let tractfile ""
+  ifelse  using-hpc?
+  [set tractfile "/home/sbergin/CHIME/flcensusdata/fltractpoint5.shp" ]
+  [set tractfile "flcensusdata/fltractpoint5.shp"]
 
   set tract-points gis:load-dataset tractfile ;Load census data, which consists of many variables (see sitefields for a list of variables)
   let sitefields gis:property-names tract-points ;Name of tract data: [CAT STATE_FIPS CNTY_FIPS STCOFIPS TRACT FIPS POPULATION POP_SQMI POP2010 POP10_SQMI AGE_UNDER5 AGE_5_9 AGE_10_14 AGE_15_19 AGE_20_24 AGE_25_34 AGE_35_44 AGE_45_54 AGE_55_64 AGE_65_74 AGE_75_84 AGE_85_UP MED_AGE MED_AGE_M MED_AGE_F HOUSEHOLDS AVE_HH_SZ HSEHLD_1_M HSEHLD_1_F MARHH_CHD MARHH_NO_C MHH_CHILD FHH_CHILD FAMILIES AVE_FAM_SZ HSE_UNITS VACANT OWNER_OCC RENTER_OCC SQMI SHAPE_LENG SHAPE_AREA LONGITUDE LATITUDE TOTAL_HH HH_WUNDR18 HH_WOVER65 HHWOVR65_1 HHWOVR65_2 LMTED_ENG HHUSEFSTMP OVR60FDSTM HH_WDISABI HH_WDISAFS HH_WCOMPUT HHNOINTERN HNOINT20K HNOINT20_7 HOVR65NOCO HH_NOVEHIC EDLESSHS NOWRK12M]
@@ -1275,7 +1297,9 @@ to Create-Citizen-Agents-From-Census-Tracts
       set tract-information prop-list ;tract-information may look like the following, which lists all of the tract information for a point: [39 12 091 12091 022600 12091022600 3408 3550 3053 3180.2 222 169 143 145 280 574 316 454 301 210 166 73 34.9 32.8 38.5 1449 2 319 341 111 207 36 186 621 2.84 1748 299 387 1062 0.96 0.06979775537 2.3394793E-4 -86.6094201866 30.4076438608 1672 381 367 255 112 38 352 81 410 197 1331 539 183 318 117 180 80 0.171651495]
       set my-tract-population item 6 tract-information ;sets the population of a given tract point
       set my-tract-household item 44 tract-information ;sets the number of total households in the tract
-      set census-tract-number item 5 tract-information ;sets the unique tract number
+      set census-tract-number item 4 tract-information ;sets the unique tract number
+      set county-fips item 2 tract-information
+      set county-fips read-from-string county-fips
 
       ;; original citizen information (as used above)
       set evac-zone Check-Zone ;Each citizen runs "Check-Zone" prodedure to determine which evacuation zone they are in.
@@ -1287,6 +1311,8 @@ to Create-Citizen-Agents-From-Census-Tracts
       set aggregator-list  [ ]
       set interpreted-forecast []
       set memory list self-trust interpreted-forecast ;"memory" includes a citizen's self trust and interpreted forecast
+      set evacuated? false
+      set evac-day 0
 
       ;; for new decision model, citizens determine risk perception thresolds
       set risk-life-threshold random-normal 14 2 ;Random number chosen from a distribution with a mean of 14 and a standard deviation of 2
@@ -1427,8 +1453,6 @@ to Social-Network
   ; CALLED BY: Setup after all of the agents have been created
 
  ;; uses a simple routine to create a scale-free network
-  ;SB change network size name
-  ;SB describe the lists
   let net-power network-size   ; network-size is set in the user interface
   ask citizen-agents [
 
@@ -1984,7 +2008,7 @@ to Decision-Module
    ;; conditionals determine the decision outcome based on the risk assessment (records what they did and when they did it, updates colors)
    ;; note "feedback1" variable sets the frequency an agent runs this whole loop, min is 1 tick (every step), max is 12 ticks
    ;; note that most agents' risk-life threshold is somewhere near 10
-    if final-risk-assesment > risk-life-threshold [set color orange ;evacuate if the final risk is greater than the risk to life
+    if final-risk-assesment > risk-life-threshold [set color orange set evacuated? true set evac-day item 0 clock;evacuate if the final risk is greater than the risk to life
                          set completed fput (list "evacuate" clock counter) completed
                          ]
     if final-risk-assesment < risk-life-threshold and final-risk-assesment > risk-property-threshold [set color green ;if the final risk is less than the risk to life, but greater than risk to property, then have the citizen gather new information more often and have the citizen document that they are taking an action
@@ -2280,12 +2304,12 @@ to-report Save-Individual-Cit-Ag-Evac-Records
   file-print ""
   file-print ""
 
-  set text-out (sentence ",agent,xcor,ycor,latitude,longitude,coastal-inland,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,")
+  set text-out (sentence ",agent,xcor,ycor,latitude,longitude,county.fips,coastal-inland,selftrust,trustauthority?,risklife,riskproperty,infoup,infodown,evac.zone,completed.actions,when.evac.1st.ordered,ntract.information,kids.under.18,adults.over.65,limited.english,foodstamps,no.vehicle,no.internet,census.tract.number,evacuated,evac.day,")
   file-type text-out
   file-print ""
 
   ask citizen-agents[
-  set text-out (sentence ","who","xcor","ycor","latitude","longitude","coastal-inland-citizen-agent","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number",")
+  set text-out (sentence ","who","xcor","ycor","latitude","longitude","county-fips","coastal-inland-citizen-agent","self-trust","trust-authority","risk-life-threshold","risk-property-threshold","info-up","info-down","evac-zone","completed","when-evac-1st-ordered","tract-information","kids-under-18?","adults-over-65?","limited-english?","food-stamps?","no-vehicle?","no-internet?","census-tract-number"," evacuated? ","evac-day",")
   file-type text-out
   file-print ""
   ]
@@ -2296,6 +2320,50 @@ to-report Save-Individual-Cit-Ag-Evac-Records
 
 end
 
+
+to record-county-evac-data [x]
+  ; INFO: Used during the simulation to record information for each county of the simulated area on a daily basis
+  ; VARIABLES MODIFIED: county-evacuation-list
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Updated by Go, and turned on with user interface button
+
+  foreach county-seat-list [ ?1 ->
+
+    let county-id-temp item 0 ?1
+    let county-citizens citizen-agents with [county-fips = county-id-temp]
+    let evacuated-county-residents county-citizens with [evacuated? = true]
+    set evacuated-county-residents count evacuated-county-residents
+    let county-total-residents count county-citizens
+    let date x
+    let just-evacuated county-citizens with [evac-day = date]
+    set just-evacuated count just-evacuated
+
+    ;info to record to the output file
+    ;day, county, count-evac, count total, today-evac
+    let text-out (sentence ","date","county-id-temp","evacuated-county-residents","county-total-residents","just-evacuated",")
+    set county-evacuation-list lput text-out county-evacuation-list
+  ]
+end
+
+to save-county-evac-data-csv
+  ; INFO: Used at the end of the simulation to record information for each county of the simulated area on a daily basis
+  ; VARIABLES MODIFIED: None
+  ; PROCEDURES CALLED: None
+  ; CALLED BY: Called by Go, and turned on with user interface button
+
+
+  let filename word  behaviorspace-run-number "_county-evacuation"
+  ;let filename "county-evacuation"
+  file-open (word filename ".csv")
+
+  foreach county-evacuation-list [ ?1 ->
+    file-type ?1
+    file-print ""
+  ]
+
+  file-close
+
+end
 
 to-report Save-Global-Evac-Statistics
   ; INFO: Saves evacuation information for the whole simulation - aggregate for all of the agents.
@@ -2690,8 +2758,7 @@ to Setup-HPC
 
   Load-Hurricane-HPC
 
-  ;; *SMB FOR HPC the load forecast procedure needs to be updated
-  ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New ] [Load-Forecasts-HPC]
+  ifelse which-storm? = "IRMA" or  which-storm? = "MICHAEL" [ Load-Forecasts-New-HPC ] [Load-Forecasts-HPC]
 
 
   set scale (item 0 grid-cell-size * 60.0405)  ;; THIS SHOULD BE the size of a grid cell in nautical miles, more or less ;; 60.0405 nm per degree
@@ -2699,13 +2766,14 @@ to Setup-HPC
   Generate-Storm  ;; generates the hurricane
 
   set clock list item 3 item ticks hurricane-coords-best-track  item 4 item ticks hurricane-coords-best-track    ;; defines the clock
+  set county-evacuation-list []
+  set hurricane-has-passed? false
 
-   set hurricane-has-passed? false
   ;; Setup Agents Based on if the Census Information is Being Used
 
 
-  if use-census-data and which-region?  != "FLORIDA"
-  [print "*** WARNING: Census Data is only available for Florida and will not be used for locations or decisions. ***"]
+  ;if use-census-data and which-region?  != "FLORIDA"
+  ;[print "*** WARNING: Census Data is only available for Florida and will not be used for locations or decisions. ***"]
 
   ifelse use-census-data and which-region?  = "FLORIDA"
   [Create-Citizen-Agents-From-Census-Tracts];; creates agents based on census data and assigns them
@@ -2714,6 +2782,218 @@ to Setup-HPC
   Create-Other-Agents;; Officials, Broadcasters and Aggregators are created
 
   Social-Network ;; defines the agents' social networks
+
+end
+
+
+to Load-Forecasts-New-HPC
+  ; INFO: Load hurricane forecast information based on the hurricane selected in the interface
+  ; VARIABLES MODIFIED: The main variable modified is the forecast-matrix. The forecasts include historical predictions about the storm based on the amount of time before the storm hits
+  ; PROCEDURES CALLED: Calculate-Advisory-Time is called and used to convert forecast times that are saved in forecast-matrix
+  ; CALLED BY: Setup
+
+   set forecast-matrix [] ; This is the main variable that will be modified in this procedure and records forecasts that will be used throughout the simulation
+
+   let storm-file "" ; The storm file is a csv that is read and parsed into the forecast-matrix
+    if which-storm? = "HARVEY" [ set storm-file "/home/sbergin/CHIME/STORMS/HARVEY/HARVEY_ADVISORIES_NEW.csv" ]
+    if which-storm? = "WILMA" [ set storm-file "/home/sbergin/CHIME/STORMS/WILMA/WILMA_ADVISORIES_NEW.csv" ]
+    if which-storm? = "CHARLEY_REAL" [ set storm-file "/home/sbergin/CHIME/STORMS/CHARLEY_REAL/CHARLEY_ADVISORIES_NEW.csv" ]
+    if which-storm? = "IRMA" [ set storm-file "/home/sbergin/CHIME/STORMS/IRMA/IRMA_ADVISORIES.csv" ]
+   ; if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/perfect_forecast_hourly.csv" ]
+    ;if which-storm? = "MICHAEL" [ set storm-file "STORMS/MICHAEL/NHC_forecast_perfect_track_hourly.csv" ]
+
+
+
+
+    let all-advisories csv:from-file storm-file
+
+  ;; If it needs to be added later, a similar batch of code to that below could be used to sort for ofcl forecasts
+
+   let advisories-parsed []; the first list used to hold information from the first parsing of all-advisories
+
+   ;; First filter out rows that are NOT used which have a time and pressure of 0 and save them in advisories-parsed
+   foreach all-advisories [ this-advisory ->
+    let this-forecast-time item 5 this-advisory
+    let pressure-value item 9 this-advisory
+    ifelse this-forecast-time = 0 and pressure-value = 0 [][
+    set advisories-parsed lput this-advisory advisories-parsed
+    ]
+   ]
+  let forecast-time 0
+  let all-forecasts [] ;; the new list that holds the parsed information
+  let unique-advisory [] ;; a sub list that is saved to the all-forecasts list
+
+
+  ;; This next section of code below is to move each row into a new list entry by date to replicate the previous format
+  ;; This results in a list which contains a list of all information for each day in one row
+  ;; Previous Format:  [ [Day 1 Time 1]
+  ;;                   [Day 1 Time 2]
+  ;;                   [Day 2 Time 1]
+  ;;                   [Day 2 Time 2]]
+  ;;  New Format:      [[Day 1 Time 1 Time 2]
+  ;;                   [Day 2 Time 1 Time 2]]
+
+  foreach advisories-parsed [this-advisory ->
+
+    ; same forecast time - so keep adding it to the list for that day
+    ifelse forecast-time = (item 2 this-advisory) [
+      set unique-advisory  lput this-advisory unique-advisory
+    ]
+    ; Each unique forecast is added to its own list called unique-advisory. When a new forecast time is detected, that sub-list is added to the list of all information, all-forecasts
+    ;new forecast time
+    [
+      if forecast-time != 0 [set all-forecasts lput unique-advisory all-forecasts]
+      set forecast-time item 2 this-advisory
+      set unique-advisory []
+      set unique-advisory  lput this-advisory unique-advisory
+
+    ]
+  ]
+  ;; all-forecasts now contatins the partially parsed information that has each forecast time recorded as its own sublist
+
+  set forecast-time 0
+  let entries-for-one-day []
+  let entries-for-all-days []
+
+  ; Now parse each day into one entry that follows the format used to load previous information
+  ; The format contains different types of information within sub-lists as shown below:
+  ;          [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64] ]
+  ; EXAMPLE: [5 1200 [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]]
+  foreach all-forecasts [whole-advisory-day ->
+
+    let first-entry item 0 whole-advisory-day
+    let date item 2 first-entry
+    let hours-away item 5 first-entry ; used to id the current time for this list entry
+    let schedule Calculate-Advisory-Time date hours-away
+    set entries-for-one-day []
+    set entries-for-one-day lput schedule entries-for-one-day  ;; uses a reporter that update the time correctly
+
+    let entries-for-one-time-on-one-day []
+    let list-34 []
+    let list-64 []
+    let new-time-entry false
+    let first-entry-from-this-advisory true
+    let current-forecast-time 0
+
+    ; This section goes through each forecast entry for a unique forecast time and parses the information
+    foreach whole-advisory-day [ this-advisory ->
+
+      ;; we don't save the forecast info that is currently occuring - just future ones, so get rid of a few
+      let entry-hours-away item 5 this-advisory
+
+      if entry-hours-away != hours-away[
+        ; set wind-speed
+        let wind-speed item 11 this-advisory
+
+        ; check to see if its a new time
+        ifelse current-forecast-time != (item 5 this-advisory) and first-entry-from-this-advisory = false [
+           set new-time-entry true
+        ][set new-time-entry false
+          set first-entry-from-this-advisory false]
+
+        ifelse new-time-entry[
+          ; save the info and reset lists to 0
+
+          ifelse length list-34 > 0 [set schedule lput list-34 schedule]
+          [let empty (word list-34 "")
+            set schedule lput empty schedule]
+          ifelse length list-64 > 0 [set schedule lput list-64 schedule]
+          [
+            let empty (word list-64 "")
+            set schedule lput empty schedule]
+
+          set entries-for-one-day lput schedule entries-for-one-day
+
+          set current-forecast-time item 5 this-advisory
+          set entries-for-one-time-on-one-day []
+          set list-34 []
+          set list-64 []
+
+
+          ; save current info
+          set date item 2 this-advisory
+          let this-hours-away item 5 this-advisory ; used to id the current time
+          set schedule Calculate-Advisory-Time date this-hours-away
+          ;;[5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]
+          ;; add the coordinates and the max windspeed to schedule
+
+          let coords Calculate-Coordinates  item 7 this-advisory item 6 this-advisory
+
+          set schedule lput item 1 coords schedule
+          set schedule lput item 0 coords schedule
+          set schedule lput item 8 this-advisory schedule
+
+          ;set schedule
+          ;save windspeed list
+          if wind-speed = 34[
+            set list-34 lput item 13 this-advisory list-34
+            set list-34 lput item 14 this-advisory list-34
+            set list-34 lput item 15 this-advisory list-34
+            set list-34 lput item 16 this-advisory list-34
+
+          ]
+          if wind-speed = 64[
+            set list-64 lput item 13 this-advisory list-64
+            set list-64 lput item 14 this-advisory list-64
+            set list-64 lput item 15 this-advisory list-64
+            set list-64 lput item 16 this-advisory list-64
+          ]
+
+        ][ ; Repeat the same steps as above, this is for a different time from the same forecast
+
+          ; save current info
+          ;save windspeed list
+          set date item 2 this-advisory
+          let this-hours-away item 5 this-advisory ; used to id the current time
+          set schedule Calculate-Advisory-Time date this-hours-away
+          ;; General format:  [5 1800 -198.23361282214213 470.7438061089692 155 [130 100 80 110] [40 35 30 35]]
+          ;; add the coordinates and the max windspeed to schedule
+          let coords Calculate-Coordinates  item 7 this-advisory item 6 this-advisory
+          set schedule lput item 1 coords schedule
+          set schedule lput item 0 coords schedule
+          set schedule lput item 8 this-advisory schedule
+
+
+          if wind-speed = 34[
+            set list-34 lput item 13 this-advisory list-34
+            set list-34 lput item 14 this-advisory list-34
+            set list-34 lput item 15 this-advisory list-34
+            set list-34 lput item 16 this-advisory list-34
+          ]
+          if wind-speed = 64[
+            set list-64 lput item 13 this-advisory list-64
+            set list-64 lput item 14 this-advisory list-64
+            set list-64 lput item 15 this-advisory list-64
+            set list-64 lput item 16 this-advisory list-64
+          ]
+          set current-forecast-time item 5 this-advisory
+        ]
+      ]
+    ]
+        ; save the last forecast time from each day here:
+        ifelse length list-34 > 0 [set schedule lput list-34 schedule]
+          [let empty (word list-34 "")
+            set schedule lput empty schedule]
+        ifelse length list-64 > 0 [set schedule lput list-64 schedule]
+          [
+            let empty (word list-64 "")
+            set schedule lput empty schedule]
+
+          set entries-for-one-day lput schedule entries-for-one-day
+
+
+         set entries-for-all-days lput entries-for-one-day entries-for-all-days
+  ]
+
+; The parsing is complete and the forecast-matrix is set
+; The format is as follows:
+  ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
+  ; [Date of Forecast [ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] [[ individual forecast time, netlogo coordinates, max wind [wind 34] [wind 64]] ...]
+
+
+  set entries-for-all-days Calendar-Check-Forecast entries-for-all-days
+
+  set forecast-matrix  entries-for-all-days
 
 end
 @#$#@#$#@
@@ -2879,7 +3159,7 @@ wind-threshold
 wind-threshold
 70
 130
-96.0
+72.0
 1
 1
 NIL
@@ -2893,7 +3173,7 @@ CHOOSER
 which-storm?
 which-storm?
 "HARVEY" "WILMA" "WILMA_IDEAL" "CHARLEY_REAL" "CHARLEY_IDEAL" "CHARLEY_BAD" "IRMA" "MICHAEL"
-7
+6
 
 SWITCH
 15
@@ -2990,7 +3270,7 @@ citizen-to-census-population-ratio
 citizen-to-census-population-ratio
 0
 10000
-6000.0
+5000.0
 500
 1
 NIL
@@ -3003,7 +3283,7 @@ SWITCH
 850
 kids-under-18-factor
 kids-under-18-factor
-0
+1
 1
 -1000
 
@@ -3059,7 +3339,7 @@ over-65-assessment-decrease
 over-65-assessment-decrease
 0.1
 1
-0.4
+0.5
 0.1
 1
 %
@@ -3136,7 +3416,7 @@ limited-english-assessment-decrease
 limited-english-assessment-decrease
 0
 1
-0.1
+0.5
 0.1
 1
 %
@@ -3151,7 +3431,7 @@ foodstamps-assessment-decrease
 foodstamps-assessment-decrease
 0
 1
-1.0
+0.5
 0.1
 1
 %
@@ -3164,7 +3444,7 @@ SWITCH
 961
 use-food-stamps-factor
 use-food-stamps-factor
-1
+0
 1
 -1000
 
@@ -3203,7 +3483,7 @@ no-internet-assessment-modification
 no-internet-assessment-modification
 0
 1
-1.0
+0.5
 0.1
 1
 %
@@ -3221,9 +3501,9 @@ no-internet-factor
 -1000
 
 BUTTON
-20
+26
 1045
-158
+164
 1078
 PROFILER - Setup
 profiler:start\nrepeat 3 [setup]\nprofiler:stop\nprint profiler:report\nprofiler:reset
@@ -3285,7 +3565,7 @@ SWITCH
 926
 save-images-each-step
 save-images-each-step
-0
+1
 1
 -1000
 
@@ -3341,6 +3621,17 @@ PENS
 "Evacuated" 1.0 0 -955883 true "" "plot count citizen-agents with [color = orange]"
 "Protective Action" 1.0 0 -14439633 true "" "plot count citizen-agents with [color = green]"
 "No Action" 1.0 0 -13345367 true "" "plot count citizen-agents with [color = blue]"
+
+SWITCH
+13
+996
+281
+1029
+save-county-evacuation-data
+save-county-evacuation-data
+0
+1
+-1000
 
 @#$#@#$#@
 1. "setup" initializes the simulation.
@@ -3699,7 +3990,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -10729,6 +11020,232 @@ set evac-filename "exp-irma-20190828-Irma-evac-nointernet"</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="network-size">
       <value value="2"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="2022_test_Irma_over65" repetitions="3" runMetricsEveryStep="true">
+    <setup>setup-hpc</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;IRMA&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="display-dem?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-county-evacuation-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="72"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute-population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment-pc" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <final>save-county-evac-data-csv</final>
+    <exitCondition>ticks = 132</exitCondition>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;IRMA&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="display-dem?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="5000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-county-evacuation-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="72"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute-population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="10"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
