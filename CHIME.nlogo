@@ -3444,7 +3444,7 @@ SWITCH
 961
 use-food-stamps-factor
 use-food-stamps-factor
-0
+1
 1
 -1000
 
@@ -3990,7 +3990,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -11239,6 +11239,566 @@ set evac-filename "exp-irma-20190828-Irma-evac-nointernet"</setup>
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="2022_test_Irma_over65" repetitions="100" runMetricsEveryStep="true">
+    <setup>setup-hpc</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;IRMA&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="display-dem?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-county-evacuation-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="72"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute-population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="2022_test_Irma_nocensus" repetitions="100" runMetricsEveryStep="true">
+    <setup>setup-hpc</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;IRMA&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="display-dem?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-county-evacuation-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="72"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute-population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="2022_test_Irma_foodstamps" repetitions="100" runMetricsEveryStep="true">
+    <setup>setup-hpc</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;IRMA&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="display-dem?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-county-evacuation-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="72"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute-population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="2022_test_Irma_under18" repetitions="100" runMetricsEveryStep="true">
+    <setup>setup-hpc</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;IRMA&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="display-dem?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-county-evacuation-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="72"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute-population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adults-over-65-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-size">
+      <value value="10"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="osg_experiment_nocensus_factors" repetitions="2" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="census-tract-max-pop">
+      <value value="10000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="over-65-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="latest">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#net-aggregators">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-agent-data-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-distance">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="foodstamps-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-internet-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-food-stamps-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#citizen-agents">
+      <value value="2000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-global-evacuation-statistics">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="earliest">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-assessment-decrease">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="which-storm?">
+      <value value="&quot;IRMA&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-assessment-modification">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="forc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="census-tract-min-pop">
+      <value value="5900"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-citizen-data-at-end-of-simulation">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="no-vehicle-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="evac-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-census-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="#broadcasters">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="where-to-place-legend?">
+      <value value="&quot;upper-right&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="envc-weight">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="under-18-assessment-increase">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="display-dem?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="citizen-to-census-population-ratio">
+      <value value="5000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-county-evacuation-data">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wind-threshold">
+      <value value="72"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="distribute-population">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kids-under-18-factor">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="save-images-each-step">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="limited-english-factor">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="adults-over-65-factor">
