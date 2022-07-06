@@ -9,3 +9,6 @@ flcensusdata/.DS_Store
 *.png
 output/inidividual-evac-statistics_0.csv
 ~$IME ABM ODD.docx
+0_county-evacuation_.csv
+census_experiment.sh.webloc
+wilma_nocensus_factors.csv
